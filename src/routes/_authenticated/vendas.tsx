@@ -45,7 +45,7 @@ type Venda = {
   status: string;
   valor_total: number | string;
   data_venda: string;
-  previsao_entrega: string | null;
+  data_entrega_prevista: string | null;
   clientes: { nome: string } | null;
 };
 
@@ -69,7 +69,7 @@ function PaginaVendas() {
     queryFn: async () => {
       let q = supabase
         .from("vendas")
-        .select("id, numero, status, valor_total, data_venda, previsao_entrega, clientes(nome)")
+        .select("id, numero, status, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
         .order("numero", { ascending: false })
         .limit(50);
       if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
@@ -143,7 +143,7 @@ function PaginaVendas() {
                     <TableCell>{venda.clientes?.nome ?? "—"}</TableCell>
                     <TableCell className="num">{formatarData(venda.data_venda, fuso)}</TableCell>
                     <TableCell className="hidden md:table-cell num text-muted-foreground">
-                      {formatarData(venda.previsao_entrega, fuso)}
+                      {formatarData(venda.data_entrega_prevista, fuso)}
                     </TableCell>
                     <TableCell>
                       <SeloStatusVenda status={venda.status} />
