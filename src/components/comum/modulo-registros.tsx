@@ -108,7 +108,7 @@ export function ModuloRegistros({
       if (error) throw error;
       const lista = data ?? [];
       if (!filtroFixo) return lista;
-      return lista.filter((r) => Object.entries(filtroFixo).every(([k, v]) => r[k] === v));
+      return lista.filter((r: Registro) => Object.entries(filtroFixo).every(([k, v]) => r[k] === v));
     },
   });
 
@@ -294,7 +294,7 @@ export function ModuloRegistros({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(consulta.data ?? []).map((registro, indice) => (
+                {(consulta.data ?? []).map((registro: Registro, indice: number) => (
                   <TableRow key={String(registro['id'] ?? indice)}>
                     {colunas.map((c) => (
                       <TableCell
