@@ -21,7 +21,7 @@ import {
   Smartphone,
   Copy,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
@@ -99,6 +99,7 @@ function PaginaAcessos() {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Membro | null>(null);
+  const [aba, setAba] = useState("perfil");
 
   const consulta = useQuery({
     queryKey: ["equipe-acessos", empresa?.id],
