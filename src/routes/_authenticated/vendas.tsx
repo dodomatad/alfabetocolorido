@@ -53,6 +53,9 @@ type Venda = {
 
 const STATUS = [
   "rascunho",
+  "em_andamento",
+  "efetuada",
+  "falta_pagamento",
   "confirmada",
   "em_producao",
   "pronta",

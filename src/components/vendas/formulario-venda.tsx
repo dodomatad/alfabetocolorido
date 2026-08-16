@@ -32,6 +32,9 @@ const ITEM_VAZIO: Item = { modalidade_id: "", quantidade: "1", preco_unitario: "
 
 const STATUS_INICIAIS = [
   { valor: "rascunho", rotulo: "Rascunho" },
+  { valor: "em_andamento", rotulo: "Em andamento" },
+  { valor: "efetuada", rotulo: "Efetuada" },
+  { valor: "falta_pagamento", rotulo: "Falta pagamento" },
   { valor: "confirmada", rotulo: "Confirmada" },
 ] as const;
 
@@ -123,7 +126,7 @@ export function FormularioVenda({
           numero: proximo ?? 1,
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
-          status: status as "rascunho" | "confirmada",
+          status: status as "rascunho" | "em_andamento" | "efetuada" | "falta_pagamento" | "confirmada",
           subtotal,
           desconto: numero(desconto),
           acrescimo: numero(acrescimo),
