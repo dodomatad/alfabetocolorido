@@ -642,6 +642,74 @@ export type Database = {
           },
         ]
       }
+      producao_diaria: {
+        Row: {
+          atualizado_por: string | null
+          bloqueios: number
+          bms_aquecidas: number
+          bms_criadas: number
+          contas_subidas: number
+          contas_viradas: number
+          created_at: string
+          criado_por: string | null
+          data_registro: string
+          empresa_id: string
+          id: string
+          meta_diaria: number
+          motivo_queda: Database["public"]["Enums"]["motivo_queda"] | null
+          observacoes: string | null
+          operador: string
+          operador_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          bloqueios?: number
+          bms_aquecidas?: number
+          bms_criadas?: number
+          contas_subidas?: number
+          contas_viradas?: number
+          created_at?: string
+          criado_por?: string | null
+          data_registro?: string
+          empresa_id: string
+          id?: string
+          meta_diaria?: number
+          motivo_queda?: Database["public"]["Enums"]["motivo_queda"] | null
+          observacoes?: string | null
+          operador: string
+          operador_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          bloqueios?: number
+          bms_aquecidas?: number
+          bms_criadas?: number
+          contas_subidas?: number
+          contas_viradas?: number
+          created_at?: string
+          criado_por?: string | null
+          data_registro?: string
+          empresa_id?: string
+          id?: string
+          meta_diaria?: number
+          motivo_queda?: Database["public"]["Enums"]["motivo_queda"] | null
+          observacoes?: string | null
+          operador?: string
+          operador_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producao_diaria_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios_papeis: {
         Row: {
           created_at: string
@@ -840,6 +908,12 @@ export type Database = {
         | "atrasado"
         | "cancelado"
       financeiro_tipo: "receber" | "pagar"
+      motivo_queda:
+        | "erro_cartao"
+        | "checkpoint_identidade"
+        | "bloqueio_ip"
+        | "restricao_imediata"
+        | "outros"
       producao_status:
         | "planejada"
         | "em_producao"
@@ -1007,6 +1081,13 @@ export const Constants = {
         "cancelado",
       ],
       financeiro_tipo: ["receber", "pagar"],
+      motivo_queda: [
+        "erro_cartao",
+        "checkpoint_identidade",
+        "bloqueio_ip",
+        "restricao_imediata",
+        "outros",
+      ],
       producao_status: [
         "planejada",
         "em_producao",
