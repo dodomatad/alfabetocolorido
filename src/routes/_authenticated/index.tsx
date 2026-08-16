@@ -183,16 +183,20 @@ function PaginaDashboard() {
     percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
   }));
 
-  const contagemDias = DIAS.map((dia, indice) => ({
-    dia,
-    quantidade: validas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice)
-      .length,
-  }));
-  const totalDias = contagemDias.reduce((s, d) => s + d.quantidade, 0) || 1;
-  const barras = [...contagemDias.slice(1), contagemDias[0]!].map((d) => ({
-    dia: d.dia,
-    percentual: (d.quantidade / totalDias) * 100,
-  }));
+  const acertosPorDia = DIAS.map((dia, indice) => {
+    const vendasDia = vendas.filter(
+      (v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice
+    );
+    const convertidasDia = vendasDia.filter(
+      (v) => v.status !== "rascunho" && v.status !== "cancelada"
+    ).length;
+    const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
+    return {
+      dia,
+      percentual: taxa,
+    };
+  });
+  const barras = [...acertosPorDia.slice(1), acertosPorDia[0]!];
 
   return (
     <div className="space-y-6 pt-2">
