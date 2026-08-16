@@ -25,7 +25,7 @@ export function CabecalhoPagina({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
+            className="h-9 w-9 text-primary"
             onClick={() => window.history.back()}
           >
             <ChevronLeft className="h-5 w-5" />
