@@ -76,7 +76,7 @@ function NavegacaoLateral() {
       <SidebarContent>
         {GRUPOS_MENU.map((grupo) => (
           <SidebarGroup key={grupo.rotulo}>
-            <SidebarGroupLabel className="text-blue-400/80 font-medium uppercase tracking-wider text-[10px]">{grupo.rotulo}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-white font-bold uppercase tracking-wider text-[10px]">{grupo.rotulo}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {grupo.itens.map((item) => {
