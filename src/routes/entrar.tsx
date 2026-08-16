@@ -81,8 +81,13 @@ function PaginaEntrar() {
       });
       return;
     }
-    if (lembrar) localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
-    else localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
+    if (lembrar) {
+      localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
+      localStorage.setItem(CHAVE_SENHA_LEMBRADA, senha);
+    } else {
+      localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
+      localStorage.removeItem(CHAVE_SENHA_LEMBRADA);
+    }
     toast.success("Bem-vindo de volta");
     await router.navigate({ to: "/" });
   }
