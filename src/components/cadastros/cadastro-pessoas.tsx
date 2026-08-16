@@ -196,7 +196,7 @@ export function CadastroPessoas({
           podeGerenciar ? (
             <Button onClick={abrirNovo}>
               <Plus className="size-4" aria-hidden="true" />
-              Novo {singular.toLowerCase()}
+              Adicionar {singular.toLowerCase()}
             </Button>
           ) : null
         }
