@@ -1,0 +1,12 @@
+REVOKE ALL ON FUNCTION public.empresa_atual() FROM anon, public;
+REVOKE ALL ON FUNCTION public.has_role(uuid, public.app_role) FROM anon, public;
+REVOKE ALL ON FUNCTION public.pode_gerenciar() FROM anon, public;
+REVOKE ALL ON FUNCTION public.proximo_numero_venda(uuid) FROM anon, public;
+REVOKE ALL ON FUNCTION public.criar_empresa_inicial(text,text,text,text) FROM anon;
+REVOKE ALL ON FUNCTION public.set_updated_at() FROM anon, public;
+REVOKE ALL ON FUNCTION public.registrar_auditoria() FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.empresa_atual() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.pode_gerenciar() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.proximo_numero_venda(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.criar_empresa_inicial(text,text,text,text) TO authenticated;
