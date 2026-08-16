@@ -281,24 +281,20 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Faturamento bruto"
               valor={formatarMoeda(bruto)}
-              explicacao="Soma do valor das vendas não canceladas somada aos descontos concedidos."
               destaque
               className="lg:col-span-1"
             />
             <CartaoMetrica
               rotulo="Custo com Perfil"
               valor={formatarMoeda(custos)}
-              explicacao="Quantidade de cada item multiplicada pelo custo de produção padrão da modalidade."
             />
             <CartaoMetrica
               rotulo="Faturamento líquido"
               valor={formatarMoeda(liquido)}
-              explicacao="Soma do valor total efetivamente cobrado nas vendas não canceladas."
             />
             <CartaoMetrica
               rotulo="ROI"
               valor={formatarNumero(roi)}
-              explicacao="Retorno sobre investimento: lucro dividido pelo custo de produção."
               positivo={roi >= 0}
             />
           </div>
@@ -307,13 +303,11 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Lucro"
               valor={formatarMoeda(lucro)}
-              explicacao="Faturamento líquido menos o custo de produção do período."
               positivo={lucro >= 0}
             />
             <CartaoMetrica
               rotulo="Taxa de Acertos"
               valor={`${formatarNumero(taxaConversao)}%`}
-              explicacao="Pedidos que saíram de rascunho e não foram cancelados, sobre o total de pedidos."
               positivo={taxaConversao >= 0}
             />
           </div>
