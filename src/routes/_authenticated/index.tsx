@@ -195,7 +195,7 @@ function PaginaDashboard() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-2">
       <div className="flex items-center gap-3">
         <Popover>
           <PopoverTrigger asChild>
