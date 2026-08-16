@@ -310,7 +310,13 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="ROI"
               valor={formatarNumero(roi)}
-              positivo={roi >= 0}
+              corValor={
+                roi < 1.0 ? "text-red-500" :
+                roi < 2.0 ? "text-amber-500" :
+                roi < 4.0 ? "text-emerald-500" :
+                "text-blue-500"
+              }
+              explicacao="< 1.0: Crítico | 1.0 a 1.99: Alerta | 2.0 a 3.99: Bom | 4.0+: Excelente"
             />
           </div>
 

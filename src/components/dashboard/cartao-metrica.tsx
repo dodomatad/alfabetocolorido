@@ -1,4 +1,11 @@
 import { cn } from "@/lib/utils";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /** Cartão de KPI do painel: rótulo e valor destacado. */
 export function CartaoMetrica({
@@ -8,6 +15,8 @@ export function CartaoMetrica({
   destaque = false,
   positivo = false,
   className,
+  corValor,
+  explicacao,
 }: {
   rotulo: string;
   valor: string;
@@ -15,8 +24,10 @@ export function CartaoMetrica({
   destaque?: boolean;
   positivo?: boolean;
   className?: string;
+  corValor?: string;
+  explicacao?: string;
 }) {
-  return (
+  const content = (
     <div
       className={cn(
         "rounded-xl border bg-card p-4 sm:p-6 shadow-panel transition-colors hover:border-primary/40",
@@ -25,13 +36,16 @@ export function CartaoMetrica({
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-muted-foreground">{rotulo}</p>
+        {explicacao && (
+          <Info className="size-3 text-muted-foreground/50" />
+        )}
       </div>
 
       <p
         className={cn(
           "num mt-1.5 sm:mt-3 font-semibold tracking-tight",
           destaque ? "text-2xl sm:text-4xl" : "text-xl sm:text-2xl",
-          positivo ? "text-success" : "text-foreground",
+          corValor || (positivo ? "text-success" : "text-foreground"),
         )}
       >
         {valor}
@@ -39,4 +53,21 @@ export function CartaoMetrica({
       {detalhe ? <p className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-muted-foreground">{detalhe}</p> : null}
     </div>
   );
+
+  if (explicacao) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {content}
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[280px] text-xs">
+            {explicacao}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return content;
 }
