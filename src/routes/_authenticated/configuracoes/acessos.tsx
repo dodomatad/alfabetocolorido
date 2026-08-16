@@ -90,27 +90,24 @@ function PaginaAcessos() {
 
       {/* Grid de Indicadores */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <CartaoIndicador
-          titulo="Total de Membros"
+        <CartaoMetrica
+          rotulo="Total de Membros"
           valor="12"
-          icone={Users}
         />
-        <CartaoIndicador
-          titulo="Administradores"
+        <CartaoMetrica
+          rotulo="Administradores"
           valor="3"
-          icone={ShieldCheck}
         />
-        <CartaoIndicador
-          titulo="Operadores / Produção"
+        <CartaoMetrica
+          rotulo="Operadores / Produção"
           valor="7"
-          icone={UserCog}
         />
-        <CartaoIndicador
-          titulo="Membros Ativos Hoje"
+        <CartaoMetrica
+          rotulo="Membros Ativos Hoje"
           valor="9"
-          icone={Activity}
         />
       </div>
+
 
       <Card className="shadow-panel bg-[#141417] border-zinc-800">
         <CardHeader>
