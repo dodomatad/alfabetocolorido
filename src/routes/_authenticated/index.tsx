@@ -349,7 +349,7 @@ function PaginaDashboard() {
             <section className="rounded-xl border bg-card p-6 shadow-panel">
               <h2 className="text-sm font-semibold">Funil de conversão</h2>
               <p className="mb-2 mt-1 text-xs text-muted-foreground">
-                Do pedido registrado até a entrega concluída.
+                Fluxo operacional da esteira de vendas.
               </p>
               {totalPedidos === 0 ? (
                 <p className="py-14 text-center text-sm text-muted-foreground">
