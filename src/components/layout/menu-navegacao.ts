@@ -41,8 +41,6 @@ export const GRUPOS_MENU: GrupoMenu[] = [
     rotulo: "Financeiro",
     itens: [
       { titulo: "Financeiro", url: "/financeiro", icone: Wallet },
-      { titulo: "Contas a receber", url: "/contas-receber", icone: TrendingUp },
-      { titulo: "Contas a pagar", url: "/contas-pagar", icone: TrendingDown },
     ],
   },
   {
