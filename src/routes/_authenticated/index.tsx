@@ -183,6 +183,17 @@ function PaginaDashboard() {
     percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
   }));
 
+  const contagemDias = DIAS.map((dia, indice) => ({
+    dia,
+    quantidade: validas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice)
+      .length,
+  }));
+  const totalVolumeDias = contagemDias.reduce((s, d) => s + d.quantidade, 0) || 1;
+  const barrasVolume = [...contagemDias.slice(1), contagemDias[0]!].map((d) => ({
+    dia: d.dia,
+    percentual: (d.quantidade / totalVolumeDias) * 100,
+  }));
+
   const acertosPorDia = DIAS.map((dia, indice) => {
     const vendasDia = vendas.filter(
       (v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice
@@ -196,7 +207,7 @@ function PaginaDashboard() {
       percentual: taxa,
     };
   });
-  const barras = [...acertosPorDia.slice(1), acertosPorDia[0]!];
+  const barrasAcertos = [...acertosPorDia.slice(1), acertosPorDia[0]!];
 
   return (
     <div className="space-y-6 pt-2">
