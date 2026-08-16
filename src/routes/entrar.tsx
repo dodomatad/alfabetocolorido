@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { emailValido } from "@/lib/formatadores";
 
 const CHAVE_EMAIL_LEMBRADO = "gestao-bms:email-lembrado";
+const CHAVE_SENHA_LEMBRADA = "gestao-bms:senha-lembrada";
 
 
 export const Route = createFileRoute("/entrar")({
