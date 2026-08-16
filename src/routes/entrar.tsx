@@ -43,8 +43,14 @@ function PaginaEntrar() {
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [lembrar, setLembrar] = useState(false);
 
   useEffect(() => {
+    const salvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
+    if (salvo) {
+      setEmail(salvo);
+      setLembrar(true);
+    }
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) void router.navigate({ to: "/" });
     });
@@ -68,6 +74,8 @@ function PaginaEntrar() {
       });
       return;
     }
+    if (lembrar) localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
+    else localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
     toast.success("Bem-vindo de volta");
     await router.navigate({ to: "/" });
   }
