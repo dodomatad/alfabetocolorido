@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
-import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
-import { ModuloPendente } from "@/components/comum/modulo-pendente";
+import { ModuloRegistros } from "@/components/comum/modulo-registros";
 
 export const Route = createFileRoute("/_authenticated/producao")({
   head: () => ({
@@ -20,11 +18,44 @@ export const Route = createFileRoute("/_authenticated/producao")({
 
 function Pagina() {
   return (
-    <div className="space-y-6">
-      <CabecalhoPagina titulo="Produção" descricao="Acompanhe as ordens de produção das BMs, etapas e responsáveis."
-        acoes={<BotaoAdicionar modulo="Produção" proximaEtapa="criar as tabelas de ordens de produção e apontamentos." />}
-      />
-      <ModuloPendente modulo="Ordens de produção" proximaEtapa="criar as tabelas de ordens de produção e apontamentos ligadas aos itens de venda." />
-    </div>
+    <ModuloRegistros
+      titulo="Produção"
+      descricao="Ordens de produção das BMs, com quantidade, responsável e prazo."
+      tabela="ordens_producao"
+      chaveConsulta="ordens_producao"
+      rotuloBotao="Adicionar ordem"
+      ordenarPor={{ coluna: "created_at" }}
+      campos={[
+        { nome: "descricao", rotulo: "Descrição", tipo: "texto", obrigatorio: true },
+        { nome: "modalidade_id", rotulo: "Modalidade", tipo: "relacao", relacao: { tabela: "modalidades_bm", rotulo: "nome" } },
+        { nome: "quantidade", rotulo: "Quantidade", tipo: "numero", padrao: "1" },
+        { nome: "responsavel", rotulo: "Responsável", tipo: "texto" },
+        { nome: "data_inicio", rotulo: "Início", tipo: "data" },
+        { nome: "data_prazo", rotulo: "Prazo", tipo: "data" },
+        {
+          nome: "status",
+          rotulo: "Status",
+          tipo: "selecao",
+          padrao: "planejada",
+          opcoes: [
+            { valor: "planejada", rotulo: "Planejada" },
+            { valor: "em_producao", rotulo: "Em produção" },
+            { valor: "pausada", rotulo: "Pausada" },
+            { valor: "concluida", rotulo: "Concluída" },
+            { valor: "cancelada", rotulo: "Cancelada" },
+          ],
+        },
+        { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
+      ]}
+      colunas={[
+        { nome: "descricao", rotulo: "Descrição" },
+        { nome: "quantidade", rotulo: "Qtd.", alinharDireita: true },
+        { nome: "responsavel", rotulo: "Responsável" },
+        { nome: "data_prazo", rotulo: "Prazo", formato: "data" },
+        { nome: "status", rotulo: "Status" },
+      ]}
+      vazioTitulo="Nenhuma ordem de produção"
+      vazioDescricao="Cadastre a primeira ordem para acompanhar a produção das BMs."
+    />
   );
 }

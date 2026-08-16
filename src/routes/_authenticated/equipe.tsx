@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 
-import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
 import { SeloAtivo, SeloStatus } from "@/components/comum/selo-status";
@@ -63,7 +62,6 @@ function PaginaEquipe() {
       <CabecalhoPagina
         titulo="Equipe"
         descricao="Pessoas com acesso ao sistema nesta empresa e seus papéis."
-        acoes={<BotaoAdicionar modulo="Equipe" proximaEtapa="liberar o convite de usuários e atribuição de papéis." />}
       />
 
       <div className="rounded-lg border bg-card">
