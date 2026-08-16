@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
@@ -86,21 +88,11 @@ export const Route = createFileRoute("/_authenticated/producao")({
   component: Pagina,
 });
 
-type Registro = {
-  id: string;
-  data_registro: string;
-  operador: string;
-  bms_criadas: number;
-  bms_aquecidas: number;
-  contas_subidas: number;
-  contas_viradas: number;
-  bloqueios: number;
-  motivo_queda: string | null;
-  meta_diaria: number;
-  observacoes: string | null;
-};
+type Registro = Database["public"]["Tables"]["producao_diaria"]["Row"];
+type MotivoQueda = Database["public"]["Enums"]["motivo_queda"];
 
-const MOTIVOS = [
+
+const MOTIVOS: Array<{ valor: MotivoQueda; rotulo: string }> = [
   { valor: "erro_cartao", rotulo: "Erro de Cartão" },
   { valor: "checkpoint_identidade", rotulo: "Checkpoint de Identidade" },
   { valor: "bloqueio_ip", rotulo: "Bloqueio de IP/Proxy" },
@@ -259,6 +251,7 @@ function Pagina() {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
       if (!form["operador"]?.trim()) throw new Error("Selecione a funcionária/operador.");
       const n = (c: string) => Number(form[c] || 0) || 0;
+
       const dados = {
         empresa_id: empresa.id,
         data_registro: form["data_registro"] || iso(new Date()),
@@ -268,7 +261,7 @@ function Pagina() {
         contas_subidas: n("contas_subidas"),
         contas_viradas: n("contas_viradas"),
         bloqueios: n("bloqueios"),
-        motivo_queda: form["motivo_queda"] || null,
+        motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
         meta_diaria: n("meta_diaria") || 10,
         observacoes: form["observacoes"] || null,
         atualizado_por: session?.user.id ?? null,
@@ -278,11 +271,10 @@ function Pagina() {
         const { error } = await tabela().update(dados).eq("id", editando.id);
         if (error) throw error;
       } else {
-        const payload = {
+        const { error } = await tabela().insert({
           ...dados,
           criado_por: session?.user.id ?? null,
-        };
-        const { error } = await tabela().insert(payload);
+        });
         if (error) throw error;
       }
     },
