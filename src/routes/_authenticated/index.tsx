@@ -312,7 +312,7 @@ function PaginaDashboard() {
               positivo={lucro >= 0}
             />
             <CartaoMetrica
-              rotulo="Taxa de conversão"
+              rotulo="Taxa de Acertos"
               valor={`${formatarNumero(taxaConversao)}%`}
               explicacao="Pedidos que saíram de rascunho e não foram cancelados, sobre o total de pedidos."
               positivo={taxaConversao >= 0}
