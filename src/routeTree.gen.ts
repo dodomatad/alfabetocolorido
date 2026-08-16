@@ -14,8 +14,6 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedContasPagarRouteImport } from './routes/_authenticated/contas-pagar'
-import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authenticated/contas-receber'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
@@ -49,18 +47,6 @@ const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
     path: '/configuracoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedContasPagarRoute =
-  AuthenticatedContasPagarRouteImport.update({
-    id: '/contas-pagar',
-    path: '/contas-pagar',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedContasReceberRoute =
-  AuthenticatedContasReceberRouteImport.update({
-    id: '/contas-receber',
-    path: '/contas-receber',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEntregasRoute = AuthenticatedEntregasRouteImport.update({
@@ -115,8 +101,6 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/contas-pagar': typeof AuthenticatedContasPagarRoute
-  '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -131,8 +115,6 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/contas-pagar': typeof AuthenticatedContasPagarRoute
-  '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -150,8 +132,6 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/_authenticated/contas-pagar': typeof AuthenticatedContasPagarRoute
-  '/_authenticated/contas-receber': typeof AuthenticatedContasReceberRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
@@ -170,8 +150,6 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/clientes'
     | '/configuracoes'
-    | '/contas-pagar'
-    | '/contas-receber'
     | '/entregas'
     | '/equipe'
     | '/estoque'
@@ -186,8 +164,6 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/clientes'
     | '/configuracoes'
-    | '/contas-pagar'
-    | '/contas-receber'
     | '/entregas'
     | '/equipe'
     | '/estoque'
@@ -204,8 +180,6 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
-    | '/_authenticated/contas-pagar'
-    | '/_authenticated/contas-receber'
     | '/_authenticated/entregas'
     | '/_authenticated/equipe'
     | '/_authenticated/estoque'
@@ -258,20 +232,6 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contas-pagar': {
-      id: '/_authenticated/contas-pagar'
-      path: '/contas-pagar'
-      fullPath: '/contas-pagar'
-      preLoaderRoute: typeof AuthenticatedContasPagarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contas-receber': {
-      id: '/_authenticated/contas-receber'
-      path: '/contas-receber'
-      fullPath: '/contas-receber'
-      preLoaderRoute: typeof AuthenticatedContasReceberRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/entregas': {
@@ -343,8 +303,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
-  AuthenticatedContasPagarRoute: typeof AuthenticatedContasPagarRoute
-  AuthenticatedContasReceberRoute: typeof AuthenticatedContasReceberRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
@@ -360,8 +318,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
-  AuthenticatedContasPagarRoute: AuthenticatedContasPagarRoute,
-  AuthenticatedContasReceberRoute: AuthenticatedContasReceberRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
