@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated")({
           .from("permissoes_acesso")
           .select("pode_visualizar")
           .eq("usuario_id", data.user.id)
-          .eq("modulo", moduloAlvo)
+          .eq("modulo", moduloAlvo as any)
           .maybeSingle();
 
         if (perm && !perm.pode_visualizar) {

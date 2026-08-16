@@ -25,7 +25,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
