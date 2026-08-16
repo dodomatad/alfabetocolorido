@@ -195,8 +195,10 @@ function PaginaFinanceiro() {
   return (
     <div className="space-y-6">
       <CabecalhoPagina
+        modulo="financeiro"
         titulo="Gestão Financeira & Lançamentos"
         descricao="Controle consolidado de entradas e saídas de caixa."
+
         acoes={
           temPermissao('financeiro', 'criar') && (
             <Button onClick={() => setAberto(true)}>
