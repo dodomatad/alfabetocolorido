@@ -155,16 +155,43 @@ function PaginaAcessos() {
       </div>
 
       <div className="rounded-xl border bg-card shadow-panel">
-        <div className="flex items-center justify-between border-b p-4">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou e-mail..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="pl-9"
-            />
+        <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou e-mail..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <Select defaultValue="todos">
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Cargo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Cargos</SelectItem>
+                <SelectItem value="administrador">Administrador</SelectItem>
+                <SelectItem value="operador">Operador</SelectItem>
+                <SelectItem value="financeiro">Financeiro</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="ativos">
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Status</SelectItem>
+                <SelectItem value="ativos">Ativos</SelectItem>
+                <SelectItem value="pendentes">Pendentes</SelectItem>
+                <SelectItem value="inativos">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
               <History className="mr-2 size-4" />
@@ -172,6 +199,7 @@ function PaginaAcessos() {
             </Button>
           </div>
         </div>
+
 
         {consulta.isLoading ? (
           <div className="p-8">
