@@ -265,9 +265,6 @@ function PaginaDashboard() {
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {formatarData(inicioIso, fuso)} — {formatarData(hojeIso, fuso)}
-      </p>
 
       {consulta.isLoading ? (
         <CarregandoCartoes />
