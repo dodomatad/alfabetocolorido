@@ -22,9 +22,10 @@ export function PainelPrimeiroAcesso() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc("criar_empresa_inicial", {
         _razao_social: razaoSocial.trim(),
-        _nome_fantasia: nomeFantasia.trim() || null,
-        _cnpj: cnpj.trim() ? apenasDigitos(cnpj) : null,
-        _nome_usuario: nomeUsuario.trim() || null,
+        _nome_fantasia: nomeFantasia.trim() || undefined,
+        _cnpj: cnpj.trim() ? apenasDigitos(cnpj) : undefined,
+        _nome_usuario: nomeUsuario.trim() || undefined,
+
       });
       if (error) throw error;
       return data;
