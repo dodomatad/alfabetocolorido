@@ -8,10 +8,9 @@ import {
   Settings,
   ShoppingCart,
   Truck,
-  TrendingDown,
-  TrendingUp,
   Users,
   Wallet,
+  ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -55,7 +54,8 @@ export const GRUPOS_MENU: GrupoMenu[] = [
     rotulo: "Gestão",
     itens: [
       { titulo: "Relatórios", url: "/relatorios", icone: FileBarChart },
-      { titulo: "Configurações", url: "/configuracoes", icone: Settings }, { titulo: "Acessos { titulo: "Configurações", url: "/configuracoes", icone: Settings } Equipe", url: "/configuracoes/acessos", icone: ShieldCheck },
+      { titulo: "Configurações", url: "/configuracoes", icone: Settings },
+      { titulo: "Acessos & Equipe", url: "/configuracoes/acessos", icone: ShieldCheck },
     ],
   },
 ];
