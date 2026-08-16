@@ -189,25 +189,21 @@ function PaginaDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <LayoutDashboard className="size-5 text-primary" aria-hidden="true" />
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard — Principal</h1>
-        <Settings2
-          className="size-4 text-muted-foreground transition-colors hover:text-foreground"
-          aria-hidden="true"
-        />
-      </div>
-
       <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="size-5 text-primary" aria-hidden="true" />
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard — Principal</h1>
+        </div>
+
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="Buscar e filtrar dados">
+            <Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Buscar e filtrar dados">
               <Search className="size-4" aria-hidden="true" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-80 space-y-4">
             <div>
-              <h2 className="text-sm font-semibold">Resumo</h2>
+              <h2 className="text-sm font-semibold">Filtros</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
               </p>
@@ -256,11 +252,16 @@ function PaginaDashboard() {
             </div>
           </PopoverContent>
         </Popover>
-        <p className="text-xs text-muted-foreground">
-          {formatarData(inicioIso, fuso)} — {formatarData(hojeIso, fuso)}
-        </p>
+
+        <Settings2
+          className="size-4 text-muted-foreground transition-colors hover:text-foreground"
+          aria-hidden="true"
+        />
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        {formatarData(inicioIso, fuso)} — {formatarData(hojeIso, fuso)}
+      </p>
 
       {consulta.isLoading ? (
         <CarregandoCartoes />
