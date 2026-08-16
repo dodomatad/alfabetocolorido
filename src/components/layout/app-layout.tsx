@@ -112,37 +112,6 @@ function BarraSuperior() {
       <div className="flex flex-1 items-center gap-2 min-w-0">
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-10 gap-2 px-2">
-            <Avatar className="size-7">
-              <AvatarFallback className="bg-primary text-xs text-primary-foreground">
-                {iniciais(nome)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="hidden max-w-[10rem] truncate text-sm font-medium sm:inline">{nome}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuLabel>
-            <p className="truncate text-sm font-medium">{nome}</p>
-            <p className="truncate text-xs font-normal text-muted-foreground">{perfil?.email ?? "—"}</p>
-            <p className="mt-1 text-xs font-normal text-muted-foreground">Papel: {papelPrincipal}</p>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link to="/perfil">
-              <UserRound className="size-4" aria-hidden="true" />
-              Meu perfil
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => void sair()}>
-            <LogOut className="size-4" aria-hidden="true" />
-            Sair
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </header>
   );
 }
