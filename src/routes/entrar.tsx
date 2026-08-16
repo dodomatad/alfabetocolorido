@@ -5,12 +5,16 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { emailValido } from "@/lib/formatadores";
+
+const CHAVE_EMAIL_LEMBRADO = "gestao-bms:email-lembrado";
+
 
 export const Route = createFileRoute("/entrar")({
   head: () => ({
