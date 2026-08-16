@@ -183,6 +183,17 @@ function PaginaDashboard() {
     percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
   }));
 
+  const contagemDias = DIAS.map((dia, indice) => ({
+    dia,
+    quantidade: validas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice)
+      .length,
+  }));
+  const totalVolumeDias = contagemDias.reduce((s, d) => s + d.quantidade, 0) || 1;
+  const barrasVolume = [...contagemDias.slice(1), contagemDias[0]!].map((d) => ({
+    dia: d.dia,
+    percentual: (d.quantidade / totalVolumeDias) * 100,
+  }));
+
   const acertosPorDia = DIAS.map((dia, indice) => {
     const vendasDia = vendas.filter(
       (v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice
@@ -196,7 +207,7 @@ function PaginaDashboard() {
       percentual: taxa,
     };
   });
-  const barras = [...acertosPorDia.slice(1), acertosPorDia[0]!];
+  const barrasAcertos = [...acertosPorDia.slice(1), acertosPorDia[0]!];
 
   return (
     <div className="space-y-6 pt-2">
@@ -318,6 +329,20 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
+            <h2 className="text-sm font-semibold">Vendas por dia da semana</h2>
+            <p className="mb-2 mt-1 text-xs text-muted-foreground">
+              Participação de cada dia no total de vendas do período.
+            </p>
+            {vendas.length === 0 ? (
+              <p className="py-14 text-center text-sm text-muted-foreground">
+                Nenhuma venda registrada no período.
+              </p>
+            ) : (
+              <GraficoBarras dados={barrasVolume} />
+            )}
+          </section>
+
+          <section className="rounded-xl border bg-card p-6 shadow-panel">
             <h2 className="text-sm font-semibold">Taxa de Acertos por dia da semana</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
               Desempenho de conversão segmentado por dia.
@@ -327,7 +352,7 @@ function PaginaDashboard() {
                 Nenhuma venda registrada no período.
               </p>
             ) : (
-              <GraficoBarras dados={barras} />
+              <GraficoBarras dados={barrasAcertos} />
             )}
           </section>
 
