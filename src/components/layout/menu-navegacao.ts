@@ -47,15 +47,15 @@ export const GRUPOS_MENU: GrupoMenu[] = [
     itens: [
       { titulo: "Clientes", url: "/clientes", icone: Users },
       { titulo: "Fornecedores", url: "/fornecedores", icone: Building2 },
-      { titulo: "Equipe", url: "/equipe", icone: ClipboardList },
     ],
   },
   {
     rotulo: "Gestão",
     itens: [
+      { titulo: "Equipe & Acessos", url: "/configuracoes/acessos", icone: ShieldCheck },
       { titulo: "Relatórios", url: "/relatorios", icone: FileBarChart },
       { titulo: "Configurações", url: "/configuracoes", icone: Settings },
-      { titulo: "Acessos & Equipe", url: "/configuracoes/acessos", icone: ShieldCheck },
     ],
   },
+
 ];

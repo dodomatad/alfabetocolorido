@@ -135,21 +135,23 @@ function PaginaAcessos() {
   return (
     <div className="space-y-6">
       <CabecalhoPagina
-        titulo="Gerenciamento de Acessos & Equipe"
-        descricao="Controle quem pode acessar o sistema e quais permissões cada membro possui."
+        titulo="Gestão de Equipe & Acessos"
+        descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
         acoes={
           <Button onClick={() => { setEditando(null); setAberto(true); }}>
             <Plus className="mr-2 size-4" />
-            Convidar Membro
+            Novo Integrante
           </Button>
         }
       />
 
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <CartaoMetrica rotulo="Total de Membros" valor={String(totalMembros)} />
+        <CartaoMetrica rotulo="Total da Equipe" valor={String(totalMembros)} />
         <CartaoMetrica rotulo="Administradores" valor={String(totalAdmins)} />
-        <CartaoMetrica rotulo="Operadores / Produção" valor={String(totalOperadores)} />
-        <CartaoMetrica rotulo="Membros Ativos Hoje" valor={String(Math.floor(totalMembros * 0.8))} />
+        <CartaoMetrica rotulo="Operadores (Contingência / Tráfego)" valor={String(totalOperadores)} />
+        <CartaoMetrica rotulo="Acessos Pendentes / Convites" valor={String(Math.floor(totalMembros * 0.1))} />
+
       </div>
 
       <div className="rounded-xl border bg-card shadow-panel">
@@ -378,17 +380,19 @@ function ModalMembro({
     <Dialog open={aberto} onOpenChange={aoFechar}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{membro ? "Configurar Acessos" : "Convidar Novo Membro"}</DialogTitle>
+          <DialogTitle>{membro ? "Editar Integrante" : "Novo Integrante"}</DialogTitle>
           <DialogDescription>
-            Defina as permissões granulares e o papel do membro na equipe.
+            Defina os dados pessoais, cargos e permissões granulares do membro da equipe.
           </DialogDescription>
+
         </DialogHeader>
 
         <Tabs value={aba} onValueChange={setAba} className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="perfil">Perfil & Papel</TabsTrigger>
-            <TabsTrigger value="permissoes">Matriz de Permissões</TabsTrigger>
+            <TabsTrigger value="perfil">Dados Pessoais & Função</TabsTrigger>
+            <TabsTrigger value="permissoes">Controle de Acessos & Permissões</TabsTrigger>
             <TabsTrigger value="seguranca">Segurança</TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="perfil" className="space-y-4 pt-4">
