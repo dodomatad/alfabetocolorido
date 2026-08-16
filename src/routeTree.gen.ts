@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
@@ -22,7 +23,6 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProducaoRouteImport } from './routes/_authenticated/producao'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
-import { Route as AuthenticatedConfiguracoesAcessosRouteImport } from './routes/_authenticated/configuracoes/acessos'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -52,6 +52,11 @@ const AuthenticatedConfiguracoesRoute =
 const AuthenticatedEntregasRoute = AuthenticatedEntregasRouteImport.update({
   id: '/entregas',
   path: '/entregas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
@@ -90,19 +95,14 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   path: '/vendas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedConfiguracoesAcessosRoute =
-  AuthenticatedConfiguracoesAcessosRouteImport.update({
-    id: '/acessos',
-    path: '/acessos',
-    getParentRoute: () => AuthenticatedConfiguracoesRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/entregas': typeof AuthenticatedEntregasRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
@@ -110,13 +110,13 @@ export interface FileRoutesByFullPath {
   '/producao': typeof AuthenticatedProducaoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/vendas': typeof AuthenticatedVendasRoute
-  '/configuracoes/acessos': typeof AuthenticatedConfiguracoesAcessosRoute
 }
 export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/entregas': typeof AuthenticatedEntregasRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
@@ -125,15 +125,15 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
-  '/configuracoes/acessos': typeof AuthenticatedConfiguracoesAcessosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/entrar': typeof EntrarRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
-  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
+  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
@@ -142,7 +142,6 @@ export interface FileRoutesById {
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/configuracoes/acessos': typeof AuthenticatedConfiguracoesAcessosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -152,6 +151,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/entregas'
+    | '/equipe'
     | '/estoque'
     | '/financeiro'
     | '/fornecedores'
@@ -159,13 +159,13 @@ export interface FileRouteTypes {
     | '/producao'
     | '/relatorios'
     | '/vendas'
-    | '/configuracoes/acessos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/entrar'
     | '/clientes'
     | '/configuracoes'
     | '/entregas'
+    | '/equipe'
     | '/estoque'
     | '/financeiro'
     | '/fornecedores'
@@ -174,7 +174,6 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/vendas'
     | '/'
-    | '/configuracoes/acessos'
   id:
     | '__root__'
     | '/_authenticated'
@@ -182,6 +181,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/entregas'
+    | '/_authenticated/equipe'
     | '/_authenticated/estoque'
     | '/_authenticated/financeiro'
     | '/_authenticated/fornecedores'
@@ -190,7 +190,6 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios'
     | '/_authenticated/vendas'
     | '/_authenticated/'
-    | '/_authenticated/configuracoes/acessos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +241,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntregasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/estoque': {
       id: '/_authenticated/estoque'
       path: '/estoque'
@@ -291,35 +297,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/configuracoes/acessos': {
-      id: '/_authenticated/configuracoes/acessos'
-      path: '/acessos'
-      fullPath: '/configuracoes/acessos'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesAcessosRouteImport
-      parentRoute: typeof AuthenticatedConfiguracoesRoute
-    }
   }
 }
-
-interface AuthenticatedConfiguracoesRouteChildren {
-  AuthenticatedConfiguracoesAcessosRoute: typeof AuthenticatedConfiguracoesAcessosRoute
-}
-
-const AuthenticatedConfiguracoesRouteChildren: AuthenticatedConfiguracoesRouteChildren =
-  {
-    AuthenticatedConfiguracoesAcessosRoute:
-      AuthenticatedConfiguracoesAcessosRoute,
-  }
-
-const AuthenticatedConfiguracoesRouteWithChildren =
-  AuthenticatedConfiguracoesRoute._addFileChildren(
-    AuthenticatedConfiguracoesRouteChildren,
-  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
-  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRouteWithChildren
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
@@ -332,8 +317,9 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
-  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRouteWithChildren,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,

@@ -52,7 +52,7 @@ export const GRUPOS_MENU: GrupoMenu[] = [
   {
     rotulo: "Gestão",
     itens: [
-      { titulo: "Equipe & Acessos", url: "/configuracoes/acessos", icone: ShieldCheck },
+      { titulo: "Equipe & Acessos", url: "/equipe", icone: ShieldCheck },
       { titulo: "Relatórios", url: "/relatorios", icone: FileBarChart },
       { titulo: "Configurações", url: "/configuracoes", icone: Settings },
     ],
