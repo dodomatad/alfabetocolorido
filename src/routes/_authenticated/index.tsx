@@ -89,7 +89,7 @@ type LinhaItem = {
 };
 
 function PaginaDashboard() {
-  const { empresa, fuso } = useSessao();
+  const { empresa, fuso, permissoes } = useSessao();
   const [dias, setDias] = useState<string>("30");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
 
@@ -134,6 +134,10 @@ function PaginaDashboard() {
   const vendas = consulta.data?.vendas ?? [];
   const itens = consulta.data?.itens ?? [];
 
+  const ocultarValores = useMemo(() => {
+    return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores ?? false;
+  }, [permissoes]);
+
   const validas = vendas.filter((v) => v.status !== "cancelada");
   const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0);
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0);
@@ -149,6 +153,10 @@ function PaginaDashboard() {
     (v) => v.status !== "rascunho" && v.status !== "cancelada",
   ).length;
   const taxaConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
+
+  const fmtValor = (v: number) => (ocultarValores ? "R$ ***" : formatarMoeda(v));
+  const fmtNumero = (v: number) => (ocultarValores ? "***" : formatarNumero(v));
+
 
   const porStatus = Object.entries(
     vendas.reduce<Record<string, number>>((acc, v) => {
@@ -294,21 +302,22 @@ function PaginaDashboard() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
             <CartaoMetrica
               rotulo="Faturamento bruto"
-              valor={formatarMoeda(bruto)}
+              valor={fmtValor(bruto)}
+
               destaque
               className="lg:col-span-1"
             />
             <CartaoMetrica
               rotulo="Custo com Perfil"
-              valor={formatarMoeda(custos)}
+              valor={fmtValor(custos)}
             />
             <CartaoMetrica
               rotulo="Faturamento líquido"
-              valor={formatarMoeda(liquido)}
+              valor={fmtValor(liquido)}
             />
             <CartaoMetrica
               rotulo="ROI"
-              valor={formatarNumero(roi)}
+              valor={fmtNumero(roi)}
               corValor={
                 roi < 1.0 ? "text-red-500" :
                 roi < 2.0 ? "text-amber-500" :
@@ -322,12 +331,12 @@ function PaginaDashboard() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
             <CartaoMetrica
               rotulo="Lucro"
-              valor={formatarMoeda(lucro)}
+              valor={fmtValor(lucro)}
               positivo={lucro >= 0}
             />
             <CartaoMetrica
               rotulo="Taxa de Acertos"
-              valor={`${formatarNumero(taxaConversao)}%`}
+              valor={ocultarValores ? "***%" : `${formatarNumero(taxaConversao)}%`}
               positivo={taxaConversao >= 0}
             />
           </div>
