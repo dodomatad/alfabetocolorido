@@ -109,12 +109,13 @@ function BarraSuperior() {
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur">
-      <SidebarTrigger className="-ml-1" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">
-          {empresa?.nome_fantasia || empresa?.razao_social || "Empresa não configurada"}
-        </p>
-        <p className="truncate text-xs text-muted-foreground">{papelPrincipal}</p>
+      <div className="flex flex-1 items-center gap-2 min-w-0">
+        <SidebarTrigger className="-ml-1 text-muted-foreground/50 hover:text-foreground transition-colors" />
+        <div className="min-w-0 pr-2">
+          <p className="truncate text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-[0.15em]">
+            {empresa?.nome_fantasia || empresa?.razao_social || "Empresa"}
+          </p>
+        </div>
       </div>
 
       <DropdownMenu>
