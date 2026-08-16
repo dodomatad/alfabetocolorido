@@ -224,6 +224,13 @@ function Pagina() {
   };
   const [form, setForm] = useState<Record<string, string>>(vazio);
 
+  useEffect(() => {
+    if (!aberto && !editando) {
+      setForm(vazio);
+    }
+  }, [aberto, editando]);
+
+
   const abrirNovo = () => {
     setEditando(null);
     setForm(vazio);
