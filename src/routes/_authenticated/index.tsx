@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { LayoutDashboard, Settings2 } from "lucide-react";
+import { LayoutDashboard, Search, Settings2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 
 import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
@@ -194,55 +198,69 @@ function PaginaDashboard() {
         />
       </div>
 
-      <section className="rounded-xl border bg-card p-6 shadow-panel">
-        <h2 className="text-sm font-semibold">Resumo</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <label className="space-y-1.5 text-xs text-muted-foreground">
-            Período de visualização
-            <Select value={dias} onValueChange={setDias}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODOS.map((p) => (
-                  <SelectItem key={p.valor} value={p.valor}>
-                    {p.rotulo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-
-          <label className="space-y-1.5 text-xs text-muted-foreground">
-            Status do pedido
-            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                {Object.entries(ROTULO_STATUS).map(([valor, rotulo]) => (
-                  <SelectItem key={valor} value={valor}>
-                    {rotulo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-
-          <div className="space-y-1.5 text-xs text-muted-foreground">
-            Empresa
-            <div className="flex h-9 items-center rounded-md border bg-secondary px-3 text-sm text-foreground">
-              <span className="truncate">
-                {empresa?.nome_fantasia || empresa?.razao_social || "—"}
-              </span>
+      <div className="flex items-center gap-3">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="Buscar e filtrar dados">
+              <Search className="size-4" aria-hidden="true" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold">Resumo</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
+              </p>
             </div>
-          </div>
-        </div>
-      </section>
+
+            <label className="block space-y-1.5 text-xs text-muted-foreground">
+              Período de visualização
+              <Select value={dias} onValueChange={setDias}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODOS.map((p) => (
+                    <SelectItem key={p.valor} value={p.valor}>
+                      {p.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+
+            <label className="block space-y-1.5 text-xs text-muted-foreground">
+              Status do pedido
+              <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os status</SelectItem>
+                  {Object.entries(ROTULO_STATUS).map(([valor, rotulo]) => (
+                    <SelectItem key={valor} value={valor}>
+                      {rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+
+            <div className="space-y-1.5 text-xs text-muted-foreground">
+              Empresa
+              <div className="flex h-9 items-center rounded-md border bg-secondary px-3 text-sm text-foreground">
+                <span className="truncate">
+                  {empresa?.nome_fantasia || empresa?.razao_social || "—"}
+                </span>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <p className="text-xs text-muted-foreground">
+          {formatarData(inicioIso, fuso)} — {formatarData(hojeIso, fuso)}
+        </p>
+      </div>
+
 
       {consulta.isLoading ? (
         <CarregandoCartoes />
