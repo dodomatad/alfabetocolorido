@@ -30,7 +30,7 @@ export function CartaoMetrica({
   const content = (
     <div
       className={cn(
-        "rounded-xl border bg-card p-4 sm:p-6 shadow-panel transition-all duration-200 hover:border-primary/40 hover:shadow-[0_0_25px_-5px_rgba(0,102,255,0.2)] hover:-translate-y-0.5",
+        "rounded-xl border bg-card p-4 sm:p-6 shadow-panel transition-all duration-300 hover:border-primary/60 hover:shadow-[0_15px_40px_-12px_rgba(0,102,255,0.4)] hover:-translate-y-1",
         className,
       )}
     >
