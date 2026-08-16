@@ -278,7 +278,7 @@ function PaginaDashboard() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
             <CartaoMetrica
               rotulo="Faturamento bruto"
               valor={formatarMoeda(bruto)}
@@ -299,20 +299,20 @@ function PaginaDashboard() {
               detalhe="Já descontados os abatimentos"
               explicacao="Soma do valor total efetivamente cobrado nas vendas não canceladas."
             />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <CartaoMetrica
-              rotulo="Lucro"
-              valor={formatarMoeda(lucro)}
-              explicacao="Faturamento líquido menos o custo de produção do período."
-              positivo={lucro >= 0}
-            />
             <CartaoMetrica
               rotulo="ROI"
               valor={formatarNumero(roi)}
               explicacao="Retorno sobre investimento: lucro dividido pelo custo de produção."
               positivo={roi >= 0}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
+            <CartaoMetrica
+              rotulo="Lucro"
+              valor={formatarMoeda(lucro)}
+              explicacao="Faturamento líquido menos o custo de produção do período."
+              positivo={lucro >= 0}
             />
             <CartaoMetrica
               rotulo="Taxa de conversão"
@@ -321,6 +321,7 @@ function PaginaDashboard() {
               positivo={taxaConversao >= 0}
             />
           </div>
+
 
           <div className="grid gap-4 xl:grid-cols-2">
             <section className="rounded-xl border bg-card p-6 shadow-panel">
