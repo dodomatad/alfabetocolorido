@@ -259,10 +259,6 @@ function PaginaDashboard() {
           <h1 className="text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl">Dashboard</h1>
         </div>
 
-        <Settings2
-          className="size-4 text-muted-foreground/40 transition-colors hover:text-foreground"
-          aria-hidden="true"
-        />
       </div>
 
 
