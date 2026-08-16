@@ -451,6 +451,41 @@ export type Database = {
           },
         ]
       }
+      logs_acesso: {
+        Row: {
+          created_at: string | null
+          empresa_id: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_acesso_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modalidades_bm: {
         Row: {
           ativo: boolean
@@ -635,6 +670,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "perfis_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissoes_acesso: {
+        Row: {
+          created_at: string | null
+          empresa_id: string
+          id: string
+          modulo: Database["public"]["Enums"]["modulo_sistema"]
+          ocultar_valores: boolean | null
+          pode_criar: boolean | null
+          pode_editar: boolean | null
+          pode_excluir: boolean | null
+          pode_visualizar: boolean | null
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          modulo: Database["public"]["Enums"]["modulo_sistema"]
+          ocultar_valores?: boolean | null
+          pode_criar?: boolean | null
+          pode_editar?: boolean | null
+          pode_excluir?: boolean | null
+          pode_visualizar?: boolean | null
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          modulo?: Database["public"]["Enums"]["modulo_sistema"]
+          ocultar_valores?: boolean | null
+          pode_criar?: boolean | null
+          pode_editar?: boolean | null
+          pode_excluir?: boolean | null
+          pode_visualizar?: boolean | null
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissoes_acesso_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
@@ -886,6 +971,14 @@ export type Database = {
       }
       pode_gerenciar: { Args: never; Returns: boolean }
       proximo_numero_venda: { Args: { _empresa: string }; Returns: number }
+      tem_permissao: {
+        Args: {
+          _modulo: Database["public"]["Enums"]["modulo_sistema"]
+          _tipo?: string
+          _usuario_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
@@ -908,6 +1001,17 @@ export type Database = {
         | "atrasado"
         | "cancelado"
       financeiro_tipo: "receber" | "pagar"
+      modulo_sistema:
+        | "dashboard"
+        | "vendas"
+        | "producao"
+        | "estoque"
+        | "entregas"
+        | "financeiro"
+        | "clientes"
+        | "fornecedores"
+        | "equipe"
+        | "configuracoes"
       motivo_queda:
         | "erro_cartao"
         | "checkpoint_identidade"
@@ -1081,6 +1185,18 @@ export const Constants = {
         "cancelado",
       ],
       financeiro_tipo: ["receber", "pagar"],
+      modulo_sistema: [
+        "dashboard",
+        "vendas",
+        "producao",
+        "estoque",
+        "entregas",
+        "financeiro",
+        "clientes",
+        "fornecedores",
+        "equipe",
+        "configuracoes",
+      ],
       motivo_queda: [
         "erro_cartao",
         "checkpoint_identidade",
