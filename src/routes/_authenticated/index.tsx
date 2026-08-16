@@ -199,7 +199,7 @@ function PaginaDashboard() {
       <div className="flex items-center gap-3">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground/50 hover:text-primary transition-colors" aria-label="Buscar e filtrar dados">
+            <Button variant="ghost" size="icon" className="size-8 rounded-full text-primary hover:bg-primary/10 transition-colors" aria-label="Buscar e filtrar dados">
               <Search className="size-4" aria-hidden="true" />
             </Button>
           </PopoverTrigger>
