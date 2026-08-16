@@ -114,6 +114,7 @@ const VERDE = "#10B981";
 
 const tabela = () => supabase.from("producao_diaria");
 
+
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 function limiteInferior(periodo: string): { de?: string; ate?: string } {
