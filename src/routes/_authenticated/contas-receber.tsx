@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { ModuloPendente } from "@/components/comum/modulo-pendente";
 
@@ -20,7 +21,9 @@ export const Route = createFileRoute("/_authenticated/contas-receber")({
 function Pagina() {
   return (
     <div className="space-y-6">
-      <CabecalhoPagina titulo="Contas a receber" descricao="Títulos a receber de clientes, vencimentos e baixas." />
+      <CabecalhoPagina titulo="Contas a receber" descricao="Títulos a receber de clientes, vencimentos e baixas."
+        acoes={<BotaoAdicionar modulo="Contas a receber" proximaEtapa="criar as tabelas de títulos a receber e baixas." />}
+      />
       <ModuloPendente modulo="Contas a receber" proximaEtapa="criar a tabela de títulos a receber com parcelas e baixas." />
     </div>
   );

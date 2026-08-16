@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
+import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
 import { SeloStatusVenda } from "@/components/comum/selo-status";
@@ -84,6 +85,7 @@ function PaginaVendas() {
       <CabecalhoPagina
         titulo="Vendas"
         descricao="Pedidos registrados na empresa, do rascunho até a entrega."
+        acoes={<BotaoAdicionar modulo="Vendas" proximaEtapa="liberar o formulário de pedido com itens e modalidades." />}
       />
 
       <div className="flex justify-end">
