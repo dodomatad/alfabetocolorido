@@ -81,8 +81,42 @@ function NavegacaoLateral() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <p className="px-2 py-1 text-[11px] leading-tight text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton className="h-12 w-full justify-start gap-3 px-2">
+              <Avatar className="size-8">
+                <AvatarFallback className="bg-primary text-xs text-primary-foreground">
+                  {iniciais(nome)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-1 flex-col items-start overflow-hidden group-data-[collapsible=icon]:hidden">
+                <span className="truncate text-sm font-medium">{nome}</span>
+                <span className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
+              </div>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60" side="right" sideOffset={12}>
+            <DropdownMenuLabel>
+              <p className="truncate text-sm font-medium">{nome}</p>
+              <p className="truncate text-xs font-normal text-muted-foreground">{perfil?.email ?? "—"}</p>
+              <p className="mt-1 text-xs font-normal text-muted-foreground">Papel: {papelPrincipal}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/perfil">
+                <UserRound className="size-4" aria-hidden="true" />
+                Meu perfil
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => void sair()}>
+              <LogOut className="size-4" aria-hidden="true" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <p className="mt-2 px-2 py-1 text-[11px] leading-tight text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
           Valores em real (BRL). Datas no formato dd/MM/aaaa.
         </p>
       </SidebarFooter>
