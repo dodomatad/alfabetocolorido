@@ -513,7 +513,6 @@ function ModalMembro({
     });
     return novas;
   };
-  });
 
   const salvar = async () => {
     if (!membro) return;
