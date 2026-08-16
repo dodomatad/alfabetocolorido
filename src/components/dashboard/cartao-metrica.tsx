@@ -35,7 +35,7 @@ export function CartaoMetrica({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-base font-bold text-muted-foreground">{rotulo}</p>
+        <p className="text-base font-bold text-slate-200">{rotulo}</p>
         {explicacao && (
           <Info className="size-3.5 text-muted-foreground/50" />
         )}
