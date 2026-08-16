@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { emailValido } from "@/lib/formatadores";
 
 const CHAVE_EMAIL_LEMBRADO = "gestao-bms:email-lembrado";
+const CHAVE_SENHA_LEMBRADA = "gestao-bms:senha-lembrada";
 
 
 export const Route = createFileRoute("/entrar")({
@@ -46,11 +47,17 @@ function PaginaEntrar() {
   const [lembrar, setLembrar] = useState(false);
 
   useEffect(() => {
-    const salvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
-    if (salvo) {
-      setEmail(salvo);
+    const emailSalvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
+    const senhaSalva = localStorage.getItem(CHAVE_SENHA_LEMBRADA);
+
+    if (emailSalvo) {
+      setEmail(emailSalvo);
       setLembrar(true);
     }
+    if (senhaSalva) {
+      setSenha(senhaSalva);
+    }
+
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) void router.navigate({ to: "/" });
     });
@@ -74,8 +81,13 @@ function PaginaEntrar() {
       });
       return;
     }
-    if (lembrar) localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
-    else localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
+    if (lembrar) {
+      localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
+      localStorage.setItem(CHAVE_SENHA_LEMBRADA, senha);
+    } else {
+      localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
+      localStorage.removeItem(CHAVE_SENHA_LEMBRADA);
+    }
     toast.success("Bem-vindo de volta");
     await router.navigate({ to: "/" });
   }
@@ -179,7 +191,7 @@ function PaginaEntrar() {
                       onCheckedChange={(valor) => setLembrar(valor === true)}
                     />
                     <Label htmlFor="lembrar-acesso" className="text-sm font-normal">
-                      Lembrar meu acesso
+                      Lembrar de mim
                     </Label>
                   </div>
                   <Button type="submit" disabled={enviando}>
