@@ -196,14 +196,9 @@ function PaginaDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <LayoutDashboard className="size-5 text-primary" aria-hidden="true" />
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
-        </div>
-
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Buscar e filtrar dados">
+            <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground/50 hover:text-primary transition-colors" aria-label="Buscar e filtrar dados">
               <Search className="size-4" aria-hidden="true" />
             </Button>
           </PopoverTrigger>
@@ -259,8 +254,13 @@ function PaginaDashboard() {
           </PopoverContent>
         </Popover>
 
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="size-4 text-primary/70" aria-hidden="true" />
+          <h1 className="text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl">Dashboard</h1>
+        </div>
+
         <Settings2
-          className="size-4 text-muted-foreground transition-colors hover:text-foreground"
+          className="size-4 text-muted-foreground/40 transition-colors hover:text-foreground"
           aria-hidden="true"
         />
       </div>
