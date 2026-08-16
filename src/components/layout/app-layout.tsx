@@ -138,12 +138,7 @@ function NavegacaoLateral() {
 }
 
 function BarraSuperior() {
-  return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur">
-      <div className="flex flex-1 items-center gap-2 min-w-0">
-      </div>
-    </header>
-  );
+  return null;
 }
 
 export function AppLayout({ children }: { children: ReactNode }) {
