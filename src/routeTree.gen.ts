@@ -14,6 +14,7 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -41,6 +42,11 @@ const AuthenticatedFornecedoresRoute =
     path: '/fornecedores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   id: '/vendas',
   path: '/vendas',
@@ -52,12 +58,14 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/vendas': typeof AuthenticatedVendasRoute
 }
 export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
 }
@@ -67,20 +75,23 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/entrar' | '/clientes' | '/fornecedores' | '/vendas'
+  fullPaths:
+    '/' | '/entrar' | '/clientes' | '/fornecedores' | '/perfil' | '/vendas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/entrar' | '/clientes' | '/fornecedores' | '/vendas' | '/'
+  to: '/entrar' | '/clientes' | '/fornecedores' | '/perfil' | '/vendas' | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/entrar'
     | '/_authenticated/clientes'
     | '/_authenticated/fornecedores'
+    | '/_authenticated/perfil'
     | '/_authenticated/vendas'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
@@ -127,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/vendas': {
       id: '/_authenticated/vendas'
       path: '/vendas'
@@ -140,6 +158,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
@@ -147,6 +166,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
