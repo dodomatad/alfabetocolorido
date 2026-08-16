@@ -37,6 +37,9 @@ export function SeloStatus({
 
 const STATUS_VENDA: Record<string, { rotulo: string; tom: TomSelo; icone: LucideIcon }> = {
   rascunho: { rotulo: "Rascunho", tom: "neutro", icone: CircleDashed },
+  em_andamento: { rotulo: "Em andamento", tom: "alerta", icone: Clock },
+  efetuada: { rotulo: "Efetuada", tom: "positivo", icone: CheckCircle2 },
+  falta_pagamento: { rotulo: "Falta pagamento", tom: "alerta", icone: AlertTriangle },
   confirmada: { rotulo: "Confirmada", tom: "info", icone: CheckCircle2 },
   em_producao: { rotulo: "Em produção", tom: "alerta", icone: Clock },
   pronta: { rotulo: "Pronta", tom: "info", icone: CheckCircle2 },
