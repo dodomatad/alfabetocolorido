@@ -42,7 +42,7 @@ export function FormularioVenda({
   aberto: boolean;
   aoFechar: () => void;
 }) {
-  const { empresa, usuario } = useSessao();
+  const { empresa, session } = useSessao();
   const queryClient = useQueryClient();
 
   const [clienteId, setClienteId] = useState("");
@@ -129,8 +129,8 @@ export function FormularioVenda({
           acrescimo: numero(acrescimo),
           valor_total: total,
           observacoes: observacoes.trim() || null,
-          criado_por: usuario?.id ?? null,
-          atualizado_por: usuario?.id ?? null,
+          criado_por: session?.user.id ?? null,
+          atualizado_por: session?.user.id ?? null,
         })
         .select("id")
         .single();
