@@ -183,16 +183,20 @@ function PaginaDashboard() {
     percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
   }));
 
-  const contagemDias = DIAS.map((dia, indice) => ({
-    dia,
-    quantidade: validas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice)
-      .length,
-  }));
-  const totalDias = contagemDias.reduce((s, d) => s + d.quantidade, 0) || 1;
-  const barras = [...contagemDias.slice(1), contagemDias[0]!].map((d) => ({
-    dia: d.dia,
-    percentual: (d.quantidade / totalDias) * 100,
-  }));
+  const acertosPorDia = DIAS.map((dia, indice) => {
+    const vendasDia = vendas.filter(
+      (v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice
+    );
+    const convertidasDia = vendasDia.filter(
+      (v) => v.status !== "rascunho" && v.status !== "cancelada"
+    ).length;
+    const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
+    return {
+      dia,
+      percentual: taxa,
+    };
+  });
+  const barras = [...acertosPorDia.slice(1), acertosPorDia[0]!];
 
   return (
     <div className="space-y-6 pt-2">
@@ -314,11 +318,11 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Vendas por dia da semana</h2>
+            <h2 className="text-sm font-semibold">Taxa de Acertos por dia da semana</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Participação de cada dia no total de vendas do período.
+              Desempenho de conversão segmentado por dia.
             </p>
-            {totalDias <= 1 && validas.length === 0 ? (
+            {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
               </p>
@@ -345,7 +349,7 @@ function PaginaDashboard() {
             <section className="rounded-xl border bg-card p-6 shadow-panel">
               <h2 className="text-sm font-semibold">Funil de conversão</h2>
               <p className="mb-2 mt-1 text-xs text-muted-foreground">
-                Do pedido registrado até a entrega concluída.
+                Fluxo operacional da esteira de vendas.
               </p>
               {totalPedidos === 0 ? (
                 <p className="py-14 text-center text-sm text-muted-foreground">
