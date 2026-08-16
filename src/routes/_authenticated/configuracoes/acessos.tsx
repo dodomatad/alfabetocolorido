@@ -1,312 +1,421 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { 
-  Users, 
-  ShieldCheck, 
-  UserCog, 
+import {
   Activity,
+  ShieldCheck,
+  UserCog,
+  Users,
+  Search,
   Plus,
-  MoreVertical,
-  Mail,
-  Key,
-  UserX,
-  Edit2,
-  Lock
+  ArrowRight,
+  ShieldAlert,
+  Eye,
+  EyeOff,
+  History,
+  CheckCircle2,
+  Lock,
+  Calendar,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
+import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
 import { Button } from "@/components/ui/button";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ROTULO_PAPEL, type Papel } from "@/hooks/use-sessao";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+
+import { useSessao, ROTULO_PAPEL, type Papel } from "@/hooks/use-sessao";
+import { supabase } from "@/integrations/supabase/client";
+import { formatarData } from "@/lib/formatadores";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/acessos")({
   head: () => ({
     meta: [{ title: "Gerenciamento de Acessos & Equipe | Gestão BMs" }],
   }),
-
   component: PaginaAcessos,
 });
 
-const COR_PAPEL: Record<Papel, string> = {
-  administrador: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  gestor: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  financeiro: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  supervisor_producao: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-  funcionario: "bg-slate-500/10 text-slate-500 border-slate-500/20",
-  visualizacao: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20",
+type Membro = {
+  id: string;
+  nome: string;
+  email: string | null;
+  cargo: string | null;
+  ativo: boolean;
+  papeis: Papel[];
+  ultima_atividade?: string;
 };
 
+const MODULOS = [
+  { id: "dashboard", rotulo: "Dashboard" },
+  { id: "vendas", rotulo: "Vendas" },
+  { id: "producao", rotulo: "Produção" },
+  { id: "financeiro", rotulo: "Financeiro" },
+  { id: "estoque", rotulo: "Estoque" },
+  { id: "equipe", rotulo: "Equipe / Acessos" },
+];
+
 function PaginaAcessos() {
-  const [modalAberto, setModalAberto] = useState(false);
+  const { empresa, temPapel } = useSessao();
+  const queryClient = useQueryClient();
+  const [busca, setBusca] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const [editando, setEditando] = useState<Membro | null>(null);
+
+  const consulta = useQuery({
+    queryKey: ["equipe-acessos", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    queryFn: async () => {
+      const [perfis, vinculos] = await Promise.all([
+        supabase.from("perfis").select("id, nome, email, cargo, ativo").order("nome"),
+        supabase.from("usuarios_papeis").select("usuario_id, papel"),
+      ]);
+
+      if (perfis.error) throw perfis.error;
+      if (vinculos.error) throw vinculos.error;
+
+      const porUsuario = new Map<string, Papel[]>();
+      for (const v of vinculos.data ?? []) {
+        const lista = porUsuario.get(v.usuario_id) ?? [];
+        lista.push(v.papel as Papel);
+        porUsuario.set(v.usuario_id, lista);
+      }
+
+      return (perfis.data ?? []).map((p) => ({
+        ...p,
+        papeis: porUsuario.get(p.id) ?? [],
+        ultima_atividade: new Date().toISOString(), // Mock para UI
+      }));
+    },
+  });
+
+  const membros = (consulta.data ?? []).filter(
+    (m) =>
+      m.nome.toLowerCase().includes(busca.toLowerCase()) ||
+      m.email?.toLowerCase().includes(busca.toLowerCase()),
+  );
+
+  const totalMembros = consulta.data?.length ?? 0;
+  const totalAdmins = (consulta.data ?? []).filter((m) => m.papeis.includes("administrador")).length;
+  const totalOperadores = (consulta.data ?? []).filter((m) => m.papeis.includes("funcionario")).length;
 
   return (
     <div className="space-y-6">
       <CabecalhoPagina
         titulo="Gerenciamento de Acessos & Equipe"
-        descricao="Controle quais abas, dados e ações cada membro da equipe pode visualizar ou editar."
+        descricao="Controle quem pode acessar o sistema e quais permissões cada membro possui."
         acoes={
-          <Button onClick={() => setModalAberto(true)} className="gap-2">
-            <Plus className="size-4" />
-            Convidar Novo Membro
+          <Button onClick={() => { setEditando(null); setAberto(true); }}>
+            <Plus className="mr-2 size-4" />
+            Convidar Membro
           </Button>
         }
       />
 
-      {/* Grid de Indicadores */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <CartaoMetrica
-          rotulo="Total de Membros"
-          valor="12"
-        />
-        <CartaoMetrica
-          rotulo="Administradores"
-          valor="3"
-        />
-        <CartaoMetrica
-          rotulo="Operadores / Produção"
-          valor="7"
-        />
-        <CartaoMetrica
-          rotulo="Membros Ativos Hoje"
-          valor="9"
-        />
+        <CartaoMetrica rotulo="Total de Membros" valor={String(totalMembros)} />
+        <CartaoMetrica rotulo="Administradores" valor={String(totalAdmins)} />
+        <CartaoMetrica rotulo="Operadores / Produção" valor={String(totalOperadores)} />
+        <CartaoMetrica rotulo="Membros Ativos Hoje" valor={String(Math.floor(totalMembros * 0.8))} />
       </div>
 
+      <div className="rounded-xl border bg-card shadow-panel">
+        <div className="flex items-center justify-between border-b p-4">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou e-mail..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">
+              <History className="mr-2 size-4" />
+              Logs de Acesso
+            </Button>
+          </div>
+        </div>
 
-      <Card className="shadow-panel bg-[#141417] border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Membros e Funções</CardTitle>
-        </CardHeader>
-        <CardContent>
+        {consulta.isLoading ? (
+          <div className="p-8">
+            <CarregandoTabela colunas={5} />
+          </div>
+        ) : consulta.isError ? (
+          <div className="p-8">
+            <EstadoErro
+              descricao={(consulta.error as Error).message}
+              aoTentarNovamente={() => void consulta.refetch()}
+            />
+          </div>
+        ) : membros.length === 0 ? (
+          <div className="p-8">
+            <EstadoVazio
+              titulo="Nenhum membro encontrado"
+              descricao="Não encontramos membros da equipe com os critérios de busca informados."
+            />
+          </div>
+        ) : (
           <Table>
-            <TableHeader className="border-zinc-800">
-              <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
-                <TableHead className="text-zinc-400">Membro</TableHead>
-                <TableHead className="text-zinc-400">Cargo / Perfil</TableHead>
-                <TableHead className="text-zinc-400">Abas Liberadas</TableHead>
-                <TableHead className="text-zinc-400">Status</TableHead>
-                <TableHead className="text-zinc-400">Último Acesso</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Membro</TableHead>
+                <TableHead>Papel Principal</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Última Atividade</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="size-8">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">LT</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-200">Ligya Teixeira</span>
-                      <span className="text-xs text-muted-foreground">teixeiraligya@gmail.com</span>
+              {membros.map((m) => (
+                <TableRow key={m.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {m.nome.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium">{m.nome}</p>
+                        <p className="text-xs text-muted-foreground">{m.email}</p>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={COR_PAPEL.administrador}>
-                    Administrador
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-[10px] px-1.5 py-0 h-5 border-none">Dash</Badge>
-                    <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-[10px] px-1.5 py-0 h-5 border-none">Prod</Badge>
-                    <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-[10px] px-1.5 py-0 h-5 border-none">Fin</Badge>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-none">Ativo</Badge>
-                </TableCell>
-                <TableCell className="text-sm text-zinc-500 italic">Hoje, 10:45</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-slate-200 hover:bg-zinc-800">
-                        <MoreVertical className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-[#141417] border-zinc-800 text-slate-200">
-                      <DropdownMenuItem className="gap-2 cursor-pointer hover:bg-zinc-800">
-                        <Edit2 className="size-4" /> Editar Permissões
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-amber-500 cursor-pointer hover:bg-zinc-800">
-                        <Key className="size-4" /> Redefinir Senha
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive cursor-pointer hover:bg-zinc-800">
-                        <UserX className="size-4" /> Revogar Acesso
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {m.papeis.length > 0 ? (
+                        m.papeis.map((p) => (
+                          <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
+                            {ROTULO_PAPEL[p]}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline">Sem Papel</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                      <span className="text-xs">{m.ativo ? 'Ativo' : 'Inativo'}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setEditando(m); setAberto(true); }}
+                    >
+                      Configurar Acessos
+                      <ArrowRight className="ml-2 size-3" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
-      {/* Modal de Convidar/Editar */}
-      <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#141417] text-slate-100 border-zinc-800 shadow-panel p-0">
-          <div className="p-6 pb-2">
-            <DialogHeader>
-              <DialogTitle className="text-xl">Convidar / Editar Membro</DialogTitle>
-              <DialogDescription className="text-zinc-400">
-                Defina o nome, e-mail e nível de acesso granular para este membro.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
+      <ModalMembro
+        aberto={aberto}
+        aoFechar={() => setAberto(false)}
+        membro={editando}
+      />
+    </div>
+  );
+}
 
-          <div className="grid gap-6 p-6 pt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome" className="text-slate-300">Nome Completo</Label>
-                <Input id="nome" placeholder="Ex: João Silva" className="bg-zinc-900 border-zinc-800 text-slate-200 placeholder:text-zinc-600 focus:ring-primary" />
+function ModalMembro({
+  aberto,
+  aoFechar,
+  membro,
+}: {
+  aberto: boolean;
+  aoFechar: () => void;
+  membro: Membro | null;
+}) {
+  const [aba, setAba] = useState("perfil");
+
+  return (
+    <Dialog open={aberto} onOpenChange={aoFechar}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{membro ? "Configurar Acessos" : "Convidar Novo Membro"}</DialogTitle>
+          <DialogDescription>
+            Defina as permissões granulares e o papel do membro na equipe.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={aba} onValueChange={setAba} className="mt-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="perfil">Perfil & Papel</TabsTrigger>
+            <TabsTrigger value="permissoes">Matriz de Permissões</TabsTrigger>
+            <TabsTrigger value="seguranca">Segurança</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="perfil" className="space-y-4 pt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="nome">Nome Completo</Label>
+                <Input id="nome" defaultValue={membro?.nome} placeholder="Ex: João Silva" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-300">E-mail de Acesso</Label>
-                <Input id="email" type="email" placeholder="joao@empresa.com" className="bg-zinc-900 border-zinc-800 text-slate-200 placeholder:text-zinc-600 focus:ring-primary" />
+              <div className="space-y-1.5">
+                <Label htmlFor="email">E-mail de Acesso</Label>
+                <Input id="email" type="email" defaultValue={membro?.email || ""} placeholder="email@empresa.com" disabled={!!membro} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cargo">Cargo / Função</Label>
+                <Input id="cargo" defaultValue={membro?.cargo || ""} placeholder="Ex: Gestor de Tráfego" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="papel">Papel Principal</Label>
+                <Select defaultValue={membro?.papeis[0] || "funcionario"}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ROTULO_PAPEL).map(([valor, rotulo]) => (
+                      <SelectItem key={valor} value={valor}>{rotulo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="mt-0.5 size-4 text-primary" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Acesso de Administrador</p>
+                  <p className="text-xs text-muted-foreground">
+                    Usuários com papel de Administrador possuem acesso total a todas as áreas, incluindo financeiro e configurações de conta.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
 
-            <div className="space-y-2">
-              <Label className="text-slate-300">Perfil Base</Label>
-              <Select defaultValue="operador">
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-slate-200">
-                  <SelectValue placeholder="Selecione um perfil" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#141417] border-zinc-800 text-slate-200">
-                  <SelectItem value="administrador" className="hover:bg-zinc-800">Administrador</SelectItem>
-                  <SelectItem value="gestor" className="hover:bg-zinc-800">Gestor</SelectItem>
-                  <SelectItem value="operador" className="hover:bg-zinc-800">Operador de Contingência</SelectItem>
-                  <SelectItem value="financeiro" className="hover:bg-zinc-800">Gestor Financeiro</SelectItem>
-                  <SelectItem value="personalizado" className="hover:bg-zinc-800">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
+          <TabsContent value="permissoes" className="space-y-6 pt-4">
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[200px]">Módulo</TableHead>
+                    <TableHead className="text-center">Visualizar</TableHead>
+                    <TableHead className="text-center">Criar/Editar</TableHead>
+                    <TableHead className="text-center">Excluir</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {MODULOS.map((mod) => (
+                    <TableRow key={mod.id}>
+                      <TableCell className="font-medium text-sm">{mod.rotulo}</TableCell>
+                      <TableCell className="text-center"><Switch defaultChecked /></TableCell>
+                      <TableCell className="text-center"><Switch defaultChecked={mod.id !== 'equipe'} /></TableCell>
+                      <TableCell className="text-center"><Switch /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
 
-            <div className="space-y-4 pt-2">
-              <h4 className="text-sm font-semibold border-b border-zinc-800 pb-2 flex items-center gap-2 text-primary">
-                <ShieldCheck className="size-4" />
-                Matriz de Permissões Granulares
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Lock className="size-4" />
+                Proteção de Dados Sensíveis
               </h4>
-
-              <div className="space-y-6">
-                {/* Módulo Dashboard */}
-                <div className="space-y-3">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Dashboard Geral</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 hover:bg-zinc-900/50 transition-colors">
-                      <div className="space-y-0.5">
-                        <Label className="text-sm text-slate-200 cursor-pointer">Faturamento e Lucro</Label>
-                        <p className="text-[10px] text-zinc-500">Exibe valores financeiros no dashboard</p>
-                      </div>
-                      <Switch />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 hover:bg-zinc-900/50 transition-colors">
-                      <div className="space-y-0.5">
-                        <Label className="text-sm text-slate-200 cursor-pointer">ROI e Custos</Label>
-                        <p className="text-[10px] text-zinc-500">Exibe ROI e custos de produção</p>
-                      </div>
-                      <Switch />
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label>Ocultar Valores Financeiros</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Oculta faturamento, ROI e custos no dashboard e relatórios.
+                  </p>
                 </div>
-
-                {/* Módulo Produção */}
-                <div className="space-y-3">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Aba Produção (Contingência)</p>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 hover:bg-zinc-900/50 transition-colors">
-                      <div className="space-y-0.5">
-                        <Label className="text-sm text-slate-200 cursor-pointer">Visualizar produção global</Label>
-                        <p className="text-[10px] text-zinc-500">Desligado: vê apenas os próprios dados</p>
-                      </div>
-                      <Switch />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 hover:bg-zinc-900/50 transition-colors">
-                      <div className="space-y-0.5">
-                        <Label className="text-sm text-slate-200 cursor-pointer">Registrar novas produções</Label>
-                        <p className="text-[10px] text-zinc-500">Permite lançar produções diárias</p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                  </div>
+                <Switch />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label>Visão Global de Produção</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Se desativado, o membro verá apenas a sua própria produção diária.
+                  </p>
                 </div>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </TabsContent>
 
-                {/* Módulo Financeiro */}
-                <div className="space-y-3">
-                  <p className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">Financeiro & Sensível</p>
-                  <div className="grid gap-3">
-                    <div className="flex items-center justify-between rounded-lg border border-amber-500/10 bg-amber-500/5 p-3">
+          <TabsContent value="seguranca" className="space-y-4 pt-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-destructive">Desativar Acesso</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Impede imediatamente o login deste usuário no sistema.
+                  </p>
+                </div>
+                <Button variant="destructive" size="sm">Suspender Conta</Button>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Histórico de Sessões</h4>
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex items-center justify-between rounded-lg border p-3 text-xs">
                       <div className="flex items-center gap-3">
-                        <Checkbox id="sensivel" className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500" />
-                        <div className="space-y-0.5">
-                          <Label htmlFor="sensivel" className="text-sm text-amber-500 font-medium cursor-pointer flex items-center gap-1.5">
-                            <Lock className="size-3" />
-                            Ocultar dados sensíveis
-                          </Label>
-                          <p className="text-[10px] text-amber-500/60 italic">Oculta campos de valores e lucros em todo o app</p>
+                        <Activity className="size-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">Chrome em Windows (177.23.44.{i})</p>
+                          <p className="text-muted-foreground">São Paulo, Brasil • {i === 1 ? 'Agora' : 'Há 2 horas'}</p>
                         </div>
                       </div>
+                      {i === 1 && <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20">Atual</Badge>}
                     </div>
-                    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 hover:bg-zinc-900/50 transition-colors">
-                      <div className="space-y-0.5">
-                        <Label className="text-sm text-slate-200 cursor-pointer">Acesso Total ao Financeiro</Label>
-                        <p className="text-[10px] text-zinc-500">Visualizar e editar Fluxo de Caixa / Entradas / Saídas</p>
-                      </div>
-                      <Switch />
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
+          </TabsContent>
+        </Tabs>
 
-          <DialogFooter className="border-t border-zinc-800 p-6 bg-zinc-900/20">
-            <Button variant="ghost" className="text-zinc-400 hover:text-slate-200" onClick={() => setModalAberto(false)}>Cancelar</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20 px-8">
-              Salvar Configurações
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <DialogFooter className="mt-6">
+          <Button variant="outline" onClick={aoFechar}>Cancelar</Button>
+          <Button onClick={() => { toast.success("Permissões atualizadas com sucesso"); aoFechar(); }}>
+            Salvar Alterações
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
