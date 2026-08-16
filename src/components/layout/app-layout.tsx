@@ -5,7 +5,6 @@ import { toast } from "sonner";
 
 import { GRUPOS_MENU } from "@/components/layout/menu-navegacao";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +26,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ROTULO_PAPEL, useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +39,21 @@ function iniciais(nome: string): string {
 
 function NavegacaoLateral() {
   const { pathname } = useLocation();
+  const { perfil, papeis } = useSessao();
+  const router = useRouter();
+
+  const nome = perfil?.nome ?? "Usuário";
+  const papelPrincipal = papeis[0] ? ROTULO_PAPEL[papeis[0]] : "Sem papel definido";
+
+  async function sair() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Não foi possível sair", { description: error.message });
+      return;
+    }
+    toast.success("Sessão encerrada");
+    await router.navigate({ to: "/entrar" });
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -91,8 +104,8 @@ function NavegacaoLateral() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col items-start overflow-hidden group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-sm font-medium">{nome}</span>
-                <span className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
+                <span className="truncate text-sm font-medium text-sidebar-foreground">{nome}</span>
+                <span className="truncate text-xs text-sidebar-foreground/60">{perfil?.email}</span>
               </div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -125,27 +138,10 @@ function NavegacaoLateral() {
 }
 
 function BarraSuperior() {
-  const { perfil, empresa, papeis } = useSessao();
-  const router = useRouter();
-
-  const nome = perfil?.nome ?? "Usuário";
-  const papelPrincipal = papeis[0] ? ROTULO_PAPEL[papeis[0]] : "Sem papel definido";
-
-  async function sair() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Não foi possível sair", { description: error.message });
-      return;
-    }
-    toast.success("Sessão encerrada");
-    await router.navigate({ to: "/entrar" });
-  }
-
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur">
       <div className="flex flex-1 items-center gap-2 min-w-0">
       </div>
-
     </header>
   );
 }
