@@ -1,56 +1,99 @@
--- Adiciona novos papéis se necessário (já existem administrador, gestor, financeiro, supervisor_producao, funcionario, visualizacao)
-
--- Tabela de Permissões Granulares por Papel ou Usuário
-CREATE TABLE public.permissoes_acesso (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
-  usuario_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  papel public.app_role,
-  modulo text NOT NULL, -- 'dashboard', 'producao', 'financeiro', etc.
-  permissao text NOT NULL, -- 'visualizar_faturamento', 'editar_producao', etc.
-  permitido boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (empresa_id, usuario_id, papel, modulo, permissao),
-  CONSTRAINT user_or_role CHECK ((usuario_id IS NOT NULL AND papel IS NULL) OR (usuario_id IS NULL AND papel IS NOT NULL))
+-- Enum para módulos do sistema
+CREATE TYPE public.modulo_sistema AS ENUM (
+    'dashboard',
+    'vendas',
+    'producao',
+    'estoque',
+    'entregas',
+    'financeiro',
+    'clientes',
+    'fornecedores',
+    'equipe',
+    'configuracoes'
 );
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.permissoes_acesso TO authenticated;
-GRANT ALL ON public.permissoes_acesso TO service_role;
+-- Tabela de permissões granulares
+CREATE TABLE public.permissoes_acesso (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+    usuario_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    modulo public.modulo_sistema NOT NULL,
+    pode_visualizar boolean DEFAULT true,
+    pode_criar boolean DEFAULT false,
+    pode_editar boolean DEFAULT false,
+    pode_excluir boolean DEFAULT false,
+    ocultar_valores boolean DEFAULT false, -- Para financeiro/dashboard
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    UNIQUE(usuario_id, modulo)
+);
+
+-- Habilitar RLS
 ALTER TABLE public.permissoes_acesso ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "permissoes_leitura" ON public.permissoes_acesso FOR SELECT TO authenticated 
-  USING (empresa_id = public.empresa_atual());
+-- Grants
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.permissoes_acesso TO authenticated;
+GRANT ALL ON public.permissoes_acesso TO service_role;
 
-CREATE POLICY "permissoes_admin" ON public.permissoes_acesso FOR ALL TO authenticated 
-  USING (empresa_id = public.empresa_atual() AND public.has_role(auth.uid(), 'administrador'));
+-- Políticas de RLS
+CREATE POLICY "Usuários podem ver suas próprias permissões"
+ON public.permissoes_acesso FOR SELECT
+TO authenticated
+USING (auth.uid() = usuario_id);
+
+CREATE POLICY "Administradores podem gerenciar permissões da empresa"
+ON public.permissoes_acesso FOR ALL
+TO authenticated
+USING (public.has_role(auth.uid(), 'administrador') AND empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid()));
 
 -- Função para verificar permissão granular
-CREATE OR REPLACE FUNCTION public.tem_permissao(_modulo text, _permissao text)
-RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+CREATE OR REPLACE FUNCTION public.tem_permissao(_usuario_id uuid, _modulo public.modulo_sistema, _tipo text DEFAULT 'visualizar')
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
-  v_user uuid := auth.uid();
-  v_empresa uuid;
-  v_permitido boolean;
+    _admin boolean;
+    _pPode boolean;
 BEGIN
-  v_empresa := public.empresa_atual();
-  
-  -- Se for admin, tem tudo por padrão
-  IF public.has_role(v_user, 'administrador') THEN RETURN true; END IF;
+    -- Admins sempre têm acesso total
+    SELECT public.has_role(_usuario_id, 'administrador') INTO _admin;
+    IF _admin THEN
+        RETURN true;
+    END IF;
 
-  -- 1. Verifica permissão específica do usuário
-  SELECT permitido INTO v_permitido FROM public.permissoes_acesso 
-  WHERE empresa_id = v_empresa AND usuario_id = v_user AND modulo = _modulo AND permissao = _permissao;
-  
-  IF v_permitido IS NOT NULL THEN RETURN v_permitido; END IF;
+    -- Verificar tabela de permissões
+    CASE _tipo
+        WHEN 'criar' THEN
+            SELECT pode_criar INTO _pPode FROM public.permissoes_acesso WHERE usuario_id = _usuario_id AND modulo = _modulo;
+        WHEN 'editar' THEN
+            SELECT pode_editar INTO _pPode FROM public.permissoes_acesso WHERE usuario_id = _usuario_id AND modulo = _modulo;
+        WHEN 'excluir' THEN
+            SELECT pode_excluir INTO _pPode FROM public.permissoes_acesso WHERE usuario_id = _usuario_id AND modulo = _modulo;
+        ELSE
+            SELECT pode_visualizar INTO _pPode FROM public.permissoes_acesso WHERE usuario_id = _usuario_id AND modulo = _modulo;
+    END CASE;
 
-  -- 2. Verifica permissão do papel do usuário
-  SELECT EXISTS (
-    SELECT 1 FROM public.permissoes_acesso p
-    JOIN public.usuarios_papeis up ON up.papel = p.papel
-    WHERE p.empresa_id = v_empresa AND up.usuario_id = v_user AND p.modulo = _modulo AND p.permissao = _permissao AND p.permitido = true
-  ) INTO v_permitido;
+    RETURN COALESCE(_pPode, false);
+END;
+$$;
 
-  RETURN v_permitido;
-END; $$;
+-- Logs de Acesso
+CREATE TABLE public.logs_acesso (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+    usuario_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    ip_address text,
+    user_agent text,
+    created_at timestamptz DEFAULT now()
+);
 
+ALTER TABLE public.logs_acesso ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.logs_acesso TO authenticated;
+GRANT ALL ON public.logs_acesso TO service_role;
+
+CREATE POLICY "Admins podem ver logs da empresa"
+ON public.logs_acesso FOR SELECT
+TO authenticated
+USING (public.has_role(auth.uid(), 'administrador'));
