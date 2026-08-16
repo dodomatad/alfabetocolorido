@@ -79,15 +79,19 @@ export function formatarDocumento(valor: string | null | undefined): string {
 
 function cpfValido(d: string): boolean {
   if (/^(\d)\1{10}$/.test(d)) return false;
-  for (const [inicio, pos] of [
+  const etapas: Array<[number, number]> = [
     [9, 10],
     [10, 11],
-  ]) {
+  ];
+  for (const etapa of etapas) {
+    const inicio = etapa[0];
+    const pos = etapa[1];
     let soma = 0;
     for (let i = 0; i < inicio; i++) soma += Number(d[i]) * (pos - i);
-    const resto = (soma * 10) % 11 % 10;
+    const resto = ((soma * 10) % 11) % 10;
     if (resto !== Number(d[inicio])) return false;
   }
+
   return true;
 }
 
