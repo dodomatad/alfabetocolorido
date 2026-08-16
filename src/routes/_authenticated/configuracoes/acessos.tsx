@@ -57,8 +57,9 @@ import { ROTULO_PAPEL, type Papel } from "@/hooks/use-sessao";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/acessos")({
   head: () => ({
-    title: "Gerenciamento de Acessos & Equipe | Gestão BMs",
+    meta: [{ title: "Gerenciamento de Acessos & Equipe | Gestão BMs" }],
   }),
+
   component: PaginaAcessos,
 });
 
