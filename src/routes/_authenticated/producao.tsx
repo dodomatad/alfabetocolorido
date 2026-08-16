@@ -1,14 +1,84 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip as TooltipRecharts,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  AlertTriangle,
+  Factory,
+  Flame,
+  Pencil,
+  Plus,
+  Rocket,
+  Target,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { ModuloRegistros } from "@/components/comum/modulo-registros";
+import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
+import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useSessao } from "@/hooks/use-sessao";
+import { supabase } from "@/integrations/supabase/client";
+import { formatarData } from "@/lib/formatadores";
 
 export const Route = createFileRoute("/_authenticated/producao")({
   head: () => ({
     meta: [
-      { title: "Produção | Gestão BMs" },
-      { name: "description", content: "Acompanhe as ordens de produção das BMs, etapas e responsáveis." },
-      { property: "og:title", content: "Produção | Gestão BMs" },
-      { property: "og:description", content: "Acompanhe as ordens de produção das BMs, etapas e responsáveis." },
+      { title: "Produção & Contingência | Gestão BMs" },
+      {
+        name: "description",
+        content:
+          "Controle diário de criação de BMs, esteira de aquecimento, contas viradas e desempenho da equipe.",
+      },
+      { property: "og:title", content: "Produção & Contingência | Gestão BMs" },
+      {
+        property: "og:description",
+        content: "Controle diário de criação de BMs, esteira de aquecimento e contas viradas.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -16,45 +86,610 @@ export const Route = createFileRoute("/_authenticated/producao")({
   component: Pagina,
 });
 
+type Registro = {
+  id: string;
+  data_registro: string;
+  operador: string;
+  bms_criadas: number;
+  bms_aquecidas: number;
+  contas_subidas: number;
+  contas_viradas: number;
+  bloqueios: number;
+  motivo_queda: string | null;
+  meta_diaria: number;
+  observacoes: string | null;
+};
+
+const MOTIVOS = [
+  { valor: "erro_cartao", rotulo: "Erro de Cartão" },
+  { valor: "checkpoint_identidade", rotulo: "Checkpoint de Identidade" },
+  { valor: "bloqueio_ip", rotulo: "Bloqueio de IP/Proxy" },
+  { valor: "restricao_imediata", rotulo: "Restrição Imediata" },
+  { valor: "outros", rotulo: "Outros" },
+];
+
+const PERIODOS = [
+  { valor: "hoje", rotulo: "Hoje" },
+  { valor: "ontem", rotulo: "Ontem" },
+  { valor: "7", rotulo: "Últimos 7 dias" },
+  { valor: "30", rotulo: "Últimos 30 dias" },
+  { valor: "tudo", rotulo: "Todo o período" },
+];
+
+const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const AZUL = "#3B82F6";
+const VERDE = "#10B981";
+
+const tabela = () =>
+  (supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        order: (
+          c: string,
+          o: { ascending: boolean },
+        ) => Promise<{ data: Registro[] | null; error: Error | null }>;
+      };
+      insert: (v: Record<string, unknown>) => Promise<{ error: Error | null }>;
+      update: (v: Record<string, unknown>) => {
+        eq: (c: string, v: string) => Promise<{ error: Error | null }>;
+      };
+      delete: () => { eq: (c: string, v: string) => Promise<{ error: Error | null }> };
+    };
+  }).from("producao_diaria");
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+function limiteInferior(periodo: string): { de?: string; ate?: string } {
+  const hoje = new Date();
+  if (periodo === "hoje") return { de: iso(hoje), ate: iso(hoje) };
+  if (periodo === "ontem") {
+    const o = new Date(hoje);
+    o.setDate(o.getDate() - 1);
+    return { de: iso(o), ate: iso(o) };
+  }
+  if (periodo === "tudo") return {};
+  const dias = Number(periodo);
+  const de = new Date(hoje);
+  de.setDate(de.getDate() - (dias - 1));
+  return { de: iso(de), ate: iso(hoje) };
+}
+
+const rotuloMotivo = (m: string | null) =>
+  MOTIVOS.find((x) => x.valor === m)?.rotulo ?? "—";
+
 function Pagina() {
+  const { empresa, session, fuso } = useSessao();
+  const queryClient = useQueryClient();
+  const [operador, setOperador] = useState("todos");
+  const [periodo, setPeriodo] = useState("7");
+  const [aberto, setAberto] = useState(false);
+  const [editando, setEditando] = useState<Registro | null>(null);
+
+  const consulta = useQuery({
+    queryKey: ["producao_diaria", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    queryFn: async () => {
+      const { data, error } = await tabela()
+        .select("*")
+        .order("data_registro", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const equipe = useQuery({
+    queryKey: ["perfis-producao", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("perfis").select("id, nome").limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const registros = useMemo(() => {
+    const { de, ate } = limiteInferior(periodo);
+    return (consulta.data ?? []).filter((r) => {
+      if (operador !== "todos" && r.operador !== operador) return false;
+      if (de && r.data_registro < de) return false;
+      if (ate && r.data_registro > ate) return false;
+      return true;
+    });
+  }, [consulta.data, operador, periodo]);
+
+  const soma = (chave: keyof Registro) =>
+    registros.reduce((s, r) => s + (Number(r[chave]) || 0), 0);
+
+  const criadas = soma("bms_criadas");
+  const aquecidas = soma("bms_aquecidas");
+  const subidas = soma("contas_subidas");
+  const viradas = soma("contas_viradas");
+  const bloqueios = soma("bloqueios");
+  const aproveitamento = criadas > 0 ? (viradas / criadas) * 100 : 0;
+  const perda = criadas > 0 ? (bloqueios / criadas) * 100 : 0;
+  const metaDia = registros[0]?.meta_diaria ?? 10;
+
+  const porDia = useMemo(() => {
+    const base = DIAS.map((dia) => ({ dia, criadas: 0, viradas: 0 }));
+    for (const r of registros) {
+      const d = new Date(`${r.data_registro}T12:00:00`);
+      const i = d.getDay();
+      base[i]!.criadas += Number(r.bms_criadas) || 0;
+      base[i]!.viradas += Number(r.contas_viradas) || 0;
+    }
+    return [...base.slice(1), base[0]!];
+  }, [registros]);
+
+  const etapas = [
+    { etapa: "Criadas", valor: criadas },
+    { etapa: "Aquecidas", valor: aquecidas },
+    { etapa: "Subidas", valor: subidas },
+    { etapa: "Viradas / Ativas", valor: viradas },
+  ].map((e, i, arr) => ({
+    ...e,
+    percentual: criadas > 0 ? (e.valor / criadas) * 100 : 0,
+    queda: i === 0 ? 0 : (arr[i - 1]!.valor || 0) - e.valor,
+  }));
+  const maiorQueda = Math.max(...etapas.map((e) => e.queda));
+
+  const vazio = {
+    operador: "",
+    data_registro: iso(new Date()),
+    bms_criadas: "",
+    bms_aquecidas: "",
+    contas_subidas: "",
+    contas_viradas: "",
+    bloqueios: "",
+    motivo_queda: "",
+    meta_diaria: "10",
+    observacoes: "",
+  };
+  const [form, setForm] = useState<Record<string, string>>(vazio);
+
+  const abrirNovo = () => {
+    setEditando(null);
+    setForm(vazio);
+    setAberto(true);
+  };
+
+  const abrirEdicao = (r: Registro) => {
+    setEditando(r);
+    setForm({
+      operador: r.operador,
+      data_registro: r.data_registro,
+      bms_criadas: String(r.bms_criadas),
+      bms_aquecidas: String(r.bms_aquecidas),
+      contas_subidas: String(r.contas_subidas),
+      contas_viradas: String(r.contas_viradas),
+      bloqueios: String(r.bloqueios),
+      motivo_queda: r.motivo_queda ?? "",
+      meta_diaria: String(r.meta_diaria),
+      observacoes: r.observacoes ?? "",
+    });
+    setAberto(true);
+  };
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!empresa?.id) throw new Error("Empresa não identificada.");
+      if (!form['operador']?.trim()) throw new Error("Selecione a funcionária/operador.");
+      const n = (c: string) => Number(form[c] || 0) || 0;
+      const dados: Record<string, unknown> = {
+        empresa_id: empresa.id,
+        data_registro: form['data_registro'] || iso(new Date()),
+        operador: form['operador'],
+        bms_criadas: n("bms_criadas"),
+        bms_aquecidas: n("bms_aquecidas"),
+        contas_subidas: n("contas_subidas"),
+        contas_viradas: n("contas_viradas"),
+        bloqueios: n("bloqueios"),
+        motivo_queda: form['motivo_queda'] || null,
+        meta_diaria: n("meta_diaria") || 10,
+        observacoes: form['observacoes'] || null,
+        atualizado_por: session?.user.id ?? null,
+      };
+      if (editando) {
+        const { error } = await tabela().update(dados).eq("id", editando.id);
+        if (error) throw error;
+      } else {
+        dados['criado_por'] = session?.user.id ?? null;
+        const { error } = await tabela().insert(dados);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editando ? "Registro atualizado." : "Produção registrada.");
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      setAberto(false);
+      setEditando(null);
+      setForm(vazio);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const excluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await tabela().delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registro excluído.");
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
-    <ModuloRegistros
-      titulo="Produção"
-      descricao="Ordens de produção das BMs, com quantidade, responsável e prazo."
-      tabela="ordens_producao"
-      chaveConsulta="ordens_producao"
-      rotuloBotao="Adicionar ordem"
-      ordenarPor={{ coluna: "created_at" }}
-      campos={[
-        { nome: "descricao", rotulo: "Descrição", tipo: "texto", obrigatorio: true },
-        { nome: "quantidade", rotulo: "Quantidade", tipo: "numero", padrao: "1" },
-        { nome: "responsavel", rotulo: "Responsável", tipo: "texto" },
-        { nome: "data_inicio", rotulo: "Início", tipo: "data" },
-        { nome: "data_prazo", rotulo: "Prazo", tipo: "data" },
-        {
-          nome: "status",
-          rotulo: "Status",
-          tipo: "selecao",
-          padrao: "planejada",
-          opcoes: [
-            { valor: "planejada", rotulo: "Planejada" },
-            { valor: "em_producao", rotulo: "Em produção" },
-            { valor: "pausada", rotulo: "Pausada" },
-            { valor: "concluida", rotulo: "Concluída" },
-            { valor: "cancelada", rotulo: "Cancelada" },
-          ],
-        },
-        { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
-      ]}
-      colunas={[
-        { nome: "descricao", rotulo: "Descrição" },
-        { nome: "quantidade", rotulo: "Qtd.", alinharDireita: true },
-        { nome: "responsavel", rotulo: "Responsável" },
-        { nome: "data_prazo", rotulo: "Prazo", formato: "data" },
-        { nome: "status", rotulo: "Status" },
-      ]}
-      vazioTitulo="Nenhuma ordem de produção"
-      vazioDescricao="Cadastre a primeira ordem para acompanhar a produção das BMs."
-    />
+    <TooltipProvider>
+      <div className="space-y-6">
+        <CabecalhoPagina
+          titulo="Produção & Contingência"
+          descricao="Controle diário de criação de BMs, esteira de aquecimento e contas viradas"
+          acoes={
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={operador} onValueChange={setOperador}>
+                <SelectTrigger className="w-48" aria-label="Funcionária/Operador">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os operadores</SelectItem>
+                  {(equipe.data ?? []).map((p) => (
+                    <SelectItem key={p.id} value={p.nome}>
+                      {p.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={periodo} onValueChange={setPeriodo}>
+                <SelectTrigger className="w-44" aria-label="Período">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODOS.map((p) => (
+                    <SelectItem key={p.valor} value={p.valor}>
+                      {p.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={abrirNovo}>
+                <Plus className="size-4" aria-hidden="true" />
+                Registrar Produção Diária
+              </Button>
+            </div>
+          }
+        />
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <Kpi rotulo="BMs Criadas" valor={criadas} icone={Factory} badge={`Meta: ${metaDia}/dia`} />
+          <Kpi rotulo="BMs Aquecidas" valor={aquecidas} icone={Flame} cor="text-[#3B82F6]" />
+          <Kpi rotulo="Contas Subidas" valor={subidas} icone={Rocket} />
+          <Kpi rotulo="Contas Viradas (Ativas)" valor={viradas} icone={Target} cor="text-[#10B981]" />
+          <Kpi
+            rotulo="Taxa de Aproveitamento"
+            valor={`${aproveitamento.toFixed(1)}%`}
+            icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
+            cor={
+              aproveitamento > 50
+                ? "text-[#10B981]"
+                : aproveitamento < 30
+                  ? "text-[#EF4444]"
+                  : "text-foreground"
+            }
+            detalhe="Contas viradas / BMs criadas"
+          />
+          <Kpi
+            rotulo="Bloqueios / Quedas"
+            valor={bloqueios}
+            icone={AlertTriangle}
+            cor="text-[#EF4444]"
+            detalhe={`${perda.toFixed(1)}% de perda da esteira`}
+          />
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-xl border bg-card p-5 shadow-panel">
+            <h2 className="text-sm font-semibold">Produção Diária vs. Viradas</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Comparativo por dia da semana</p>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={porDia} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#242429" vertical={false} />
+                  <XAxis dataKey="dia" tickLine={false} axisLine={false} tick={{ fill: "#AAAAAA", fontSize: 12 }} />
+                  <YAxis tickLine={false} axisLine={false} tick={{ fill: "#AAAAAA", fontSize: 12 }} allowDecimals={false} />
+                  <TooltipRecharts
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                    contentStyle={{
+                      background: "#141417",
+                      border: "1px solid #242429",
+                      borderRadius: 12,
+                      color: "#fff",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12, color: "#AAAAAA" }} />
+                  <Bar dataKey="criadas" name="BMs Criadas" fill={AZUL} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="viradas" name="Contas Viradas" fill={VERDE} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-5 shadow-panel">
+            <h2 className="text-sm font-semibold">Etapas da Contingência</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Onde a esteira mais perde contas</p>
+            <ul className="space-y-4">
+              {etapas.map((e) => (
+                <li key={e.etapa}>
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span className="font-medium">{e.etapa}</span>
+                    <span className="num text-muted-foreground">
+                      {e.valor} · {e.percentual.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(e.percentual, 1)}%`,
+                        backgroundColor: e.etapa.startsWith("Viradas") ? VERDE : AZUL,
+                      }}
+                    />
+                  </div>
+                  {e.queda > 0 ? (
+                    <p
+                      className={`mt-1 text-xs ${
+                        e.queda === maiorQueda ? "text-[#EF4444]" : "text-muted-foreground"
+                      }`}
+                    >
+                      Queda de {e.queda} conta(s) nesta etapa
+                      {e.queda === maiorQueda ? " — maior perda da esteira" : ""}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="rounded-xl border bg-card">
+          {consulta.isLoading ? (
+            <div className="p-4">
+              <CarregandoTabela colunas={6} />
+            </div>
+          ) : consulta.isError ? (
+            <div className="p-4">
+              <EstadoErro
+                descricao={(consulta.error as Error).message}
+                aoTentarNovamente={() => void consulta.refetch()}
+              />
+            </div>
+          ) : registros.length === 0 ? (
+            <div className="p-4">
+              <EstadoVazio
+                titulo="Nenhum registro de produção"
+                descricao="Lance a produção diária da equipe para acompanhar a esteira de contingência."
+                className="border-0"
+                acao={<Button onClick={abrirNovo}>Registrar Produção Diária</Button>}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Funcionária / Operador</TableHead>
+                    <TableHead className="text-right">Criadas</TableHead>
+                    <TableHead className="text-right">Aquecidas</TableHead>
+                    <TableHead className="text-right">Subidas</TableHead>
+                    <TableHead className="text-right">Viradas</TableHead>
+                    <TableHead>Quedas / Motivo</TableHead>
+                    <TableHead className="text-right">Taxa</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {registros.map((r) => {
+                    const taxa = r.bms_criadas > 0 ? (r.contas_viradas / r.bms_criadas) * 100 : 0;
+                    const bateu = r.bms_criadas >= r.meta_diaria;
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell className="num">{formatarData(r.data_registro, fuso)}</TableCell>
+                        <TableCell>{r.operador}</TableCell>
+                        <TableCell className="num text-right">{r.bms_criadas}</TableCell>
+                        <TableCell className="num text-right text-[#3B82F6]">{r.bms_aquecidas}</TableCell>
+                        <TableCell className="num text-right">{r.contas_subidas}</TableCell>
+                        <TableCell className="num text-right text-[#10B981]">{r.contas_viradas}</TableCell>
+                        <TableCell>
+                          {r.bloqueios > 0 ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="destructive" className="cursor-default">
+                                  {r.bloqueios} · {rotuloMotivo(r.motivo_queda)}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {r.observacoes || `Motivo principal: ${rotuloMotivo(r.motivo_queda)}`}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="num text-right">{taxa.toFixed(1)}%</TableCell>
+                        <TableCell>
+                          <Badge variant={bateu ? "default" : "secondary"}>
+                            {bateu ? "Meta batida" : "Abaixo da meta"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Editar registro"
+                              onClick={() => abrirEdicao(r)}
+                            >
+                              <Pencil className="size-4" aria-hidden="true" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Excluir registro"
+                              onClick={() => excluir.mutate(r.id)}
+                            >
+                              <Trash2 className="size-4 text-destructive" aria-hidden="true" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </section>
+
+        <Dialog open={aberto} onOpenChange={setAberto}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editando ? "Editar produção diária" : "Registrar Produção Diária"}
+              </DialogTitle>
+              <DialogDescription>
+                Lance os números da esteira de contingência do dia.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="operador">Funcionária / Operador</Label>
+                <Select
+                  value={form['operador'] ?? ""}
+                  onValueChange={(v) => setForm((a) => ({ ...a, operador: v }))}
+                >
+                  <SelectTrigger id="operador">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(equipe.data ?? []).map((p) => (
+                      <SelectItem key={p.id} value={p.nome}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Campo id="data_registro" rotulo="Data do registro" tipo="date" form={form} setForm={setForm} />
+              <Campo id="bms_criadas" rotulo="BMs criadas" form={form} setForm={setForm} />
+              <Campo id="bms_aquecidas" rotulo="BMs aquecidas" form={form} setForm={setForm} />
+              <Campo id="contas_subidas" rotulo="Contas subidas" form={form} setForm={setForm} />
+              <Campo id="contas_viradas" rotulo="Contas viradas" form={form} setForm={setForm} />
+              <Campo id="bloqueios" rotulo="Bloqueios" form={form} setForm={setForm} />
+              <Campo id="meta_diaria" rotulo="Meta diária" form={form} setForm={setForm} />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="motivo_queda">Motivo principal das quedas</Label>
+                <Select
+                  value={form['motivo_queda'] ?? ""}
+                  onValueChange={(v) => setForm((a) => ({ ...a, motivo_queda: v }))}
+                >
+                  <SelectTrigger id="motivo_queda">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOTIVOS.map((m) => (
+                      <SelectItem key={m.valor} value={m.valor}>
+                        {m.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="observacoes">Observações / anotações rápidas</Label>
+                <Textarea
+                  id="observacoes"
+                  rows={3}
+                  value={form['observacoes'] ?? ""}
+                  onChange={(e) => setForm((a) => ({ ...a, observacoes: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAberto(false)} disabled={salvar.isPending}>
+                Cancelar
+              </Button>
+              <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+                {salvar.isPending ? "Salvando..." : "Salvar produção"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function Campo({
+  id,
+  rotulo,
+  tipo = "number",
+  form,
+  setForm,
+}: {
+  id: string;
+  rotulo: string;
+  tipo?: string;
+  form: Record<string, string>;
+  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{rotulo}</Label>
+      <Input
+        id={id}
+        type={tipo}
+        inputMode={tipo === "number" ? "numeric" : undefined}
+        value={form[id] ?? ""}
+        onChange={(e) => setForm((a) => ({ ...a, [id]: e.target.value }))}
+      />
+    </div>
+  );
+}
+
+function Kpi({
+  rotulo,
+  valor,
+  icone: Icone,
+  cor = "text-foreground",
+  badge,
+  detalhe,
+}: {
+  rotulo: string;
+  valor: string | number;
+  icone: typeof Factory;
+  cor?: string;
+  badge?: string;
+  detalhe?: string;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-4 shadow-panel">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-medium text-muted-foreground">{rotulo}</p>
+        <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+          <Icone className="size-4" aria-hidden="true" />
+        </span>
+      </div>
+      <p className={`num mt-2 text-3xl font-semibold tracking-tight ${cor}`}>{valor}</p>
+      {badge ? (
+        <Badge variant="secondary" className="mt-2">
+          {badge}
+        </Badge>
+      ) : null}
+      {detalhe ? <p className="mt-2 text-xs text-muted-foreground">{detalhe}</p> : null}
+    </div>
   );
 }
