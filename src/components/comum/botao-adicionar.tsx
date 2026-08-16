@@ -1,5 +1,7 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useSessao } from "@/hooks/use-sessao";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +29,11 @@ export function BotaoAdicionar({
   proximaEtapa?: string;
   aoClicar?: () => void;
 }) {
+  const { temPermissao } = useSessao();
   const [aberto, setAberto] = useState(false);
+
+  if (!temPermissao(modulo, 'criar')) return null;
+
 
   if (aoClicar) {
     return (

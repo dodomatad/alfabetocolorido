@@ -74,14 +74,8 @@ type Props = {
 // A tabela é escolhida por uma união fechada acima; o cast evita a explosão de
 // tipos genéricos do client gerado sem abrir mão da validação em tempo de escrita.
 const consultarTabela = (tabela: string) =>
-  (supabase as unknown as {
-    from: (t: string) => {
-      select: (c: string) => {
-        order: (c: string, o: { ascending: boolean }) => Promise<{ data: Registro[] | null; error: Error | null }>;
-      };
-      insert: (v: Registro) => Promise<{ error: Error | null }>;
-    };
-  }).from(tabela);
+  (supabase as any).from(tabela);
+
 
 export function ModuloRegistros({
   titulo,
@@ -114,7 +108,7 @@ export function ModuloRegistros({
       if (error) throw error;
       const lista = data ?? [];
       if (!filtroFixo) return lista;
-      return lista.filter((r) => Object.entries(filtroFixo).every(([k, v]) => r[k] === v));
+      return lista.filter((r: Registro) => Object.entries(filtroFixo).every(([k, v]) => r[k] === v));
     },
   });
 
@@ -300,7 +294,7 @@ export function ModuloRegistros({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(consulta.data ?? []).map((registro, indice) => (
+                {(consulta.data ?? []).map((registro: Registro, indice: number) => (
                   <TableRow key={String(registro['id'] ?? indice)}>
                     {colunas.map((c) => (
                       <TableCell

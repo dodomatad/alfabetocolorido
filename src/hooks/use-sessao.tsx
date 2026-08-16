@@ -43,25 +43,37 @@ export type Perfil = {
   ativo: boolean;
 };
 
+export type PermissaoModulo = {
+  modulo: string;
+  pode_visualizar: boolean;
+  pode_criar: boolean;
+  pode_editar: boolean;
+  pode_excluir: boolean;
+  ocultar_valores: boolean;
+};
+
 export type ContextoSessao = {
   session: Session | null;
   perfil: Perfil | null;
   empresa: Empresa | null;
   papeis: Papel[];
+  permissoes: PermissaoModulo[];
   carregando: boolean;
   erro: Error | null;
   recarregar: () => void;
   temPapel: (...papeis: Papel[]) => boolean;
+  temPermissao: (modulo: string, acao?: 'visualizar' | 'criar' | 'editar' | 'excluir') => boolean;
   podeGerenciar: boolean;
   fuso: string;
 };
+
 
 const Contexto = createContext<ContextoSessao | null>(null);
 
 async function carregarSessao() {
   const { data: sessaoAtual } = await supabase.auth.getSession();
   const session = sessaoAtual.session ?? null;
-  if (!session) return { session: null, perfil: null, empresa: null, papeis: [] as Papel[] };
+  if (!session) return { session: null, perfil: null, empresa: null, papeis: [] as Papel[], permissoes: [] as PermissaoModulo[] };
 
   const { data: perfil, error: erroPerfil } = await supabase
     .from("perfis")
@@ -75,6 +87,13 @@ async function carregarSessao() {
     .select("papel")
     .eq("usuario_id", session.user.id);
   if (erroPapeis) throw erroPapeis;
+
+  const { data: permissoes, error: erroPermissoes } = await supabase
+    .from("permissoes_acesso")
+    .select("modulo, pode_visualizar, pode_criar, pode_editar, pode_excluir, ocultar_valores")
+    .eq("usuario_id", session.user.id);
+  // Não lançamos erro se falhar (pode não ter registro ainda)
+
 
   let empresa: Empresa | null = null;
   if (perfil?.empresa_id) {
@@ -92,7 +111,9 @@ async function carregarSessao() {
     perfil: (perfil as Perfil | null) ?? null,
     empresa,
     papeis: (vinculos ?? []).map((v) => v.papel as Papel),
+    permissoes: (permissoes ?? []) as unknown as PermissaoModulo[],
   };
+
 }
 
 export function ProvedorSessao({ children }: { children: ReactNode }) {
@@ -115,18 +136,32 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
   const valor = useMemo<ContextoSessao>(() => {
     const papeis = consulta.data?.papeis ?? [];
+    const permissoes = consulta.data?.permissoes ?? [];
+    const isAdmin = papeis.includes("administrador");
+
     return {
       session: consulta.data?.session ?? null,
       perfil: consulta.data?.perfil ?? null,
       empresa: consulta.data?.empresa ?? null,
       papeis,
+      permissoes,
       carregando: consulta.isLoading,
       erro: (consulta.error as Error | null) ?? null,
       recarregar: () => void consulta.refetch(),
       temPapel: (...alvos: Papel[]) => alvos.some((p) => papeis.includes(p)),
-      podeGerenciar: papeis.includes("administrador") || papeis.includes("gestor"),
+      temPermissao: (modulo: string, acao: 'visualizar' | 'criar' | 'editar' | 'excluir' = 'visualizar') => {
+        if (isAdmin) return true;
+        const p = permissoes.find(x => x.modulo === modulo);
+        if (!p) return false;
+        if (acao === 'criar') return p.pode_criar;
+        if (acao === 'editar') return p.pode_editar;
+        if (acao === 'excluir') return p.pode_excluir;
+        return p.pode_visualizar;
+      },
+      podeGerenciar: isAdmin || papeis.includes("gestor"),
       fuso: consulta.data?.empresa?.fuso_horario ?? "America/Sao_Paulo",
     };
+
   }, [consulta]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

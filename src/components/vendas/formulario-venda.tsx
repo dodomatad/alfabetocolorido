@@ -113,7 +113,7 @@ export function FormularioVenda({
       const validos = itens.filter((i) => i.modalidade_id && numero(i.quantidade) > 0);
       if (validos.length === 0) throw new Error("Adicione ao menos um item com modalidade e quantidade.");
 
-      const { data: proximo, error: erroNumero } = await supabase.rpc("proximo_numero_venda", {
+      const { data: proximo, error: erroNumero } = await (supabase as any).rpc("proximo_numero_venda", {
         _empresa: empresa.id,
       });
       if (erroNumero) throw erroNumero;
