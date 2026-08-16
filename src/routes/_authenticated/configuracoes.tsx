@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
       { title: "Configurações | Gestão BMs" },
       {
         name: "description",
-        content: "Dados da empresa e modalidades de BM com preço padrão e unidade de medida.",
+        content: "Dados da empresa e modalidades de BM com preço de venda, custo e valor por unidade.",
       },
       { property: "og:title", content: "Configurações | Gestão BMs" },
       {
