@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Search, Menu } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,11 @@ function PaginaDashboard() {
         </Popover>
 
         <div className="flex items-center gap-2">
+          <SidebarTrigger>
+            <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground/50 hover:text-primary transition-colors">
+              <Menu className="size-4" />
+            </Button>
+          </SidebarTrigger>
           <LayoutDashboard className="size-4 text-primary/70" aria-hidden="true" />
           <h1 className="text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl">Dashboard</h1>
         </div>
