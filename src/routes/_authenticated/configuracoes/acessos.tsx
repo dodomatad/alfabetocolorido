@@ -135,34 +135,63 @@ function PaginaAcessos() {
   return (
     <div className="space-y-6">
       <CabecalhoPagina
-        titulo="Gerenciamento de Acessos & Equipe"
-        descricao="Controle quem pode acessar o sistema e quais permissões cada membro possui."
+        titulo="Gestão de Equipe & Acessos"
+        descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
         acoes={
           <Button onClick={() => { setEditando(null); setAberto(true); }}>
             <Plus className="mr-2 size-4" />
-            Convidar Membro
+            Novo Integrante
           </Button>
         }
       />
 
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <CartaoMetrica rotulo="Total de Membros" valor={String(totalMembros)} />
+        <CartaoMetrica rotulo="Total da Equipe" valor={String(totalMembros)} />
         <CartaoMetrica rotulo="Administradores" valor={String(totalAdmins)} />
-        <CartaoMetrica rotulo="Operadores / Produção" valor={String(totalOperadores)} />
-        <CartaoMetrica rotulo="Membros Ativos Hoje" valor={String(Math.floor(totalMembros * 0.8))} />
+        <CartaoMetrica rotulo="Operadores (Contingência / Tráfego)" valor={String(totalOperadores)} />
+        <CartaoMetrica rotulo="Acessos Pendentes / Convites" valor={String(Math.floor(totalMembros * 0.1))} />
+
       </div>
 
       <div className="rounded-xl border bg-card shadow-panel">
-        <div className="flex items-center justify-between border-b p-4">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou e-mail..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="pl-9"
-            />
+        <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou e-mail..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <Select defaultValue="todos">
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Cargo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Cargos</SelectItem>
+                <SelectItem value="administrador">Administrador</SelectItem>
+                <SelectItem value="operador">Operador</SelectItem>
+                <SelectItem value="financeiro">Financeiro</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="ativos">
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Status</SelectItem>
+                <SelectItem value="ativos">Ativos</SelectItem>
+                <SelectItem value="pendentes">Pendentes</SelectItem>
+                <SelectItem value="inativos">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
               <History className="mr-2 size-4" />
@@ -170,6 +199,7 @@ function PaginaAcessos() {
             </Button>
           </div>
         </div>
+
 
         {consulta.isLoading ? (
           <div className="p-8">
@@ -197,7 +227,9 @@ function PaginaAcessos() {
                 <TableHead>Papel Principal</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Última Atividade</TableHead>
+                <TableHead>Dados Financeiros</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -236,16 +268,29 @@ function PaginaAcessos() {
                   <TableCell className="text-xs text-muted-foreground">
                     {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex justify-center">
+                      <Badge variant="outline" className="flex items-center gap-1.5 font-normal">
+                        {/* 
+                          Mocking the visibility icon based on logic we'll add to members data 
+                          In a real app, this comes from the 'permissoes_acesso' table check 
+                        */}
+                        <Eye className="size-3 text-emerald-500" />
+                        <span className="text-[10px] uppercase">Visível</span>
+                      </Badge>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => { setEditando(m); setAberto(true); }}
                     >
-                      Configurar Acessos
+                      Ajustar Permissões
                       <ArrowRight className="ml-2 size-3" />
                     </Button>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
@@ -378,17 +423,19 @@ function ModalMembro({
     <Dialog open={aberto} onOpenChange={aoFechar}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{membro ? "Configurar Acessos" : "Convidar Novo Membro"}</DialogTitle>
+          <DialogTitle>{membro ? "Editar Integrante" : "Novo Integrante"}</DialogTitle>
           <DialogDescription>
-            Defina as permissões granulares e o papel do membro na equipe.
+            Defina os dados pessoais, cargos e permissões granulares do membro da equipe.
           </DialogDescription>
+
         </DialogHeader>
 
         <Tabs value={aba} onValueChange={setAba} className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="perfil">Perfil & Papel</TabsTrigger>
-            <TabsTrigger value="permissoes">Matriz de Permissões</TabsTrigger>
+            <TabsTrigger value="perfil">Dados Pessoais & Função</TabsTrigger>
+            <TabsTrigger value="permissoes">Controle de Acessos & Permissões</TabsTrigger>
             <TabsTrigger value="seguranca">Segurança</TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="perfil" className="space-y-4 pt-4">
