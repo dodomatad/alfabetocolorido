@@ -76,7 +76,7 @@ function NavegacaoLateral() {
       <SidebarContent>
         {GRUPOS_MENU.map((grupo) => (
           <SidebarGroup key={grupo.rotulo}>
-            <SidebarGroupLabel className="text-blue-400/80 font-medium uppercase tracking-wider text-[10px]">{grupo.rotulo}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-white font-bold uppercase tracking-wider text-[10px]">{grupo.rotulo}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {grupo.itens.map((item) => {
@@ -119,8 +119,8 @@ function NavegacaoLateral() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col items-start overflow-hidden group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-sm font-medium text-blue-400">{nome}</span>
-                <span className="truncate text-xs text-blue-400/60">{perfil?.email}</span>
+                <span className="truncate text-sm font-bold text-white">{nome}</span>
+                <span className="truncate text-xs font-semibold text-white/90">{perfil?.email}</span>
               </div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
