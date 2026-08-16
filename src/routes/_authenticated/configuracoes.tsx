@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Plus, Tags } from "lucide-react";
+import { Pencil, Plus, Tags, ChevronLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -288,11 +288,21 @@ function PaginaConfiguracoes() {
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editando ? "Editar modalidade" : "Nova modalidade"}</DialogTitle>
-            <DialogDescription>
-              Informe o preço em reais usando vírgula como separador decimal.
-            </DialogDescription>
+          <DialogHeader className="flex flex-row items-center gap-2 space-y-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-primary"
+              onClick={() => setAberto(false)}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <DialogTitle>{editando ? "Editar modalidade" : "Nova modalidade"}</DialogTitle>
+              <DialogDescription>
+                Informe o preço em reais usando vírgula como separador decimal.
+              </DialogDescription>
+            </div>
           </DialogHeader>
           <form
             className="grid gap-4"
