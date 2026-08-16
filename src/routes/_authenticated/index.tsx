@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Search, Settings2 } from "lucide-react";
+
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -91,10 +92,15 @@ function PaginaDashboard() {
   const [dias, setDias] = useState<string>("30");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
 
-  const inicio = new Date();
-  inicio.setDate(inicio.getDate() - Number(dias));
-  const inicioIso = inicio.toISOString().slice(0, 10);
-  const hojeIso = new Date().toISOString().slice(0, 10);
+  const { inicioIso, hojeIso } = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - Number(dias));
+    return {
+      inicioIso: d.toISOString().slice(0, 10),
+      hojeIso: new Date().toISOString().slice(0, 10),
+    };
+  }, [dias]);
+
 
   const consulta = useQuery({
     queryKey: ["dashboard", empresa?.id, dias, statusFiltro],
