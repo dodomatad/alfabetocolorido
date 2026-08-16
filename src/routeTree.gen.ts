@@ -14,6 +14,7 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
@@ -43,6 +44,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFornecedoresRoute =
   AuthenticatedFornecedoresRouteImport.update({
     id: '/fornecedores',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/vendas': typeof AuthenticatedVendasRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/vendas': typeof AuthenticatedVendasRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/clientes'
     | '/configuracoes'
+    | '/equipe'
     | '/fornecedores'
     | '/perfil'
     | '/vendas'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/clientes'
     | '/configuracoes'
+    | '/equipe'
     | '/fornecedores'
     | '/perfil'
     | '/vendas'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/equipe'
     | '/_authenticated/fornecedores'
     | '/_authenticated/perfil'
     | '/_authenticated/vendas'
@@ -162,6 +174,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fornecedores': {
       id: '/_authenticated/fornecedores'
       path: '/fornecedores'
@@ -189,6 +208,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
@@ -198,6 +218,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
