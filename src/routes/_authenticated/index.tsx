@@ -356,44 +356,19 @@ function PaginaDashboard() {
             )}
           </section>
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            <section className="rounded-xl border bg-card p-6 shadow-panel">
-              <h2 className="text-sm font-semibold">Vendas por status</h2>
-              <p className="mb-4 mt-1 text-xs text-muted-foreground">
-                Distribuição dos pedidos do período.
+          <section className="rounded-xl border bg-card p-6 shadow-panel">
+            <h2 className="text-sm font-semibold">Vendas por status</h2>
+            <p className="mb-4 mt-1 text-xs text-muted-foreground">
+              Distribuição dos pedidos do período.
+            </p>
+            {porStatus.length === 0 ? (
+              <p className="py-14 text-center text-sm text-muted-foreground">
+                Nenhuma venda registrada no período.
               </p>
-              {porStatus.length === 0 ? (
-                <p className="py-14 text-center text-sm text-muted-foreground">
-                  Nenhuma venda registrada no período.
-                </p>
-              ) : (
-                <GraficoRosca dados={porStatus} total={vendas.length} />
-              )}
-            </section>
-
-            <section className="rounded-xl border bg-card p-6 shadow-panel">
-              <h2 className="text-sm font-semibold">Funil de conversão</h2>
-              <p className="mb-2 mt-1 text-xs text-muted-foreground">
-                Fluxo operacional da esteira de vendas.
-              </p>
-              {totalPedidos === 0 ? (
-                <p className="py-14 text-center text-sm text-muted-foreground">
-                  Sem pedidos para montar o funil.
-                </p>
-              ) : (
-                <>
-                  <GraficoFunil dados={funil} />
-                  <ul className="mt-2 grid grid-cols-5 gap-1 text-center text-[11px] text-muted-foreground">
-                    {funil.map((e) => (
-                      <li key={e.etapa} className="num">
-                        {e.quantidade}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </section>
-          </div>
+            ) : (
+              <GraficoRosca dados={porStatus} total={vendas.length} />
+            )}
+          </section>
         </>
       )}
     </div>
