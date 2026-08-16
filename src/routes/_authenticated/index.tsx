@@ -30,13 +30,13 @@ import { formatarData, formatarMoeda, formatarNumero } from "@/lib/formatadores"
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Dashboard principal | Gestão BMs" },
+      { title: "Dashboard | Gestão BMs" },
       {
         name: "description",
         content:
           "Painel financeiro e operacional com faturamento, custos, lucro, ROI e conversão de vendas.",
       },
-      { property: "og:title", content: "Dashboard principal | Gestão BMs" },
+      { property: "og:title", content: "Dashboard | Gestão BMs" },
       {
         property: "og:description",
         content: "Faturamento, custos, lucro, ROI e conversão de vendas em tempo real.",
@@ -198,7 +198,7 @@ function PaginaDashboard() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <LayoutDashboard className="size-5 text-primary" aria-hidden="true" />
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard — Principal</h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
         </div>
 
         <Popover>
