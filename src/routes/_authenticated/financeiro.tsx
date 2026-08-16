@@ -161,8 +161,8 @@ function PaginaFinanceiro() {
         forma_pagamento: valores.forma_pagamento || null,
         situacao: valores.situacao,
         observacoes: valores.observacoes || null,
-        criado_por: session?.user.id,
-        atualizado_por: session?.user.id
+        criado_por: session?.user.id ?? null,
+        atualizado_por: session?.user.id ?? null
       };
 
       const { error } = await supabase.from("lancamentos_financeiros").insert(payload);
@@ -293,9 +293,9 @@ function PaginaFinanceiro() {
                   <TableRow key={item.id}>
                     <TableCell>
                       {item.tipo === "receber" ? (
-                        <ArrowUpCircle className="size-5 text-success" title="Entrada" />
+                        <ArrowUpCircle className="size-5 text-success" />
                       ) : (
-                        <ArrowDownCircle className="size-5 text-destructive" title="Saída" />
+                        <ArrowDownCircle className="size-5 text-destructive" />
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{item.descricao}</TableCell>
