@@ -151,10 +151,27 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       temPapel: (...alvos: Papel[]) => alvos.some((p) => papeis.includes(p)),
       temPermissao: (modulo: string, acao: 'visualizar' | 'criar' | 'editar' | 'excluir' = 'visualizar') => {
         if (isAdmin) return true;
-        const p = permissoes.find(x => x.modulo === modulo);
+        
+        // Mapeamento de módulos do menu para os IDs no banco
+        const mapa = {
+          'dashboard': 'dashboard',
+          'vendas': 'vendas',
+          'producao': 'producao',
+          'estoque': 'estoque',
+          'entregas': 'entregas',
+          'financeiro': 'financeiro',
+          'clientes': 'clientes',
+          'fornecedores': 'fornecedores',
+          'equipe': 'equipe',
+          'relatorios': 'relatorios',
+          'configuracoes': 'configuracoes'
+        };
+        
+        const idModulo = (mapa as any)[modulo] || modulo;
+        const p = permissoes.find(x => x.modulo === idModulo);
+        
         if (!p) return false;
-        if (acao === 'criar') return p.pode_criar;
-        if (acao === 'editar') return p.pode_editar;
+        if (acao === 'criar' || acao === 'editar') return p.pode_editar || p.pode_criar;
         if (acao === 'excluir') return p.pode_excluir;
         return p.pode_visualizar;
       },

@@ -40,7 +40,7 @@ function iniciais(nome: string): string {
 
 function NavegacaoLateral() {
   const { pathname } = useLocation();
-  const { perfil, papeis } = useSessao();
+  const { perfil, papeis, temPermissao } = useSessao();
   const router = useRouter();
 
   const nome = perfil?.nome ?? "Usuário";
@@ -80,6 +80,9 @@ function NavegacaoLateral() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {grupo.itens.map((item) => {
+                  const modulo = item.url === "/" ? "dashboard" : item.url.replace("/", "");
+                  if (!temPermissao(modulo)) return null;
+
                   const ativo = item.url === "/" ? pathname === "/" : pathname === item.url;
                   return (
                     <SidebarMenuItem key={item.url}>
