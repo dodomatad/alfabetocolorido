@@ -282,7 +282,6 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Faturamento bruto"
               valor={formatarMoeda(bruto)}
-              detalhe="Vendas do período antes dos descontos"
               explicacao="Soma do valor das vendas não canceladas somada aos descontos concedidos."
               destaque
               className="lg:col-span-1"
@@ -290,13 +289,11 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Custos de produção"
               valor={formatarMoeda(custos)}
-              detalhe="Custo padrão das modalidades vendidas"
               explicacao="Quantidade de cada item multiplicada pelo custo de produção padrão da modalidade."
             />
             <CartaoMetrica
               rotulo="Faturamento líquido"
               valor={formatarMoeda(liquido)}
-              detalhe="Já descontados os abatimentos"
               explicacao="Soma do valor total efetivamente cobrado nas vendas não canceladas."
             />
             <CartaoMetrica
