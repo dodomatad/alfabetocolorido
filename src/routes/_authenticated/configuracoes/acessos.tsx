@@ -266,7 +266,106 @@ function ModalMembro({
   aoFechar: () => void;
   membro: Membro | null;
 }) {
+  const queryClient = useQueryClient();
   const [aba, setAba] = useState("perfil");
+  const [carregando, setCarregando] = useState(false);
+
+  // Estados do formulário
+  const [nome, setNome] = useState(membro?.nome || "");
+  const [cargo, setCargo] = useState(membro?.cargo || "");
+  const [papel, setPapel] = useState<Papel>(membro?.papeis[0] || "funcionario");
+
+  const [permissoes, setPermissoes] = useState<Record<string, any>>(
+    MODULOS.reduce(
+      (acc, mod) => ({
+        ...acc,
+        [mod.id]: { visualiza: true, edita: mod.id !== "equipe", exclui: false, ocultar: false },
+      }),
+      {},
+    ),
+  );
+
+  const { data: dadosAcesso } = useQuery({
+    queryKey: ["permissao-membro", membro?.id],
+    enabled: !!membro,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("permissoes_acesso")
+        .select("*")
+        .eq("usuario_id", membro!.id);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Sincronizar dados quando carregar do banco
+  useState(() => {
+    if (dadosAcesso && dadosAcesso.length > 0) {
+      const novas = { ...permissoes };
+      dadosAcesso.forEach((p) => {
+        if (novas[p.modulo]) {
+          novas[p.modulo] = {
+            visualiza: p.pode_visualizar,
+            edita: p.pode_editar,
+            exclui: p.pode_excluir,
+            ocultar: p.ocultar_valores,
+          };
+        }
+      });
+      setPermissoes(novas);
+    }
+  });
+
+  const salvar = async () => {
+    if (!membro) return;
+    setCarregando(true);
+    try {
+      // 1. Atualizar Perfil
+      const { error: errPerfil } = await supabase
+        .from("perfis")
+        .update({ nome, cargo })
+        .eq("id", membro.id);
+      if (errPerfil) throw errPerfil;
+
+      // 2. Atualizar Papel
+      await supabase.from("usuarios_papeis").delete().eq("usuario_id", membro.id);
+      const { error: errPapel } = await supabase
+        .from("usuarios_papeis")
+        .insert({ usuario_id: membro.id, papel });
+      if (errPapel) throw errPapel;
+
+      // 3. Atualizar Permissões Granulares
+      await supabase.from("permissoes_acesso").delete().eq("usuario_id", membro.id);
+      const rows = Object.entries(permissoes).map(([modulo, p]: [string, any]) => ({
+        usuario_id: membro.id,
+        empresa_id: (membro as any).empresa_id,
+        modulo,
+        pode_visualizar: p.visualiza,
+        pode_criar: p.edita,
+        pode_editar: p.edita,
+        pode_excluir: p.exclui,
+        ocultar_valores: p.ocultar,
+      }));
+      const { error: errPerms } = await supabase.from("permissoes_acesso").insert(rows);
+      if (errPerms) throw errPerms;
+
+      toast.success("Permissões e perfil atualizados!");
+      queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
+      aoFechar();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const toggle = (mod: string, campo: string) => {
+    setPermissoes((prev) => ({
+      ...prev,
+      [mod]: { ...prev[mod], [campo]: !prev[mod][campo] },
+    }));
+  };
+
 
   return (
     <Dialog open={aberto} onOpenChange={aoFechar}>
@@ -289,7 +388,7 @@ function ModalMembro({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="nome">Nome Completo</Label>
-                <Input id="nome" defaultValue={membro?.nome} placeholder="Ex: João Silva" />
+                <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: João Silva" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email">E-mail de Acesso</Label>
@@ -297,11 +396,11 @@ function ModalMembro({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="cargo">Cargo / Função</Label>
-                <Input id="cargo" defaultValue={membro?.cargo || ""} placeholder="Ex: Gestor de Tráfego" />
+                <Input id="cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Ex: Gestor de Tráfego" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="papel">Papel Principal</Label>
-                <Select defaultValue={membro?.papeis[0] || "funcionario"}>
+                <Select value={papel} onValueChange={(v) => setPapel(v as Papel)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -311,6 +410,7 @@ function ModalMembro({
                     ))}
                   </SelectContent>
                 </Select>
+
               </div>
             </div>
             <div className="rounded-lg border bg-muted/30 p-4">
@@ -341,9 +441,25 @@ function ModalMembro({
                   {MODULOS.map((mod) => (
                     <TableRow key={mod.id}>
                       <TableCell className="font-medium text-sm">{mod.rotulo}</TableCell>
-                      <TableCell className="text-center"><Switch defaultChecked /></TableCell>
-                      <TableCell className="text-center"><Switch defaultChecked={mod.id !== 'equipe'} /></TableCell>
-                      <TableCell className="text-center"><Switch /></TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissoes[mod.id].visualiza}
+                          onCheckedChange={() => toggle(mod.id, "visualiza")}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissoes[mod.id].edita}
+                          onCheckedChange={() => toggle(mod.id, "edita")}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissoes[mod.id].exclui}
+                          onCheckedChange={() => toggle(mod.id, "exclui")}
+                        />
+                      </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
@@ -362,7 +478,18 @@ function ModalMembro({
                     Oculta faturamento, ROI e custos no dashboard e relatórios.
                   </p>
                 </div>
-                <Switch />
+                <Switch
+                  checked={permissoes["dashboard"].ocultar || permissoes["financeiro"].ocultar}
+                  onCheckedChange={() => {
+                    const val = !permissoes["dashboard"].ocultar;
+                    setPermissoes((prev) => ({
+                      ...prev,
+                      dashboard: { ...prev.dashboard, ocultar: val },
+                      financeiro: { ...prev.financeiro, ocultar: val },
+                    }));
+                  }}
+                />
+
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
@@ -411,9 +538,10 @@ function ModalMembro({
 
         <DialogFooter className="mt-6">
           <Button variant="outline" onClick={aoFechar}>Cancelar</Button>
-          <Button onClick={() => { toast.success("Permissões atualizadas com sucesso"); aoFechar(); }}>
-            Salvar Alterações
+          <Button onClick={salvar} disabled={carregando}>
+            {carregando ? "Salvando..." : "Salvar Alterações"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
