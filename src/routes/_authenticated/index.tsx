@@ -329,6 +329,20 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
+            <h2 className="text-sm font-semibold">Vendas por dia da semana</h2>
+            <p className="mb-2 mt-1 text-xs text-muted-foreground">
+              Participação de cada dia no total de vendas do período.
+            </p>
+            {vendas.length === 0 ? (
+              <p className="py-14 text-center text-sm text-muted-foreground">
+                Nenhuma venda registrada no período.
+              </p>
+            ) : (
+              <GraficoBarras dados={barrasVolume} />
+            )}
+          </section>
+
+          <section className="rounded-xl border bg-card p-6 shadow-panel">
             <h2 className="text-sm font-semibold">Taxa de Acertos por dia da semana</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
               Desempenho de conversão segmentado por dia.
@@ -338,7 +352,7 @@ function PaginaDashboard() {
                 Nenhuma venda registrada no período.
               </p>
             ) : (
-              <GraficoBarras dados={barras} />
+              <GraficoBarras dados={barrasAcertos} />
             )}
           </section>
 
