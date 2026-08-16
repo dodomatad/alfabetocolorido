@@ -7,6 +7,7 @@ import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
 import { SeloStatusVenda } from "@/components/comum/selo-status";
+import { FormularioVenda } from "@/components/vendas/formulario-venda";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
@@ -63,6 +64,7 @@ const STATUS = [
 function PaginaVendas() {
   const { empresa, fuso } = useSessao();
   const [status, setStatus] = useState<string>("todos");
+  const [formulario, setFormulario] = useState(false);
 
   const consulta = useQuery({
     queryKey: ["vendas", empresa?.id, status],
@@ -85,8 +87,10 @@ function PaginaVendas() {
       <CabecalhoPagina
         titulo="Vendas"
         descricao="Pedidos registrados na empresa, do rascunho até a entrega."
-        acoes={<BotaoAdicionar modulo="Vendas" proximaEtapa="liberar o formulário de pedido com itens e modalidades." />}
+        acoes={<BotaoAdicionar modulo="Vendas" rotulo="Adicionar venda" aoClicar={() => setFormulario(true)} />}
       />
+
+      <FormularioVenda aberto={formulario} aoFechar={() => setFormulario(false)} />
 
       <div className="flex justify-end">
         <Select value={status} onValueChange={setStatus}>
@@ -121,7 +125,7 @@ function PaginaVendas() {
             <EstadoVazio
               icone={<ShoppingCart className="size-5" aria-hidden="true" />}
               titulo="Nenhuma venda encontrada"
-              descricao="O lançamento de pedidos com itens e modalidades será liberado na próxima etapa do projeto. A estrutura de dados já está pronta."
+              descricao="Use o botão Adicionar venda para registrar o primeiro pedido com itens e modalidades."
               className="border-0"
             />
           </div>
