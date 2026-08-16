@@ -199,7 +199,9 @@ function PaginaAcessos() {
                 <TableHead>Papel Principal</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Última Atividade</TableHead>
+                <TableHead>Dados Financeiros</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -238,16 +240,29 @@ function PaginaAcessos() {
                   <TableCell className="text-xs text-muted-foreground">
                     {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex justify-center">
+                      <Badge variant="outline" className="flex items-center gap-1.5 font-normal">
+                        {/* 
+                          Mocking the visibility icon based on logic we'll add to members data 
+                          In a real app, this comes from the 'permissoes_acesso' table check 
+                        */}
+                        <Eye className="size-3 text-emerald-500" />
+                        <span className="text-[10px] uppercase">Visível</span>
+                      </Badge>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => { setEditando(m); setAberto(true); }}
                     >
-                      Configurar Acessos
+                      Ajustar Permissões
                       <ArrowRight className="ml-2 size-3" />
                     </Button>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
