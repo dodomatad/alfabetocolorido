@@ -952,33 +952,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      criar_empresa_inicial: {
-        Args: {
-          _cnpj?: string
-          _nome_fantasia?: string
-          _nome_usuario?: string
-          _razao_social: string
-        }
-        Returns: string
-      }
-      empresa_atual: { Args: never; Returns: string }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      pode_gerenciar: { Args: never; Returns: boolean }
-      proximo_numero_venda: { Args: { _empresa: string }; Returns: number }
-      tem_permissao: {
-        Args: {
-          _modulo: Database["public"]["Enums"]["modulo_sistema"]
-          _tipo?: string
-          _usuario_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role:
