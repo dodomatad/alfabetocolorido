@@ -55,14 +55,30 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 
 type Modalidade = {
   id: string;
+  codigo: string;
   nome: string;
   descricao: string | null;
-  unidade_medida: string;
-  preco_padrao: number | string | null;
+  preco_venda_padrao: number | string;
+  custo_producao_padrao: number | string;
+  valor_pagamento_unidade: number | string;
   ativo: boolean;
 };
 
-const vazio = { nome: "", descricao: "", unidade_medida: "un", preco_padrao: "", ativo: true };
+const vazio = {
+  codigo: "",
+  nome: "",
+  descricao: "",
+  preco_venda_padrao: "",
+  custo_producao_padrao: "",
+  valor_pagamento_unidade: "",
+  ativo: true,
+};
+
+/** Converte "1.234,56" (pt-BR) em número. Vazio vira 0. */
+function paraNumero(valor: string): number {
+  if (!valor.trim()) return 0;
+  return Number(valor.replace(/\./g, "").replace(",", "."));
+}
 
 function PaginaConfiguracoes() {
   const { empresa, podeGerenciar } = useSessao();
@@ -77,7 +93,9 @@ function PaginaConfiguracoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("modalidades_bm")
-        .select("id, nome, descricao, unidade_medida, preco_padrao, ativo")
+        .select(
+          "id, codigo, nome, descricao, preco_venda_padrao, custo_producao_padrao, valor_pagamento_unidade, ativo",
+        )
         .order("nome");
       if (error) throw error;
       return (data ?? []) as Modalidade[];
@@ -87,16 +105,19 @@ function PaginaConfiguracoes() {
   const salvar = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não configurada");
-      const preco = form.preco_padrao.trim()
-        ? Number(form.preco_padrao.replace(/\./g, "").replace(",", "."))
-        : null;
-      if (preco !== null && Number.isNaN(preco)) throw new Error("Preço padrão inválido");
+      const preco = paraNumero(form.preco_venda_padrao);
+      const custo = paraNumero(form.custo_producao_padrao);
+      const pagamento = paraNumero(form.valor_pagamento_unidade);
+      if ([preco, custo, pagamento].some((n) => Number.isNaN(n) || n < 0))
+        throw new Error("Os valores devem ser números positivos em reais.");
 
       const payload = {
+        codigo: form.codigo.trim().toUpperCase(),
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || null,
-        unidade_medida: form.unidade_medida.trim() || "un",
-        preco_padrao: preco,
+        preco_venda_padrao: preco,
+        custo_producao_padrao: custo,
+        valor_pagamento_unidade: pagamento,
         ativo: form.ativo,
       };
 
@@ -156,7 +177,7 @@ function PaginaConfiguracoes() {
           <div>
             <h2 className="text-base font-semibold">Modalidades de BM</h2>
             <p className="text-sm text-muted-foreground">
-              Definem o que é vendido, a unidade de medida e o preço padrão sugerido.
+              Definem o que é vendido, o preço de venda, o custo e o valor pago por unidade produzida.
             </p>
           </div>
           {podeGerenciar ? (
@@ -200,8 +221,10 @@ function PaginaConfiguracoes() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Modalidade</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead className="text-right">Preço padrão</TableHead>
+                    <TableHead>Código</TableHead>
+                    <TableHead className="text-right">Preço de venda</TableHead>
+                    <TableHead className="hidden md:table-cell text-right">Custo</TableHead>
+                    <TableHead className="hidden lg:table-cell text-right">Pagto/unidade</TableHead>
                     <TableHead>Situação</TableHead>
                     <TableHead className="w-16 text-right">Ações</TableHead>
                   </TableRow>
@@ -215,9 +238,15 @@ function PaginaConfiguracoes() {
                           <p className="text-xs text-muted-foreground">{m.descricao}</p>
                         ) : null}
                       </TableCell>
-                      <TableCell>{m.unidade_medida}</TableCell>
+                      <TableCell className="num">{m.codigo}</TableCell>
                       <TableCell className="num text-right">
-                        {m.preco_padrao === null ? "—" : formatarMoeda(m.preco_padrao)}
+                        {formatarMoeda(m.preco_venda_padrao)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell num text-right text-muted-foreground">
+                        {formatarMoeda(m.custo_producao_padrao)}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell num text-right text-muted-foreground">
+                        {formatarMoeda(m.valor_pagamento_unidade)}
                       </TableCell>
                       <TableCell>
                         <SeloAtivo ativo={m.ativo} />
@@ -231,11 +260,12 @@ function PaginaConfiguracoes() {
                             onClick={() => {
                               setEditando(m);
                               setForm({
+                                codigo: m.codigo,
                                 nome: m.nome,
                                 descricao: m.descricao ?? "",
-                                unidade_medida: m.unidade_medida,
-                                preco_padrao:
-                                  m.preco_padrao === null ? "" : String(m.preco_padrao).replace(".", ","),
+                                preco_venda_padrao: String(m.preco_venda_padrao).replace(".", ","),
+                                custo_producao_padrao: String(m.custo_producao_padrao).replace(".", ","),
+                                valor_pagamento_unidade: String(m.valor_pagamento_unidade).replace(".", ","),
                                 ativo: m.ativo,
                               });
                               setAberto(true);
@@ -272,16 +302,31 @@ function PaginaConfiguracoes() {
                 toast.error("Informe o nome da modalidade");
                 return;
               }
+              if (!form.codigo.trim()) {
+                toast.error("Informe o código da modalidade");
+                return;
+              }
               salvar.mutate();
             }}
           >
-            <div className="grid gap-2">
-              <Label htmlFor="mod-nome">Nome</Label>
-              <Input
-                id="mod-nome"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-2">
+                <Label htmlFor="mod-codigo">Código</Label>
+                <Input
+                  id="mod-codigo"
+                  value={form.codigo}
+                  onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+                  placeholder="BM-01"
+                />
+              </div>
+              <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="mod-nome">Nome</Label>
+                <Input
+                  id="mod-nome"
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="mod-desc">Descrição</Label>
@@ -292,23 +337,35 @@ function PaginaConfiguracoes() {
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="grid gap-2">
-                <Label htmlFor="mod-unidade">Unidade de medida</Label>
-                <Input
-                  id="mod-unidade"
-                  value={form.unidade_medida}
-                  onChange={(e) => setForm({ ...form, unidade_medida: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="mod-preco">Preço padrão (R$)</Label>
+                <Label htmlFor="mod-preco">Preço de venda (R$)</Label>
                 <Input
                   id="mod-preco"
                   inputMode="decimal"
                   placeholder="0,00"
-                  value={form.preco_padrao}
-                  onChange={(e) => setForm({ ...form, preco_padrao: e.target.value })}
+                  value={form.preco_venda_padrao}
+                  onChange={(e) => setForm({ ...form, preco_venda_padrao: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="mod-custo">Custo de produção (R$)</Label>
+                <Input
+                  id="mod-custo"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={form.custo_producao_padrao}
+                  onChange={(e) => setForm({ ...form, custo_producao_padrao: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="mod-pagto">Pagamento/unidade (R$)</Label>
+                <Input
+                  id="mod-pagto"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={form.valor_pagamento_unidade}
+                  onChange={(e) => setForm({ ...form, valor_pagamento_unidade: e.target.value })}
                 />
               </div>
             </div>
