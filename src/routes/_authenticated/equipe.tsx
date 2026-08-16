@@ -559,11 +559,14 @@ function ModalMembro({
     }
   };
 
+  const PADRAO_PERM = { visualiza: false, edita: false, exclui: false, ocultar: false, so_propria_producao: false };
+  const perm = (mod: string) => permissoes[mod] ?? PADRAO_PERM;
+
   const toggle = (mod: string, campo: string) => {
-    setPermissoes((prev) => ({
-      ...prev,
-      [mod]: { ...prev[mod], [campo]: !prev[mod][campo] },
-    }));
+    setPermissoes((prev) => {
+      const atual = prev[mod] ?? PADRAO_PERM;
+      return { ...prev, [mod]: { ...atual, [campo]: !atual[campo] } };
+    });
   };
 
 
@@ -644,43 +647,43 @@ function ModalMembro({
                   <div className="space-y-4">
                     <PermissaoItem 
                       rotulo="Visão Geral (Dashboard)" 
-                      ativo={permissoes["dashboard"].visualiza}
+                      ativo={perm("dashboard").visualiza}
                       onChange={() => toggle("dashboard", "visualiza")}
                     >
                       <SubPermissao 
                         rotulo="Ocultar valores financeiros (Faturamento Bruto/Líquido, ROI e Lucro)"
-                        ativo={permissoes["dashboard"].ocultar}
+                        ativo={perm("dashboard").ocultar}
                         onChange={() => toggle("dashboard", "ocultar")}
                       />
                     </PermissaoItem>
 
                     <PermissaoItem 
                       rotulo="Vendas" 
-                      ativo={permissoes["vendas"].visualiza}
+                      ativo={perm("vendas").visualiza}
                       onChange={() => toggle("vendas", "visualiza")}
                     />
 
                     <PermissaoItem 
                       rotulo="Produção (Contingência & BMs)" 
-                      ativo={permissoes["producao"].visualiza}
+                      ativo={perm("producao").visualiza}
                       onChange={() => toggle("producao", "visualiza")}
                     >
                       <SubPermissao 
                         rotulo="Ver apenas a própria produção diária"
-                        ativo={permissoes["producao"].so_propria_producao}
+                        ativo={perm("producao").so_propria_producao}
                         onChange={() => toggle("producao", "so_propria_producao")}
                       />
                     </PermissaoItem>
 
                     <PermissaoItem 
                       rotulo="Estoque" 
-                      ativo={permissoes["estoque"].visualiza}
+                      ativo={perm("estoque").visualiza}
                       onChange={() => toggle("estoque", "visualiza")}
                     />
 
                     <PermissaoItem 
                       rotulo="Entregas" 
-                      ativo={permissoes["entregas"].visualiza}
+                      ativo={perm("entregas").visualiza}
                       onChange={() => toggle("entregas", "visualiza")}
                     />
                   </div>
@@ -694,12 +697,12 @@ function ModalMembro({
                 <AccordionContent className="pt-2 pb-4 space-y-4">
                   <PermissaoItem 
                     rotulo="Financeiro Geral (Contas a Pagar e Receber / Fluxo de Caixa)" 
-                    ativo={permissoes["financeiro"].visualiza}
+                    ativo={perm("financeiro").visualiza}
                     onChange={() => toggle("financeiro", "visualiza")}
                   >
                     <SubPermissao 
                       rotulo="Permitir criar novos lançamentos e editar"
-                      ativo={permissoes["financeiro"].edita}
+                      ativo={perm("financeiro").edita}
                       onChange={() => toggle("financeiro", "edita")}
                     />
                   </PermissaoItem>
@@ -713,12 +716,12 @@ function ModalMembro({
                 <AccordionContent className="pt-2 pb-4 space-y-4">
                   <PermissaoItem 
                     rotulo="Clientes" 
-                    ativo={permissoes["clientes"].visualiza}
+                    ativo={perm("clientes").visualiza}
                     onChange={() => toggle("clientes", "visualiza")}
                   />
                   <PermissaoItem 
                     rotulo="Fornecedores" 
-                    ativo={permissoes["fornecedores"].visualiza}
+                    ativo={perm("fornecedores").visualiza}
                     onChange={() => toggle("fornecedores", "visualiza")}
                   />
                 </AccordionContent>
@@ -731,17 +734,12 @@ function ModalMembro({
                 <AccordionContent className="pt-2 pb-4 space-y-4">
                   <PermissaoItem 
                     rotulo="Equipe & Acessos" 
-                    ativo={permissoes["equipe"].visualiza}
+                    ativo={perm("equipe").visualiza}
                     onChange={() => toggle("equipe", "visualiza")}
                   />
                   <PermissaoItem 
-                    rotulo="Relatórios" 
-                    ativo={permissoes["relatorios"].visualiza}
-                    onChange={() => toggle("relatorios", "visualiza")}
-                  />
-                  <PermissaoItem 
                     rotulo="Configurações" 
-                    ativo={permissoes["configuracoes"].visualiza}
+                    ativo={perm("configuracoes").visualiza}
                     onChange={() => toggle("configuracoes", "visualiza")}
                   />
                 </AccordionContent>
