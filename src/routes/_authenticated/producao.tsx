@@ -27,7 +27,6 @@ function Pagina() {
       ordenarPor={{ coluna: "created_at" }}
       campos={[
         { nome: "descricao", rotulo: "Descrição", tipo: "texto", obrigatorio: true },
-        { nome: "modalidade_id", rotulo: "Modalidade", tipo: "relacao", relacao: { tabela: "modalidades_bm", rotulo: "nome" } },
         { nome: "quantidade", rotulo: "Quantidade", tipo: "numero", padrao: "1" },
         { nome: "responsavel", rotulo: "Responsável", tipo: "texto" },
         { nome: "data_inicio", rotulo: "Início", tipo: "data" },
