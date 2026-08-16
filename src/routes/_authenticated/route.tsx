@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { AppLayout } from "@/components/layout/app-layout";
-import { PainelPrimeiroAcesso } from "@/components/comum/painel-primeiro-acesso";
 import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +16,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function LayoutProtegido() {
-  const { carregando, erro, empresa, recarregar } = useSessao();
+  const { carregando, erro, recarregar } = useSessao();
 
   return (
     <AppLayout>
@@ -25,11 +24,10 @@ function LayoutProtegido() {
         <CarregandoCartoes />
       ) : erro ? (
         <EstadoErro descricao={erro.message} aoTentarNovamente={recarregar} />
-      ) : !empresa ? (
-        <PainelPrimeiroAcesso />
       ) : (
         <Outlet />
       )}
     </AppLayout>
   );
 }
+
