@@ -172,6 +172,16 @@ function PaginaEntrar() {
                       onChange={(e) => setSenha(e.target.value)}
                     />
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="lembrar-acesso"
+                      checked={lembrar}
+                      onCheckedChange={(valor) => setLembrar(valor === true)}
+                    />
+                    <Label htmlFor="lembrar-acesso" className="text-sm font-normal">
+                      Lembrar meu acesso
+                    </Label>
+                  </div>
                   <Button type="submit" disabled={enviando}>
                     {enviando ? "Entrando…" : "Entrar"}
                   </Button>
