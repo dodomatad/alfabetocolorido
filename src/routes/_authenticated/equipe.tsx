@@ -20,8 +20,12 @@ import {
   RefreshCcw,
   Smartphone,
   Copy,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
@@ -57,6 +61,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 import { useSessao, ROTULO_PAPEL, type Papel } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
@@ -432,15 +438,17 @@ function ModalMembro({
   const [cargo, setCargo] = useState(membro?.cargo || "");
   const [papel, setPapel] = useState<Papel>(membro?.papeis[0] || "funcionario");
 
-  const [permissoes, setPermissoes] = useState<Record<string, any>>(
-    MODULOS.reduce(
+  const permissoesIniciais = useMemo(() => {
+    return MODULOS.reduce(
       (acc, mod) => ({
         ...acc,
-        [mod.id]: { visualiza: true, edita: mod.id !== "equipe", exclui: false, ocultar: false },
+        [mod.id]: { visualiza: true, edita: mod.id !== "equipe", exclui: false, ocultar: false, so_propria_producao: false },
       }),
-      {},
-    ),
-  );
+      {} as Record<string, any>,
+    );
+  }, []);
+
+  const [permissoes, setPermissoes] = useState<Record<string, any>>(permissoesIniciais);
 
   const { data: dadosAcesso } = useQuery({
     queryKey: ["permissao-membro", membro?.id],
@@ -456,9 +464,9 @@ function ModalMembro({
   });
 
   // Sincronizar dados quando carregar do banco
-  useState(() => {
+  useEffect(() => {
     if (dadosAcesso && dadosAcesso.length > 0) {
-      const novas = { ...permissoes };
+      const novas = { ...permissoesIniciais };
       dadosAcesso.forEach((p) => {
         if (novas[p.modulo]) {
           novas[p.modulo] = {
@@ -466,12 +474,45 @@ function ModalMembro({
             edita: p.pode_editar,
             exclui: p.pode_excluir,
             ocultar: p.ocultar_valores,
+            so_propria_producao: p.modulo === 'producao' && p.ocultar_valores, // Mapeamento temporário ou nova coluna
           };
         }
       });
       setPermissoes(novas);
     }
-  });
+  }, [dadosAcesso, permissoesIniciais]);
+
+  const marcarTodos = () => {
+    const novas = { ...permissoes };
+    Object.keys(novas).forEach(k => {
+      novas[k] = { visualiza: true, edita: true, exclui: true, ocultar: false, so_propria_producao: false };
+    });
+    setPermissoes(novas);
+  };
+
+  const desmarcarTodos = () => {
+    const novas = { ...permissoes };
+    Object.keys(novas).forEach(k => {
+      novas[k] = { visualiza: false, edita: false, exclui: false, ocultar: false, so_propria_producao: false };
+    });
+    setPermissoes(novas);
+  };
+
+  const perfilOperador = () => {
+    const novas = desmarcarTodosRef();
+    novas["dashboard"] = { visualiza: true, edita: false, exclui: false, ocultar: true, so_propria_producao: false };
+    novas["producao"] = { visualiza: true, edita: true, exclui: false, ocultar: false, so_propria_producao: false };
+    novas["entregas"] = { visualiza: true, edita: true, exclui: false, ocultar: false, so_propria_producao: false };
+    setPermissoes(novas);
+  };
+
+  const desmarcarTodosRef = () => {
+    const novas = { ...permissoes };
+    Object.keys(novas).forEach(k => {
+      novas[k] = { visualiza: false, edita: false, exclui: false, ocultar: false, so_propria_producao: false };
+    });
+    return novas;
+  };
 
   const salvar = async () => {
     if (!membro) return;
@@ -588,81 +629,124 @@ function ModalMembro({
           </TabsContent>
 
           <TabsContent value="permissoes" className="space-y-6 pt-4">
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[200px]">Módulo</TableHead>
-                    <TableHead className="text-center">Visualizar</TableHead>
-                    <TableHead className="text-center">Criar/Editar</TableHead>
-                    <TableHead className="text-center">Excluir</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {MODULOS.map((mod) => (
-                    <TableRow key={mod.id}>
-                      <TableCell className="font-medium text-sm">{mod.rotulo}</TableCell>
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={permissoes[mod.id].visualiza}
-                          onCheckedChange={() => toggle(mod.id, "visualiza")}
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={permissoes[mod.id].edita}
-                          onCheckedChange={() => toggle(mod.id, "edita")}
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={permissoes[mod.id].exclui}
-                          onCheckedChange={() => toggle(mod.id, "exclui")}
-                        />
-                      </TableCell>
-
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <Button variant="outline" size="sm" onClick={marcarTodos}>Marcar Todos</Button>
+              <Button variant="outline" size="sm" onClick={desmarcarTodos}>Desmarcar Todos</Button>
+              <Button variant="outline" size="sm" onClick={perfilOperador}>Perfil Operador Padrão</Button>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <Lock className="size-4" />
-                Proteção de Dados Sensíveis
-              </h4>
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Ocultar Valores Financeiros</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Oculta faturamento, ROI e custos no dashboard e relatórios.
-                  </p>
-                </div>
-                <Switch
-                  checked={permissoes["dashboard"]?.ocultar || permissoes["financeiro"]?.ocultar}
-                  onCheckedChange={() => {
-                    const val = !permissoes["dashboard"]?.ocultar;
-                    setPermissoes((prev) => ({
-                      ...prev,
-                      dashboard: { ...prev["dashboard"], ocultar: val },
-                      financeiro: { ...prev["financeiro"], ocultar: val },
-                    }));
-                  }}
+            <Accordion type="multiple" defaultValue={["operacao"]} className="w-full space-y-4">
+              <AccordionItem value="operacao" className="border rounded-lg px-4 bg-muted/20">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <span className="text-sm font-bold uppercase tracking-wider text-white">OPERAÇÃO</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-4 space-y-4">
+                  <div className="space-y-4">
+                    <PermissaoItem 
+                      rotulo="Visão Geral (Dashboard)" 
+                      ativo={permissoes["dashboard"].visualiza}
+                      onChange={() => toggle("dashboard", "visualiza")}
+                    >
+                      <SubPermissao 
+                        rotulo="Ocultar valores financeiros (Faturamento Bruto/Líquido, ROI e Lucro)"
+                        ativo={permissoes["dashboard"].ocultar}
+                        onChange={() => toggle("dashboard", "ocultar")}
+                      />
+                    </PermissaoItem>
 
-                />
+                    <PermissaoItem 
+                      rotulo="Vendas" 
+                      ativo={permissoes["vendas"].visualiza}
+                      onChange={() => toggle("vendas", "visualiza")}
+                    />
 
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Visão Global de Produção</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Se desativado, o membro verá apenas a sua própria produção diária.
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </div>
+                    <PermissaoItem 
+                      rotulo="Produção (Contingência & BMs)" 
+                      ativo={permissoes["producao"].visualiza}
+                      onChange={() => toggle("producao", "visualiza")}
+                    >
+                      <SubPermissao 
+                        rotulo="Ver apenas a própria produção diária"
+                        ativo={permissoes["producao"].so_propria_producao}
+                        onChange={() => toggle("producao", "so_propria_producao")}
+                      />
+                    </PermissaoItem>
+
+                    <PermissaoItem 
+                      rotulo="Estoque" 
+                      ativo={permissoes["estoque"].visualiza}
+                      onChange={() => toggle("estoque", "visualiza")}
+                    />
+
+                    <PermissaoItem 
+                      rotulo="Entregas" 
+                      ativo={permissoes["entregas"].visualiza}
+                      onChange={() => toggle("entregas", "visualiza")}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="financeiro" className="border rounded-lg px-4 bg-muted/20">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <span className="text-sm font-bold uppercase tracking-wider text-white">FINANCEIRO</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-4 space-y-4">
+                  <PermissaoItem 
+                    rotulo="Financeiro Geral (Contas a Pagar e Receber / Fluxo de Caixa)" 
+                    ativo={permissoes["financeiro"].visualiza}
+                    onChange={() => toggle("financeiro", "visualiza")}
+                  >
+                    <SubPermissao 
+                      rotulo="Permitir criar novos lançamentos e editar"
+                      ativo={permissoes["financeiro"].edita}
+                      onChange={() => toggle("financeiro", "edita")}
+                    />
+                  </PermissaoItem>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="cadastros" className="border rounded-lg px-4 bg-muted/20">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <span className="text-sm font-bold uppercase tracking-wider text-white">CADASTROS</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-4 space-y-4">
+                  <PermissaoItem 
+                    rotulo="Clientes" 
+                    ativo={permissoes["clientes"].visualiza}
+                    onChange={() => toggle("clientes", "visualiza")}
+                  />
+                  <PermissaoItem 
+                    rotulo="Fornecedores" 
+                    ativo={permissoes["fornecedores"].visualiza}
+                    onChange={() => toggle("fornecedores", "visualiza")}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="gestao" className="border rounded-lg px-4 bg-muted/20">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <span className="text-sm font-bold uppercase tracking-wider text-white">GESTÃO</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-4 space-y-4">
+                  <PermissaoItem 
+                    rotulo="Equipe & Acessos" 
+                    ativo={permissoes["equipe"].visualiza}
+                    onChange={() => toggle("equipe", "visualiza")}
+                  />
+                  <PermissaoItem 
+                    rotulo="Relatórios" 
+                    ativo={permissoes["relatorios"].visualiza}
+                    onChange={() => toggle("relatorios", "visualiza")}
+                  />
+                  <PermissaoItem 
+                    rotulo="Configurações" 
+                    ativo={permissoes["configuracoes"].visualiza}
+                    onChange={() => toggle("configuracoes", "visualiza")}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
 
           <TabsContent value="seguranca" className="space-y-6 pt-4">
@@ -805,5 +889,35 @@ function ModalMembro({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PermissaoItem({ rotulo, ativo, onChange, children }: { rotulo: string; ativo: boolean; onChange: () => void; children?: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center space-x-3">
+        <Checkbox id={rotulo} checked={ativo} onCheckedChange={onChange} className="size-5" />
+        <Label htmlFor={rotulo} className="text-sm font-semibold cursor-pointer">
+          {rotulo}
+        </Label>
+      </div>
+      {ativo && children && (
+        <div className="pl-8 space-y-2 border-l-2 border-primary/20 ml-2.5 pt-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubPermissao({ rotulo, ativo, onChange }: { rotulo: string; ativo: boolean; onChange: () => void }) {
+  const id = `sub-${rotulo.replace(/\s+/g, '-').toLowerCase()}`;
+  return (
+    <div className="flex items-center space-x-3">
+      <Switch id={id} checked={ativo} onCheckedChange={onChange} />
+      <Label htmlFor={id} className="text-xs text-muted-foreground cursor-pointer italic font-medium">
+        {rotulo}
+      </Label>
+    </div>
   );
 }
