@@ -191,7 +191,7 @@ function PaginaEntrar() {
                       onCheckedChange={(valor) => setLembrar(valor === true)}
                     />
                     <Label htmlFor="lembrar-acesso" className="text-sm font-normal">
-                      Lembrar meu acesso
+                      Lembrar de mim
                     </Label>
                   </div>
                   <Button type="submit" disabled={enviando}>
