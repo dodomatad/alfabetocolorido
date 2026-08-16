@@ -81,8 +81,13 @@ interface Lancamento {
 }
 
 function PaginaFinanceiro() {
-  const { empresa, session, fuso } = useSessao();
+  const { empresa, session, fuso, temPermissao, permissoes } = useSessao();
   const queryClient = useQueryClient();
+
+  const ocultarValores = useMemo(() => {
+    return permissoes.find(p => p.modulo === 'financeiro')?.ocultar_valores ?? false;
+  }, [permissoes]);
+
   
   const [aberto, setAberto] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
@@ -193,10 +198,13 @@ function PaginaFinanceiro() {
         titulo="Gestão Financeira & Lançamentos"
         descricao="Controle consolidado de entradas e saídas de caixa."
         acoes={
-          <Button onClick={() => setAberto(true)}>
-            <Plus className="mr-2 size-4" />
-            Novo Lançamento
-          </Button>
+          temPermissao('financeiro', 'criar') && (
+            <Button onClick={() => setAberto(true)}>
+              <Plus className="mr-2 size-4" />
+              Novo Lançamento
+            </Button>
+          )
+
         }
       />
 
@@ -206,33 +214,34 @@ function PaginaFinanceiro() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <CartaoIndicador
             rotulo="Total a Receber"
-            valor={formatarMoeda(resumo.receber.valor)}
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.receber.valor)}
             detalhe={`${resumo.receber.qtd} títulos pendentes`}
             tom="positivo"
             icone={ArrowUpCircle}
           />
           <CartaoIndicador
             rotulo="Total a Pagar"
-            valor={formatarMoeda(resumo.pagar.valor)}
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.pagar.valor)}
             detalhe={`${resumo.pagar.qtd} contas pendentes`}
             tom="negativo"
             icone={ArrowDownCircle}
           />
           <CartaoIndicador
             rotulo="Saldo Previsto (Líquido)"
-            valor={formatarMoeda(resumo.liquido)}
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
             detalhe="Diferença total de caixa"
             tom="neutro"
             icone={Wallet}
           />
           <CartaoIndicador
             rotulo="Contas em Atraso"
-            valor={formatarMoeda(resumo.atrasado.valor)}
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.atrasado.valor)}
             detalhe={`${resumo.atrasado.qtd} títulos vencidos`}
             tom="alerta"
             icone={Clock}
           />
         </div>
+
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -315,7 +324,7 @@ function PaginaFinanceiro() {
                       "text-right num font-semibold",
                       item.tipo === "receber" ? "text-success" : "text-destructive"
                     )}>
-                      {item.tipo === "receber" ? "+" : "-"} {formatarMoeda(item.valor)}
+                      {item.tipo === "receber" ? "+" : "-"} {ocultarValores ? "R$ ***" : formatarMoeda(item.valor)}
                     </TableCell>
                     <TableCell>
                       <SeloStatus 

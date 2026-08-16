@@ -8,15 +8,24 @@ export function CabecalhoPagina({
   descricao,
   acoes,
   mostrarBotaoVoltar = true,
+  modulo,
+  acaoObrigatoria = 'visualizar',
 }: {
   titulo: string;
   descricao?: string;
   acoes?: ReactNode;
   mostrarBotaoVoltar?: boolean;
+  modulo?: string;
+  acaoObrigatoria?: 'visualizar' | 'criar' | 'editar' | 'excluir';
 }) {
   const router = useRouter();
+  const { temPermissao } = useSessao();
 
   const podeVoltar = router.state.location.pathname !== "/";
+  const permitido = modulo ? temPermissao(modulo, acaoObrigatoria) : true;
+
+  if (!permitido) return null;
+
 
   return (
     <header className="flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">

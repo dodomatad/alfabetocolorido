@@ -137,7 +137,7 @@ const rotuloMotivo = (m: string | null) =>
   MOTIVOS.find((x) => x.valor === m)?.rotulo ?? "—";
 
 function Pagina() {
-  const { empresa, session, fuso } = useSessao();
+  const { empresa, session, fuso, temPermissao, permissoes } = useSessao();
   const queryClient = useQueryClient();
   const [operador, setOperador] = useState("todos");
   const [periodo, setPeriodo] = useState("7");
@@ -313,8 +313,10 @@ function Pagina() {
     <TooltipProvider>
       <div className="space-y-6">
         <CabecalhoPagina
+          modulo="producao"
           titulo="Produção & Contingência"
           descricao="Controle diário de criação de BMs, esteira de aquecimento e contas viradas"
+
           acoes={
             <div className="flex flex-wrap items-center gap-2">
               <Select value={operador} onValueChange={setOperador}>
@@ -342,10 +344,13 @@ function Pagina() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={abrirNovo}>
-                <Plus className="size-4" aria-hidden="true" />
-                Registrar Produção Diária
-              </Button>
+              {temPermissao('producao', 'criar') && (
+                <Button onClick={abrirNovo}>
+                  <Plus className="size-4" aria-hidden="true" />
+                  Registrar Produção Diária
+                </Button>
+              )}
+
             </div>
           }
         />
