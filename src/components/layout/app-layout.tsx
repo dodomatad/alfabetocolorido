@@ -67,8 +67,8 @@ function NavegacaoLateral() {
           />
 
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold text-sidebar-foreground">Gestão BMs</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">Controle operacional</p>
+            <p className="truncate text-sm font-semibold text-blue-500">Gestão BMs</p>
+            <p className="truncate text-xs text-blue-400/70">Controle operacional</p>
           </div>
         </div>
       </SidebarHeader>
@@ -76,16 +76,27 @@ function NavegacaoLateral() {
       <SidebarContent>
         {GRUPOS_MENU.map((grupo) => (
           <SidebarGroup key={grupo.rotulo}>
-            <SidebarGroupLabel>{grupo.rotulo}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-blue-400/80 font-medium uppercase tracking-wider text-[10px]">{grupo.rotulo}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {grupo.itens.map((item) => {
                   const ativo = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
                   return (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton asChild isActive={ativo} tooltip={item.titulo}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={ativo} 
+                        tooltip={item.titulo}
+                        className={`
+                          transition-all duration-200
+                          ${ativo 
+                            ? "bg-blue-950/40 text-blue-400 font-bold border-l-2 border-blue-500 rounded-r-md rounded-l-none" 
+                            : "text-blue-500/90 hover:text-blue-300 hover:bg-blue-950/20"
+                          }
+                        `}
+                      >
                         <Link to={item.url} aria-current={ativo ? "page" : undefined}>
-                          <item.icone aria-hidden="true" />
+                          <item.icone className={ativo ? "text-blue-400" : "text-blue-500"} aria-hidden="true" />
                           <span>{item.titulo}</span>
                         </Link>
                       </SidebarMenuButton>
@@ -101,15 +112,15 @@ function NavegacaoLateral() {
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="h-12 w-full justify-start gap-3 px-2">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-primary text-xs text-primary-foreground">
+            <SidebarMenuButton className="h-12 w-full justify-start gap-3 px-2 hover:bg-blue-950/20 transition-colors">
+              <Avatar className="size-8 border border-blue-500/20">
+                <AvatarFallback className="bg-blue-600 text-xs text-white">
                   {iniciais(nome)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col items-start overflow-hidden group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-sm font-medium text-sidebar-foreground">{nome}</span>
-                <span className="truncate text-xs text-sidebar-foreground/60">{perfil?.email}</span>
+                <span className="truncate text-sm font-medium text-blue-400">{nome}</span>
+                <span className="truncate text-xs text-blue-400/60">{perfil?.email}</span>
               </div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
