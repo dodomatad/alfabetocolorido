@@ -315,12 +315,6 @@ function PaginaDashboard() {
               positivo={roi >= 0}
             />
             <CartaoMetrica
-              rotulo="ROAS"
-              valor={formatarNumero(roas)}
-              explicacao="Retorno sobre o custo: faturamento líquido dividido pelo custo de produção."
-              positivo={roas >= 0}
-            />
-            <CartaoMetrica
               rotulo="Taxa de conversão"
               valor={`${formatarNumero(taxaConversao)}%`}
               explicacao="Pedidos que saíram de rascunho e não foram cancelados, sobre o total de pedidos."
