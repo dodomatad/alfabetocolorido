@@ -854,6 +854,9 @@ export type Database = {
         | "parcialmente_entregue"
         | "entregue"
         | "cancelada"
+        | "em_andamento"
+        | "efetuada"
+        | "falta_pagamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1019,6 +1022,9 @@ export const Constants = {
         "parcialmente_entregue",
         "entregue",
         "cancelada",
+        "em_andamento",
+        "efetuada",
+        "falta_pagamento",
       ],
     },
   },
