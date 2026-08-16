@@ -80,8 +80,13 @@ const MODULOS = [
   { id: "producao", rotulo: "Produção" },
   { id: "financeiro", rotulo: "Financeiro" },
   { id: "estoque", rotulo: "Estoque" },
+  { id: "entregas", rotulo: "Entregas" },
+  { id: "clientes", rotulo: "Clientes" },
+  { id: "fornecedores", rotulo: "Fornecedores" },
   { id: "equipe", rotulo: "Equipe / Acessos" },
+  { id: "configuracoes", rotulo: "Configurações" },
 ];
+
 
 function PaginaAcessos() {
   const { empresa, temPapel } = useSessao();
@@ -331,7 +336,8 @@ function ModalMembro({
       await supabase.from("usuarios_papeis").delete().eq("usuario_id", membro.id);
       const { error: errPapel } = await supabase
         .from("usuarios_papeis")
-        .insert({ usuario_id: membro.id, papel });
+        .insert({ usuario_id: membro.id, papel, empresa_id: (membro as any).empresa_id });
+
       if (errPapel) throw errPapel;
 
       // 3. Atualizar Permissões Granulares
@@ -339,14 +345,15 @@ function ModalMembro({
       const rows = Object.entries(permissoes).map(([modulo, p]: [string, any]) => ({
         usuario_id: membro.id,
         empresa_id: (membro as any).empresa_id,
-        modulo,
+        modulo: modulo as any,
         pode_visualizar: p.visualiza,
         pode_criar: p.edita,
         pode_editar: p.edita,
         pode_excluir: p.exclui,
         ocultar_valores: p.ocultar,
       }));
-      const { error: errPerms } = await supabase.from("permissoes_acesso").insert(rows);
+      const { error: errPerms } = await supabase.from("permissoes_acesso").insert(rows as any);
+
       if (errPerms) throw errPerms;
 
       toast.success("Permissões e perfil atualizados!");
@@ -479,15 +486,16 @@ function ModalMembro({
                   </p>
                 </div>
                 <Switch
-                  checked={permissoes["dashboard"].ocultar || permissoes["financeiro"].ocultar}
+                  checked={permissoes["dashboard"]?.ocultar || permissoes["financeiro"]?.ocultar}
                   onCheckedChange={() => {
-                    const val = !permissoes["dashboard"].ocultar;
+                    const val = !permissoes["dashboard"]?.ocultar;
                     setPermissoes((prev) => ({
                       ...prev,
-                      dashboard: { ...prev.dashboard, ocultar: val },
-                      financeiro: { ...prev.financeiro, ocultar: val },
+                      dashboard: { ...prev["dashboard"], ocultar: val },
+                      financeiro: { ...prev["financeiro"], ocultar: val },
                     }));
                   }}
+
                 />
 
               </div>
