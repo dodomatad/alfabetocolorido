@@ -259,69 +259,9 @@ function PaginaDashboard() {
         />
       </div>
 
-      <div className="flex items-center gap-3">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="Buscar e filtrar dados">
-              <Search className="size-4" aria-hidden="true" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-80 space-y-4">
-            <div>
-              <h2 className="text-sm font-semibold">Resumo</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
-              </p>
-            </div>
-
-            <label className="block space-y-1.5 text-xs text-muted-foreground">
-              Período de visualização
-              <Select value={dias} onValueChange={setDias}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIODOS.map((p) => (
-                    <SelectItem key={p.valor} value={p.valor}>
-                      {p.rotulo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-
-            <label className="block space-y-1.5 text-xs text-muted-foreground">
-              Status do pedido
-              <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os status</SelectItem>
-                  {Object.entries(ROTULO_STATUS).map(([valor, rotulo]) => (
-                    <SelectItem key={valor} value={valor}>
-                      {rotulo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-
-            <div className="space-y-1.5 text-xs text-muted-foreground">
-              Empresa
-              <div className="flex h-9 items-center rounded-md border bg-secondary px-3 text-sm text-foreground">
-                <span className="truncate">
-                  {empresa?.nome_fantasia || empresa?.razao_social || "—"}
-                </span>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-        <p className="text-xs text-muted-foreground">
-          {formatarData(inicioIso, fuso)} — {formatarData(hojeIso, fuso)}
-        </p>
-      </div>
-
+      <p className="text-xs text-muted-foreground">
+        {formatarData(inicioIso, fuso)} — {formatarData(hojeIso, fuso)}
+      </p>
 
       {consulta.isLoading ? (
         <CarregandoCartoes />
