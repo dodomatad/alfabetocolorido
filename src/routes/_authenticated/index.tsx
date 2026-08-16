@@ -318,11 +318,11 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Vendas por dia da semana</h2>
+            <h2 className="text-sm font-semibold">Taxa de Acertos por dia da semana</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Participação de cada dia no total de vendas do período.
+              Desempenho de conversão segmentado por dia.
             </p>
-            {totalDias <= 1 && validas.length === 0 ? (
+            {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
               </p>
