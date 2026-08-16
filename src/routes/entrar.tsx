@@ -47,11 +47,17 @@ function PaginaEntrar() {
   const [lembrar, setLembrar] = useState(false);
 
   useEffect(() => {
-    const salvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
-    if (salvo) {
-      setEmail(salvo);
+    const emailSalvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
+    const senhaSalva = localStorage.getItem(CHAVE_SENHA_LEMBRADA);
+
+    if (emailSalvo) {
+      setEmail(emailSalvo);
       setLembrar(true);
     }
+    if (senhaSalva) {
+      setSenha(senhaSalva);
+    }
+
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) void router.navigate({ to: "/" });
     });
