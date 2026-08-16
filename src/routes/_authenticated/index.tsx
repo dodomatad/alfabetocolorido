@@ -356,19 +356,6 @@ function PaginaDashboard() {
             )}
           </section>
 
-          <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Vendas por status</h2>
-            <p className="mb-4 mt-1 text-xs text-muted-foreground">
-              Distribuição dos pedidos do período.
-            </p>
-            {porStatus.length === 0 ? (
-              <p className="py-14 text-center text-sm text-muted-foreground">
-                Nenhuma venda registrada no período.
-              </p>
-            ) : (
-              <GraficoRosca dados={porStatus} total={vendas.length} />
-            )}
-          </section>
         </>
       )}
     </div>
