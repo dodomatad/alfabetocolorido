@@ -23,6 +23,7 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProducaoRouteImport } from './routes/_authenticated/producao'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
+import { Route as AuthenticatedConfiguracoesAcessosRouteImport } from './routes/_authenticated/configuracoes/acessos'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -95,12 +96,18 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   path: '/vendas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesAcessosRoute =
+  AuthenticatedConfiguracoesAcessosRouteImport.update({
+    id: '/acessos',
+    path: '/acessos',
+    getParentRoute: () => AuthenticatedConfiguracoesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/entregas': typeof AuthenticatedEntregasRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -110,11 +117,12 @@ export interface FileRoutesByFullPath {
   '/producao': typeof AuthenticatedProducaoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/configuracoes/acessos': typeof AuthenticatedConfiguracoesAcessosRoute
 }
 export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/entregas': typeof AuthenticatedEntregasRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -125,13 +133,14 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
+  '/configuracoes/acessos': typeof AuthenticatedConfiguracoesAcessosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/entrar': typeof EntrarRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
-  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/configuracoes/acessos': typeof AuthenticatedConfiguracoesAcessosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/producao'
     | '/relatorios'
     | '/vendas'
+    | '/configuracoes/acessos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/entrar'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/vendas'
     | '/'
+    | '/configuracoes/acessos'
   id:
     | '__root__'
     | '/_authenticated'
@@ -190,6 +202,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios'
     | '/_authenticated/vendas'
     | '/_authenticated/'
+    | '/_authenticated/configuracoes/acessos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -297,12 +310,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/acessos': {
+      id: '/_authenticated/configuracoes/acessos'
+      path: '/acessos'
+      fullPath: '/configuracoes/acessos'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesAcessosRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRoute
+    }
   }
 }
 
+interface AuthenticatedConfiguracoesRouteChildren {
+  AuthenticatedConfiguracoesAcessosRoute: typeof AuthenticatedConfiguracoesAcessosRoute
+}
+
+const AuthenticatedConfiguracoesRouteChildren: AuthenticatedConfiguracoesRouteChildren =
+  {
+    AuthenticatedConfiguracoesAcessosRoute:
+      AuthenticatedConfiguracoesAcessosRoute,
+  }
+
+const AuthenticatedConfiguracoesRouteWithChildren =
+  AuthenticatedConfiguracoesRoute._addFileChildren(
+    AuthenticatedConfiguracoesRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
-  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRouteWithChildren
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
@@ -317,7 +352,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
-  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRouteWithChildren,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
