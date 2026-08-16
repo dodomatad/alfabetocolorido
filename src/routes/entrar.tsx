@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import logoAsset from "@/assets/logo-bm.png.asset.json";
 import { Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -138,9 +139,12 @@ function PaginaEntrar() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Building2 className="size-5" aria-hidden="true" />
-          </span>
+          <img 
+            src={logoAsset.url} 
+            alt="Logo BM" 
+            className="size-11 rounded-lg object-cover shadow-panel" 
+          />
+
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Gestão BMs</h1>
             <p className="text-sm text-muted-foreground">

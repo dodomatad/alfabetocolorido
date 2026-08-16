@@ -1,4 +1,5 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import logoAsset from "@/assets/logo-bm.png.asset.json";
 import { Building2, LogOut, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
@@ -59,9 +60,12 @@ function NavegacaoLateral() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 px-2 py-1.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <Building2 className="size-4" aria-hidden="true" />
-          </span>
+          <img 
+            src={logoAsset.url} 
+            alt="Logo BM" 
+            className="size-8 shrink-0 rounded-md object-cover shadow-sm" 
+          />
+
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">Gestão BMs</p>
             <p className="truncate text-xs text-sidebar-foreground/60">Controle operacional</p>
