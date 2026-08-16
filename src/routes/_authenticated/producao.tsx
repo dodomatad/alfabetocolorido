@@ -22,8 +22,11 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
@@ -86,21 +89,11 @@ export const Route = createFileRoute("/_authenticated/producao")({
   component: Pagina,
 });
 
-type Registro = {
-  id: string;
-  data_registro: string;
-  operador: string;
-  bms_criadas: number;
-  bms_aquecidas: number;
-  contas_subidas: number;
-  contas_viradas: number;
-  bloqueios: number;
-  motivo_queda: string | null;
-  meta_diaria: number;
-  observacoes: string | null;
-};
+type Registro = Database["public"]["Tables"]["producao_diaria"]["Row"];
+type MotivoQueda = Database["public"]["Enums"]["motivo_queda"];
 
-const MOTIVOS = [
+
+const MOTIVOS: Array<{ valor: MotivoQueda; rotulo: string }> = [
   { valor: "erro_cartao", rotulo: "Erro de Cartão" },
   { valor: "checkpoint_identidade", rotulo: "Checkpoint de Identidade" },
   { valor: "bloqueio_ip", rotulo: "Bloqueio de IP/Proxy" },
@@ -120,22 +113,8 @@ const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const AZUL = "#3B82F6";
 const VERDE = "#10B981";
 
-const tabela = () =>
-  (supabase as unknown as {
-    from: (t: string) => {
-      select: (c: string) => {
-        order: (
-          c: string,
-          o: { ascending: boolean },
-        ) => Promise<{ data: Registro[] | null; error: Error | null }>;
-      };
-      insert: (v: Record<string, unknown>) => Promise<{ error: Error | null }>;
-      update: (v: Record<string, unknown>) => {
-        eq: (c: string, v: string) => Promise<{ error: Error | null }>;
-      };
-      delete: () => { eq: (c: string, v: string) => Promise<{ error: Error | null }> };
-    };
-  }).from("producao_diaria");
+const tabela = () => supabase.from("producao_diaria");
+
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -173,7 +152,7 @@ function Pagina() {
         .select("*")
         .order("data_registro", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data as unknown as Registro[]) ?? [];
     },
   });
 
@@ -212,8 +191,8 @@ function Pagina() {
   const porDia = useMemo(() => {
     const base = DIAS.map((dia) => ({ dia, criadas: 0, viradas: 0 }));
     for (const r of registros) {
-      const d = new Date(`${r.data_registro}T12:00:00`);
-      const i = d.getDay();
+      const d = new Date(`${r.data_registro}T12:00:00Z`);
+      const i = d.getUTCDay();
       base[i]!.criadas += Number(r.bms_criadas) || 0;
       base[i]!.viradas += Number(r.contas_viradas) || 0;
     }
@@ -246,6 +225,13 @@ function Pagina() {
   };
   const [form, setForm] = useState<Record<string, string>>(vazio);
 
+  useEffect(() => {
+    if (!aberto && !editando) {
+      setForm(vazio);
+    }
+  }, [aberto, editando]);
+
+
   const abrirNovo = () => {
     setEditando(null);
     setForm(vazio);
@@ -272,28 +258,32 @@ function Pagina() {
   const salvar = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      if (!form['operador']?.trim()) throw new Error("Selecione a funcionária/operador.");
+      if (!form["operador"]?.trim()) throw new Error("Selecione a funcionária/operador.");
       const n = (c: string) => Number(form[c] || 0) || 0;
-      const dados: Record<string, unknown> = {
+
+      const dados = {
         empresa_id: empresa.id,
-        data_registro: form['data_registro'] || iso(new Date()),
-        operador: form['operador'],
+        data_registro: form["data_registro"] || iso(new Date()),
+        operador: form["operador"],
         bms_criadas: n("bms_criadas"),
         bms_aquecidas: n("bms_aquecidas"),
         contas_subidas: n("contas_subidas"),
         contas_viradas: n("contas_viradas"),
         bloqueios: n("bloqueios"),
-        motivo_queda: form['motivo_queda'] || null,
+        motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
         meta_diaria: n("meta_diaria") || 10,
-        observacoes: form['observacoes'] || null,
+        observacoes: form["observacoes"] || null,
         atualizado_por: session?.user.id ?? null,
       };
+
       if (editando) {
         const { error } = await tabela().update(dados).eq("id", editando.id);
         if (error) throw error;
       } else {
-        dados['criado_por'] = session?.user.id ?? null;
-        const { error } = await tabela().insert(dados);
+        const { error } = await tabela().insert({
+          ...dados,
+          criado_por: session?.user.id ?? null,
+        });
         if (error) throw error;
       }
     },
@@ -407,8 +397,8 @@ function Pagina() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12, color: "#AAAAAA" }} />
-                  <Bar dataKey="criadas" name="BMs Criadas" fill={AZUL} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                  <Bar dataKey="viradas" name="Contas Viradas" fill={VERDE} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="criadas" name="BMs Criadas" fill={AZUL} radius={[6, 6, 0, 0]} isAnimationActive={false} minPointSize={2} />
+                  <Bar dataKey="viradas" name="Contas Viradas" fill={VERDE} radius={[6, 6, 0, 0]} isAnimationActive={false} minPointSize={2} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
