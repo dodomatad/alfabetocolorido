@@ -261,7 +261,7 @@ function PaginaDashboard() {
               <Menu className="size-4" />
             </Button>
           </SidebarTrigger>
-          <LayoutDashboard className="size-4 text-primary/70" aria-hidden="true" />
+          
           <h1 className="text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl">Dashboard</h1>
         </div>
 
