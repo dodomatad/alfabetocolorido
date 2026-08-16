@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
-import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
-import { ModuloPendente } from "@/components/comum/modulo-pendente";
+import { ModuloRegistros } from "@/components/comum/modulo-registros";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({
@@ -20,11 +18,55 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
 
 function Pagina() {
   return (
-    <div className="space-y-6">
-      <CabecalhoPagina titulo="Financeiro" descricao="Visão consolidada de caixa, recebimentos e pagamentos."
-        acoes={<BotaoAdicionar modulo="Financeiro" proximaEtapa="criar as tabelas de lançamentos financeiros e caixa." />}
-      />
-      <ModuloPendente modulo="Financeiro" proximaEtapa="criar as tabelas de contas financeiras e lançamentos de caixa." />
-    </div>
+    <ModuloRegistros
+      titulo="Financeiro"
+      descricao="Visão consolidada de caixa, recebimentos e pagamentos."
+      tabela="lancamentos_financeiros"
+      chaveConsulta="financeiro"
+      rotuloBotao="Adicionar lançamento"
+      ordenarPor={{ coluna: "data_vencimento" }}
+      campos={[
+        {
+          nome: "tipo",
+          rotulo: "Tipo",
+          tipo: "selecao",
+          obrigatorio: true,
+          padrao: "receber",
+          opcoes: [
+            { valor: "receber", rotulo: "A receber" },
+            { valor: "pagar", rotulo: "A pagar" },
+          ],
+        },
+        { nome: "descricao", rotulo: "Descrição", tipo: "texto", obrigatorio: true },
+        { nome: "categoria", rotulo: "Categoria", tipo: "texto" },
+        { nome: "valor", rotulo: "Valor (R$)", tipo: "moeda", padrao: "0" },
+        { nome: "data_vencimento", rotulo: "Vencimento", tipo: "data" },
+        { nome: "data_pagamento", rotulo: "Pagamento", tipo: "data" },
+        { nome: "forma_pagamento", rotulo: "Forma de pagamento", tipo: "texto" },
+        {
+          nome: "situacao",
+          rotulo: "Situação",
+          tipo: "selecao",
+          padrao: "aberto",
+          opcoes: [
+            { valor: "aberto", rotulo: "Em aberto" },
+            { valor: "parcial", rotulo: "Parcial" },
+            { valor: "pago", rotulo: "Pago" },
+            { valor: "atrasado", rotulo: "Atrasado" },
+            { valor: "cancelado", rotulo: "Cancelado" },
+          ],
+        },
+        { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
+      ]}
+      colunas={[
+        { nome: "tipo", rotulo: "Tipo" },
+        { nome: "descricao", rotulo: "Descrição" },
+        { nome: "data_vencimento", rotulo: "Vencimento", formato: "data" },
+        { nome: "situacao", rotulo: "Situação" },
+        { nome: "valor", rotulo: "Valor", formato: "moeda", alinharDireita: true },
+      ]}
+      vazioTitulo="Nenhum lançamento financeiro"
+      vazioDescricao="Registre recebimentos e pagamentos para acompanhar o caixa da empresa."
+    />
   );
 }
