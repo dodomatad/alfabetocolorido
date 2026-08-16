@@ -80,7 +80,7 @@ function NavegacaoLateral() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {grupo.itens.map((item) => {
-                  const ativo = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
+                  const ativo = item.url === "/" ? pathname === "/" : pathname === item.url;
                   return (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton 
