@@ -287,7 +287,7 @@ function PaginaDashboard() {
               className="lg:col-span-1"
             />
             <CartaoMetrica
-              rotulo="Custos de produção"
+              rotulo="Custo com Perfil"
               valor={formatarMoeda(custos)}
               explicacao="Quantidade de cada item multiplicada pelo custo de produção padrão da modalidade."
             />
