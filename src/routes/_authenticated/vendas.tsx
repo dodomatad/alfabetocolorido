@@ -72,7 +72,7 @@ function PaginaVendas() {
         .select("id, numero, status, valor_total, data_venda, previsao_entrega, clientes(nome)")
         .order("numero", { ascending: false })
         .limit(50);
-      if (status !== "todos") q = q.eq("status", status);
+      if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as unknown as Venda[];
