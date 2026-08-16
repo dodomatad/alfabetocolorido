@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
-import { CartaoIndicador } from "@/components/dashboard/cartao-metrica";
+import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
 import { Button } from "@/components/ui/button";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Table, 
