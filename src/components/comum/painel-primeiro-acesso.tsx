@@ -20,15 +20,20 @@ export function PainelPrimeiroAcesso() {
 
   const criar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("criar_empresa_inicial", {
-        _razao_social: razaoSocial.trim(),
-        _nome_fantasia: nomeFantasia.trim() || undefined,
-        _cnpj: cnpj.trim() ? apenasDigitos(cnpj) : undefined,
-        _nome_usuario: nomeUsuario.trim() || undefined,
+      const argumentos: {
+        _razao_social: string;
+        _nome_fantasia?: string;
+        _cnpj?: string;
+        _nome_usuario?: string;
+      } = { _razao_social: razaoSocial.trim() };
+      if (nomeFantasia.trim()) argumentos._nome_fantasia = nomeFantasia.trim();
+      if (cnpj.trim()) argumentos._cnpj = apenasDigitos(cnpj);
+      if (nomeUsuario.trim()) argumentos._nome_usuario = nomeUsuario.trim();
 
-      });
+      const { data, error } = await supabase.rpc("criar_empresa_inicial", argumentos);
       if (error) throw error;
       return data;
+
     },
     onSuccess: async () => {
       toast.success("Empresa criada", {
