@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { LayoutDashboard, Settings2 } from "lucide-react";
+import { LayoutDashboard, Search, Settings2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 
 import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
