@@ -5,12 +5,16 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { emailValido } from "@/lib/formatadores";
+
+const CHAVE_EMAIL_LEMBRADO = "gestao-bms:email-lembrado";
+
 
 export const Route = createFileRoute("/entrar")({
   head: () => ({
@@ -39,8 +43,14 @@ function PaginaEntrar() {
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [lembrar, setLembrar] = useState(false);
 
   useEffect(() => {
+    const salvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
+    if (salvo) {
+      setEmail(salvo);
+      setLembrar(true);
+    }
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) void router.navigate({ to: "/" });
     });
@@ -64,6 +74,8 @@ function PaginaEntrar() {
       });
       return;
     }
+    if (lembrar) localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
+    else localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
     toast.success("Bem-vindo de volta");
     await router.navigate({ to: "/" });
   }
@@ -159,6 +171,16 @@ function PaginaEntrar() {
                       value={senha}
                       onChange={(e) => setSenha(e.target.value)}
                     />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="lembrar-acesso"
+                      checked={lembrar}
+                      onCheckedChange={(valor) => setLembrar(valor === true)}
+                    />
+                    <Label htmlFor="lembrar-acesso" className="text-sm font-normal">
+                      Lembrar meu acesso
+                    </Label>
                   </div>
                   <Button type="submit" disabled={enviando}>
                     {enviando ? "Entrando…" : "Entrar"}
