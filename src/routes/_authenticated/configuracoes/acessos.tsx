@@ -15,6 +15,11 @@ import {
   CheckCircle2,
   Lock,
   Calendar,
+  Key,
+  LogOut,
+  RefreshCcw,
+  Smartphone,
+  Copy,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -138,10 +143,16 @@ function PaginaAcessos() {
         titulo="Gestão de Equipe & Acessos"
         descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
         acoes={
-          <Button onClick={() => { setEditando(null); setAberto(true); }}>
-            <Plus className="mr-2 size-4" />
-            Novo Integrante
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => toast.info("Funcionalidade em desenvolvimento")}>
+              <History className="mr-2 size-4" />
+              Logs de Acesso
+            </Button>
+            <Button onClick={() => { setEditando(null); setAberto(true); }}>
+              <Plus className="mr-2 size-4" />
+              Novo Integrante
+            </Button>
+          </div>
         }
       />
 
@@ -193,10 +204,6 @@ function PaginaAcessos() {
           </div>
           
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <History className="mr-2 size-4" />
-              Logs de Acesso
-            </Button>
           </div>
         </div>
 
@@ -224,11 +231,11 @@ function PaginaAcessos() {
             <TableHeader>
               <TableRow>
                 <TableHead>Membro</TableHead>
-                <TableHead>Papel Principal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Última Atividade</TableHead>
-                <TableHead>Dados Financeiros</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>Cargo / Função</TableHead>
+                <TableHead>Último Login</TableHead>
+                <TableHead>Status Senha</TableHead>
+                <TableHead>Dados Fin.</TableHead>
+                <TableHead className="text-right">Ações de Acesso</TableHead>
 
               </TableRow>
             </TableHeader>
@@ -260,35 +267,68 @@ function PaginaAcessos() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                      <span className="text-xs">{m.ativo ? 'Ativo' : 'Inativo'}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                        {m.ativo && <div className="absolute inset-0 size-2 animate-ping rounded-full bg-emerald-500 opacity-75" />}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
+                  <TableCell>
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-normal">
+                      Senha Ativa
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center">
-                      <Badge variant="outline" className="flex items-center gap-1.5 font-normal">
-                        {/* 
-                          Mocking the visibility icon based on logic we'll add to members data 
-                          In a real app, this comes from the 'permissoes_acesso' table check 
-                        */}
-                        <Eye className="size-3 text-emerald-500" />
-                        <span className="text-[10px] uppercase">Visível</span>
-                      </Badge>
+                      <Eye className="size-4 text-emerald-500" />
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { setEditando(m); setAberto(true); }}
-                    >
-                      Ajustar Permissões
-                      <ArrowRight className="ml-2 size-3" />
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Alterar Senha"
+                        onClick={() => { setEditando(m); setAba("seguranca"); setAberto(true); }}
+                        className="size-8 text-muted-foreground hover:text-primary"
+                      >
+                        <Key className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Gerar Link de Redefinição"
+                        onClick={() => {
+                          navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
+                          toast.success("Link de redefinição copiado!");
+                        }}
+                        className="size-8 text-muted-foreground hover:text-primary"
+                      >
+                        <RefreshCcw className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Desconectar Sessão"
+                        onClick={() => toast.success("Sessão desconectada com sucesso!")}
+                        className="size-8 text-muted-foreground hover:text-destructive"
+                      >
+                        <LogOut className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditando(m); setAba("perfil"); setAberto(true); }}
+                        className="ml-2"
+                      >
+                        Editar
+                        <ArrowRight className="ml-2 size-3" />
+                      </Button>
+                    </div>
                   </TableCell>
 
                 </TableRow>
@@ -302,7 +342,52 @@ function PaginaAcessos() {
         aberto={aberto}
         aoFechar={() => setAberto(false)}
         membro={editando}
+        abaPadrao={aba}
       />
+
+      <section className="rounded-xl border bg-card p-6 shadow-panel">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Activity className="size-4 text-primary" />
+              Histórico Recente de Acessos
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Acompanhe as últimas tentativas de login e sessões ativas da equipe.
+            </p>
+          </div>
+          <Button variant="outline" size="sm">Ver Relatório Completo</Button>
+        </div>
+
+        <div className="space-y-3">
+          {[
+            { user: "João Silva", status: "success", time: "Agora", device: "Chrome / Windows", ip: "177.23.44.1" },
+            { user: "Maria Oliveira", status: "success", time: "Há 45 min", device: "Safari / iPhone", ip: "189.12.33.2" },
+            { user: "Carlos Souza", status: "error", time: "Há 2 horas", device: "Firefox / Linux", ip: "45.11.22.8", motivo: "Senha incorreta" },
+          ].map((log, idx) => (
+            <div key={idx} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className={`flex size-8 items-center justify-center rounded-full ${log.status === 'success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
+                  {log.status === 'success' ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
+                </div>
+                <div>
+                  <p className="font-medium">{log.user}</p>
+                  <p className="text-muted-foreground flex items-center gap-2">
+                    {log.device} • {log.ip}
+                    {log.status === 'error' && <span className="text-destructive font-semibold">({log.motivo})</span>}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-muted-foreground">{log.time}</p>
+                {log.status === 'success' && idx === 0 && (
+                  <Badge variant="outline" className="h-4 px-1 text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">ATIVO</Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -311,14 +396,35 @@ function ModalMembro({
   aberto,
   aoFechar,
   membro,
+  abaPadrao = "perfil",
 }: {
   aberto: boolean;
   aoFechar: () => void;
   membro: Membro | null;
+  abaPadrao?: string;
 }) {
   const queryClient = useQueryClient();
-  const [aba, setAba] = useState("perfil");
+  const [aba, setAba] = useState(abaPadrao);
+
+  useEffect(() => {
+    setAba(abaPadrao);
+  }, [abaPadrao, aberto]);
+
   const [carregando, setCarregando] = useState(false);
+  const [verSenha, setVerSenha] = useState(false);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+
+  const gerarSenhaForte = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNovaSenha(password);
+    setConfirmarSenha(password);
+    toast.success("Senha forte gerada!");
+  };
 
   // Estados do formulário
   const [nome, setNome] = useState(membro?.nome || "");
@@ -558,34 +664,132 @@ function ModalMembro({
             </div>
           </TabsContent>
 
-          <TabsContent value="seguranca" className="space-y-4 pt-4">
+          <TabsContent value="seguranca" className="space-y-6 pt-4">
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-4">
-                <div className="space-y-0.5">
-                  <Label className="text-destructive">Desativar Acesso</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Impede imediatamente o login deste usuário no sistema.
-                  </p>
+              <div className="rounded-lg border p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Key className="size-5 text-primary" />
+                  <div>
+                    <h4 className="text-sm font-semibold">Alteração Direta de Senha</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Defina uma nova senha para {membro?.nome || "o colaborador"}.
+                    </p>
+                  </div>
                 </div>
-                <Button variant="destructive" size="sm">Suspender Conta</Button>
+
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="nova-senha">Nova Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="nova-senha"
+                        type={verSenha ? "text" : "password"}
+                        value={novaSenha}
+                        onChange={(e) => setNovaSenha(e.target.value)}
+                        placeholder="••••••••"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setVerSenha(!verSenha)}
+                      >
+                        {verSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="confirmar-senha">Confirmar Nova Senha</Label>
+                    <Input
+                      id="confirmar-senha"
+                      type={verSenha ? "text" : "password"}
+                      value={confirmarSenha}
+                      onChange={(e) => setConfirmarSenha(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" size="sm" onClick={gerarSenhaForte} className="text-xs">
+                      <RefreshCcw className="mr-2 size-3" />
+                      Gerar Senha Forte Aleatória
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center space-x-2 rounded-md border p-3 bg-muted/20">
+                    <Switch id="forcar-troca" />
+                    <Label htmlFor="forcar-troca" className="text-xs font-normal cursor-pointer">
+                      Forçar colaborador a criar uma nova senha pessoal no próximo login
+                    </Label>
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full" 
+                  onClick={() => {
+                    if (novaSenha !== confirmarSenha) {
+                      toast.error("As senhas não coincidem!");
+                      return;
+                    }
+                    if (novaSenha.length < 6) {
+                      toast.error("A senha deve ter pelo menos 6 caracteres.");
+                      return;
+                    }
+                    toast.success(`Senha de ${membro?.nome} atualizada com sucesso!`);
+                    setNovaSenha("");
+                    setConfirmarSenha("");
+                  }}
+                >
+                  Salvar Nova Senha
+                </Button>
               </div>
 
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Histórico de Sessões</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="text-xs flex items-center gap-2" onClick={() => {
+                  navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
+                  toast.success("Link copiado!");
+                }}>
+                  <Copy className="size-3" />
+                  Gerar Link de Redefinição
+                </Button>
+                <Button variant="outline" className="text-xs flex items-center gap-2 text-destructive hover:bg-destructive/10" onClick={() => toast.success("Sessão desconectada!")}>
+                  <LogOut className="size-3" />
+                  Desconectar Sessão
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <Smartphone className="size-4" />
+                  Dispositivos & Sessões Ativas
+                </h4>
                 <div className="space-y-2">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="flex items-center justify-between rounded-lg border p-3 text-xs">
+                  {[
+                    { id: 1, device: "Chrome em Windows 11", location: "São Paulo, Brasil", active: true, ip: "177.23.44.1" },
+                  ].map((sessao) => (
+                    <div key={sessao.id} className="flex items-center justify-between rounded-lg border p-3 text-xs">
                       <div className="flex items-center gap-3">
-                        <Activity className="size-4 text-muted-foreground" />
+                        <Activity className="size-4 text-primary" />
                         <div>
-                          <p className="font-medium">Chrome em Windows (177.23.44.{i})</p>
-                          <p className="text-muted-foreground">São Paulo, Brasil • {i === 1 ? 'Agora' : 'Há 2 horas'}</p>
+                          <p className="font-medium">{sessao.device}</p>
+                          <p className="text-muted-foreground">{sessao.location} • {sessao.ip}</p>
                         </div>
                       </div>
-                      {i === 1 && <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20">Atual</Badge>}
+                      {sessao.active && <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20">SESSÃO ATUAL</Badge>}
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-destructive font-semibold">Zona de Perigo</Label>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Desativação de conta</p>
+                </div>
+                <Button variant="destructive" size="sm">Suspender Acesso</Button>
               </div>
             </div>
           </TabsContent>
