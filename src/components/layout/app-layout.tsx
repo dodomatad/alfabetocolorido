@@ -129,9 +129,6 @@ function NavegacaoLateral() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <p className="mt-2 px-2 py-1 text-[11px] leading-tight text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
-          Valores em real (BRL). Datas no formato dd/MM/aaaa.
-        </p>
       </SidebarFooter>
     </Sidebar>
   );
