@@ -62,7 +62,7 @@ import { useSessao, ROTULO_PAPEL, type Papel } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarData } from "@/lib/formatadores";
 
-export const Route = createFileRoute("/_authenticated/configuracoes/acessos")({
+export const Route = createFileRoute("/_authenticated/equipe")({
   head: () => ({
     meta: [{ title: "Gerenciamento de Acessos & Equipe | Gestão BMs" }],
   }),
