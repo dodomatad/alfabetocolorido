@@ -74,14 +74,8 @@ type Props = {
 // A tabela é escolhida por uma união fechada acima; o cast evita a explosão de
 // tipos genéricos do client gerado sem abrir mão da validação em tempo de escrita.
 const consultarTabela = (tabela: string) =>
-  (supabase as unknown as {
-    from: (t: string) => {
-      select: (c: string) => {
-        order: (c: string, o: { ascending: boolean }) => Promise<{ data: Registro[] | null; error: Error | null }>;
-      };
-      insert: (v: Registro) => Promise<{ error: Error | null }>;
-    };
-  }).from(tabela);
+  (supabase as any).from(tabela);
+
 
 export function ModuloRegistros({
   titulo,
