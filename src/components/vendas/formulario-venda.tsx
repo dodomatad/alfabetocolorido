@@ -240,66 +240,100 @@ export function FormularioVenda({
           </div>
 
           {itens.map((item, indice) => (
-            <div key={indice} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_90px_120px_auto]">
-              <Select
-                value={item.modalidade_id}
-                onValueChange={(v) =>
-                  setItens((a) =>
-                    a.map((i, x) => {
-                      if (x !== indice) return i;
-                      const m = (modalidades.data ?? []).find((mm) => mm.id === v);
-                      return {
-                        ...i,
-                        modalidade_id: v,
-                        preco_unitario: m ? String(m.preco_venda_padrao) : i.preco_unitario,
-                      };
-                    }),
-                  )
-                }
-              >
-                <SelectTrigger aria-label="Modalidade">
-                  <SelectValue
-                    placeholder={modalidades.isLoading ? "Carregando..." : "Modalidade"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {(modalidades.data ?? []).map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.codigo} — {m.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div 
+              key={indice} 
+              className="relative grid gap-3 rounded-2xl border border-[#27272A] bg-[#141417] p-4 shadow-sm md:grid-cols-3"
+            >
+              <div className="space-y-1.5 md:col-span-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Modalidade / Tipo de Conta
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    aria-label="Remover item"
+                    onClick={() => setItens((a) => (a.length === 1 ? a : a.filter((_, x) => x !== indice)))}
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </div>
+                <Select
+                  value={item.modalidade_id}
+                  onValueChange={(v) =>
+                    setItens((a) =>
+                      a.map((i, x) => {
+                        if (x !== indice) return i;
+                        const m = (modalidades.data ?? []).find((mm) => mm.id === v);
+                        return {
+                          ...i,
+                          modalidade_id: v,
+                          preco_unitario: m ? String(m.preco_venda_padrao) : i.preco_unitario,
+                        };
+                      }),
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-10 bg-black/20">
+                    <SelectValue
+                      placeholder={modalidades.isLoading ? "Carregando..." : "Selecione a modalidade"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(modalidades.data ?? []).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nome} ({m.codigo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Input
-                aria-label="Quantidade"
-                inputMode="decimal"
-                value={item.quantidade}
-                onChange={(e) =>
-                  setItens((a) =>
-                    a.map((i, x) => (x === indice ? { ...i, quantidade: e.target.value } : i)),
-                  )
-                }
-              />
-              <Input
-                aria-label="Preço unitário"
-                inputMode="decimal"
-                value={item.preco_unitario}
-                onChange={(e) =>
-                  setItens((a) =>
-                    a.map((i, x) => (x === indice ? { ...i, preco_unitario: e.target.value } : i)),
-                  )
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Remover item"
-                onClick={() => setItens((a) => (a.length === 1 ? a : a.filter((_, x) => x !== indice)))}
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-              </Button>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Qtd. de Contas
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 1"
+                  className="h-10 bg-black/20"
+                  value={item.quantidade}
+                  onChange={(e) =>
+                    setItens((a) =>
+                      a.map((i, x) => (x === indice ? { ...i, quantidade: e.target.value } : i)),
+                    )
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Valor Unitário
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  className="h-10 bg-black/20"
+                  value={item.preco_unitario}
+                  onChange={(e) =>
+                    setItens((a) =>
+                      a.map((i, x) => (x === indice ? { ...i, preco_unitario: e.target.value } : i)),
+                    )
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Subtotal
+                </Label>
+                <div className="flex h-10 items-center rounded-md border border-input bg-black/40 px-3 text-sm font-medium text-blue-400">
+                  {formatarMoeda(numero(item.quantidade) * numero(item.preco_unitario))}
+                </div>
+              </div>
             </div>
           ))}
         </div>
