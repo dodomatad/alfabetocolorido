@@ -166,9 +166,7 @@ export function FormularioVenda({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Adicionar venda</DialogTitle>
-          <DialogDescription>
-            Informe o cliente, os itens por modalidade e os valores do pedido.
-          </DialogDescription>
+          <DialogDescription />
         </DialogHeader>
 
         <div className="grid gap-4 sm:grid-cols-2">
