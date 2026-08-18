@@ -134,40 +134,49 @@ function PaginaEntrar() {
     }
     setEnviando(true);
     const emailSanitizado = email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: emailSanitizado,
-      password: senha,
-    });
-    setEnviando(false);
-    
-    if (error) {
-      if (error.message === "Invalid login credentials") {
-        void registrarTentativaFalha(emailSanitizado);
-        toast.error("Não foi possível entrar", {
-          description: "E-mail ou senha incorretos.",
-        });
-      } else {
-        toast.error("Não foi possível entrar", {
-          description: error.message,
-        });
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailSanitizado,
+        password: senha,
+      });
+
+      if (error) {
+        setEnviando(false);
+        if (error.message === "Invalid login credentials") {
+          void registrarTentativaFalha(emailSanitizado);
+          toast.error("Não foi possível entrar", {
+            description: "E-mail ou senha incorretos.",
+          });
+        } else {
+          toast.error("Não foi possível entrar", {
+            description: error.message,
+          });
+        }
+        return;
       }
-      return;
-    }
-    
-    if (lembrar) {
-      localStorage.setItem(CHAVE_EMAIL_LEMBRADO, emailSanitizado);
-      localStorage.setItem(CHAVE_SENHA_LEMBRADA, senha);
-    } else {
-      localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
-      localStorage.removeItem(CHAVE_SENHA_LEMBRADA);
-    }
 
-    if (data.user) {
-      void registrarLog(data.user);
-    }
+      if (lembrar) {
+        localStorage.setItem(CHAVE_EMAIL_LEMBRADO, emailSanitizado);
+        localStorage.setItem(CHAVE_SENHA_LEMBRADA, senha);
+      } else {
+        localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
+        localStorage.removeItem(CHAVE_SENHA_LEMBRADA);
+      }
 
-    toast.success("Bem-vindo de volta");
-    await router.navigate({ to: "/" });
+      if (data.user) {
+        // Registro de log não bloqueante
+        void registrarLog(data.user);
+      }
+
+      toast.success("Login realizado com sucesso!");
+      await router.navigate({ to: "/" });
+    } catch (err: any) {
+      console.error("Erro no login:", err);
+      toast.error("Erro de conexão ao servidor (Failed to fetch). Verifique a internet e tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   async function criarConta(evento: React.FormEvent) {
