@@ -403,9 +403,10 @@ function PaginaAcessos() {
                           if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
                             const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
                             const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
+                            const { error: errMembro } = await supabase.from("equipe_membros").delete().eq("id", m.id);
                             const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
                             
-                            if (errPerfil || errPapeis || errPerms) {
+                            if (errPerfil || errPapeis || errPerms || errMembro) {
                               toast.error("Erro ao remover membro");
                             } else {
                               toast.success("Membro removido com sucesso!");

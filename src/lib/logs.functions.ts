@@ -25,6 +25,7 @@ export const registrarLogAcesso = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("logs_acesso").insert({
       usuario_id: data.usuarioId,
       usuario_nome: data.usuarioNome,
+      usuario_email: perfil?.email || data.usuarioNome.toLowerCase() + "@example.com", // Fallback seguro
       dispositivo: data.dispositivo,
       ip: data.ip || "0.0.0.0",
       status: "ativo",
