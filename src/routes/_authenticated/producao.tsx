@@ -361,57 +361,57 @@ function Pagina() {
           }
         />
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          <CartaoKpi
-            rotulo="BMs Criadas"
-            valor={criadas}
-            icone={Factory}
-            detalhe={`Meta: ${metaDia}/dia`}
-            destaque
-          />
+        <section className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <CartaoKpi
+              rotulo="BMs Criadas"
+              valor={criadas}
+              icone={Factory}
+              detalhe={`Meta: ${metaDia}/dia`}
+              destaque
+            />
+            <CartaoKpi
+              rotulo="Contas Subidas"
+              valor={subidas}
+              icone={Rocket}
+              corIcone="text-amber-500"
+            />
+            <CartaoKpi
+              rotulo="Aproveitamento"
+              valor={`${aproveitamento.toFixed(1)}%`}
+              icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
+              corValor={
+                aproveitamento >= 50
+                  ? "text-emerald-400"
+                  : aproveitamento < 30
+                  ? "text-red-500"
+                  : "text-amber-500"
+              }
+              detalhe="Viradas / Criadas"
+            />
+          </div>
 
-          <CartaoKpi
-            rotulo="BMs Aquecidas"
-            valor={aquecidas}
-            icone={Flame}
-            corIcone="text-blue-500"
-          />
-          <CartaoKpi
-            rotulo="Contas Subidas"
-            valor={subidas}
-            icone={Rocket}
-            corIcone="text-amber-500"
-          />
-          <CartaoKpi
-            rotulo="Contas Viradas"
-            valor={viradas}
-            icone={Target}
-            corValor="text-emerald-500"
-          />
-
-          <CartaoKpi
-            rotulo="Aproveitamento"
-            valor={`${aproveitamento.toFixed(1)}%`}
-            icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
-            corValor={
-              aproveitamento >= 50
-                ? "text-emerald-500"
-                : aproveitamento < 30
-                ? "text-red-500"
-                : "text-amber-500"
-            }
-            detalhe="Viradas / Criadas"
-          />
-
-          <CartaoKpi
-            rotulo="Bloqueios"
-            valor={bloqueios}
-            icone={AlertTriangle}
-            corValor="text-red-500"
-            detalhe={`${perda.toFixed(1)}% de perda`}
-          />
-
-
+          <div className="space-y-4">
+            <CartaoKpi
+              rotulo="BMs Aquecidas"
+              valor={aquecidas}
+              icone={Flame}
+              corIcone="text-blue-500"
+            />
+            <CartaoKpi
+              rotulo="Contas Viradas"
+              valor={viradas}
+              icone={Target}
+              corValor="text-emerald-400"
+            />
+            <CartaoKpi
+              rotulo="Bloqueios"
+              valor={bloqueios}
+              icone={AlertTriangle}
+              corValor="text-red-500"
+              detalhe={`${perda.toFixed(1)}% de perda`}
+            />
+          </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
