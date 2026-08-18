@@ -152,11 +152,20 @@ function PaginaDashboard() {
     0,
   ) || 0;
   const lucro = liquido - custos;
-  const roi = custos > 0 ? lucro / custos : 0;
-  const convertidas = vendas.filter(
-    (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
-  ).length;
-  const taxaConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
+  const calcularDadosROI = (lucroVal: number, custoVal: number) => {
+    if (custoVal === 0) {
+      if (lucroVal > 0) return { valor: "100%", cor: "text-emerald-400" };
+      if (lucroVal < 0) return { valor: "Prejuízo", cor: "text-rose-400" };
+      return { valor: "0%", cor: "text-white" };
+    }
+    const roiVal = (lucroVal / custoVal) * 100;
+    return {
+      valor: `${formatarNumero(roiVal)}%`,
+      cor: roiVal > 0 ? "text-emerald-400" : roiVal < 0 ? "text-rose-400" : "text-white",
+    };
+  };
+
+  const dadosROI = calcularDadosROI(lucro, custos);
 
   const fmtValor = (v: number) => (ocultarValores ? "R$ ***" : formatarMoeda(v));
   const fmtNumero = (v: number) => (ocultarValores ? "***" : formatarNumero(v));
@@ -321,14 +330,9 @@ function PaginaDashboard() {
             />
             <CartaoMetrica
               rotulo="ROI"
-              valor={fmtNumero(roi)}
-              corValor={
-                roi < 1.0 ? "text-red-500" :
-                roi < 2.0 ? "text-amber-500" :
-                roi < 4.0 ? "text-emerald-500" :
-                "text-blue-500"
-              }
-              explicacao={ocultarValores ? "" : "< 1.0: Crítico | 1.0 a 1.99: Alerta | 2.0 a 3.99: Bom | 4.0+: Excelente"}
+              valor={ocultarValores ? "***" : dadosROI.valor}
+              corValor={ocultarValores ? "text-white" : dadosROI.cor}
+              explicacao={ocultarValores ? "" : "ROI = (Lucro / Custos) * 100. Se custo for 0 e lucro > 0, considera-se 100% de margem."}
             />
           </div>
 
