@@ -105,6 +105,9 @@ export function ModuloRegistros({
     queryKey: [chaveConsulta, empresa?.id, filtroFixo],
     enabled: Boolean(empresa?.id),
     queryFn: async () => {
+      if (!temPermissao(tabela.replace('ordens_', '').replace('itens_', '').replace('lancamentos_', ''), 'visualizar')) {
+        return [];
+      }
       const { data, error } = await consultarTabela(tabela)
         .select("*")
         .order(ordenarPor?.coluna ?? "created_at", { ascending: ordenarPor?.ascendente ?? false });

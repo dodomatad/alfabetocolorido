@@ -81,7 +81,7 @@ function NavegacaoLateral() {
               <SidebarMenu>
                 {grupo.itens.map((item) => {
                   const modulo = item.url === "/" ? "dashboard" : item.url.replace("/", "");
-                  if (!temPermissao(modulo)) return null;
+                  if (!temPermissao(modulo, 'visualizar')) return null;
 
                   const ativo = item.url === "/" ? pathname === "/" : pathname === item.url;
                   return (

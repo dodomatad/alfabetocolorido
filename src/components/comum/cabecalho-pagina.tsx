@@ -25,6 +25,8 @@ export function CabecalhoPagina({
 
   const podeVoltar = mostrarBotaoVoltar && router.state.location.pathname !== "/";
   const permitido = modulo ? temPermissao(modulo, acaoObrigatoria) : true;
+  
+  const temPermissaoCriar = modulo ? temPermissao(modulo, 'criar') : true;
 
   if (!permitido) return null;
 
@@ -49,7 +51,7 @@ export function CabecalhoPagina({
           {descricao ? <p className="mt-1 text-sm text-muted-foreground">{descricao}</p> : null}
         </div>
       </div>
-      {acoes ? <div className="flex flex-wrap items-center gap-2">{acoes}</div> : null}
+      {acoes && temPermissaoCriar ? <div className="flex flex-wrap items-center gap-2">{acoes}</div> : null}
     </header>
   );
 }
