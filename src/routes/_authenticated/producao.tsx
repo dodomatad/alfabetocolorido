@@ -184,6 +184,10 @@ function Pagina() {
   const soma = (chave: keyof Registro) =>
     registros.reduce((s, r) => s + (Number(r[chave]) || 0), 0);
 
+  const ocultarValores = useMemo(() => {
+    return permissoes.find(p => p.modulo === 'producao')?.ocultar_valores ?? false;
+  }, [permissoes]);
+
   const criadas = soma("bms_criadas");
   const aquecidas = soma("bms_aquecidas");
   const subidas = soma("contas_subidas");
@@ -192,6 +196,9 @@ function Pagina() {
   const aproveitamento = criadas > 0 ? (viradas / criadas) * 100 : 0;
   const perda = criadas > 0 ? (bloqueios / criadas) * 100 : 0;
   const metaDia = registros[0]?.meta_diaria ?? 10;
+
+  const fmtNumero = (v: number | string) => (ocultarValores ? "***" : v);
+  const fmtPercentual = (v: number) => (ocultarValores ? "***%" : `${v.toFixed(1)}%`);
 
   const porDia = useMemo(() => {
     const base = DIAS.map((dia) => ({ dia, criadas: 0, viradas: 0 }));
@@ -364,51 +371,52 @@ function Pagina() {
           <div className="space-y-4">
             <CartaoKpi
               rotulo="BMs Criadas"
-              valor={criadas}
+              valor={fmtNumero(criadas)}
               icone={Factory}
-              detalhe={`Meta: ${metaDia}/dia`}
+              detalhe={ocultarValores ? undefined : `Meta: ${metaDia}/dia`}
               destaque
             />
             <CartaoKpi
               rotulo="Contas Subidas"
-              valor={subidas}
+              valor={fmtNumero(subidas)}
               icone={Rocket}
               corIcone="text-amber-500"
             />
             <CartaoKpi
               rotulo="Aproveitamento"
-              valor={`${aproveitamento.toFixed(1)}%`}
+              valor={fmtPercentual(aproveitamento)}
               icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
               corValor={
+                ocultarValores ? "text-white" :
                 aproveitamento >= 50
                   ? "text-emerald-400"
                   : aproveitamento < 30
                   ? "text-red-500"
                   : "text-amber-500"
               }
-              detalhe="Viradas / Criadas"
+              detalhe={ocultarValores ? undefined : "Viradas / Criadas"}
             />
           </div>
 
           <div className="space-y-4">
             <CartaoKpi
               rotulo="BMs Aquecidas"
-              valor={aquecidas}
+              valor={fmtNumero(aquecidas)}
               icone={Flame}
               corIcone="text-blue-500"
             />
             <CartaoKpi
               rotulo="Contas Viradas"
-              valor={viradas}
+              valor={fmtNumero(viradas)}
               icone={Target}
               corValor="text-emerald-400"
             />
             <CartaoKpi
               rotulo="Bloqueios"
-              valor={bloqueios}
+              valor={fmtNumero(bloqueios)}
               icone={AlertTriangle}
               corValor="text-red-500"
-              detalhe={`${perda.toFixed(1)}% de perda`}
+              detalhe={ocultarValores ? undefined : `${perda.toFixed(1)}% de perda`}
             />
           </div>
         </section>
