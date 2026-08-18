@@ -282,7 +282,7 @@ export function FormularioVenda({
                   <SelectContent>
                     {(modalidades.data ?? []).map((m) => (
                       <SelectItem key={m.id} value={m.id}>
-                        {m.nome} ({m.codigo})
+                        {m.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
