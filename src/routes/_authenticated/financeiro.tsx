@@ -243,7 +243,7 @@ function PaginaFinanceiro() {
       <CabecalhoPagina
         modulo="financeiro"
         titulo="Gestão Financeira & Lançamentos"
-        descricao="Controle consolidado de entradas e saídas de caixa."
+        descricao=""
 
         acoes={
           temPermissao('financeiro', 'criar') && (
