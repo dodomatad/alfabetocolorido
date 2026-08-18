@@ -342,7 +342,7 @@ function PaginaAcessos() {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {m.papeis.length > 0 ? (
-                        m.papeis.map((p) => (
+                        m.papeis.map((p: Papel) => (
                           <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
                             {ROTULO_PAPEL[p]}
                           </Badge>
