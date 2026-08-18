@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type Papel = Database["public"]["Enums"]["app_role"];
+type Modulo = Database["public"]["Enums"]["modulo_sistema"];
 
 export const validarConvite = createServerFn({ method: "GET" })
   .inputValidator((data) => z.object({ token: z.string() }).parse(data))
@@ -39,7 +43,6 @@ export const aceitarConvite = createServerFn({ method: "POST" })
     if (errConvite || !convite) throw new Error("Convite inválido ou expirado");
 
     // 2. Criar usuário no Supabase Auth
-    // Importante: No Lovable Cloud, usamos o cliente padrão
     const { data: authUser, error: errAuth } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -54,21 +57,19 @@ export const aceitarConvite = createServerFn({ method: "POST" })
     if (errAuth) throw errAuth;
     if (!authUser.user) throw new Error("Erro ao criar usuário");
 
-    // 3. O restante do processamento (perfil, papéis, permissões) 
-    // deve ocorrer via Trigger no banco ou aqui se tivermos permissão.
-    // Como somos uma Server Function no Lovable, podemos usar o supabaseAdmin se necessário,
-    // mas vamos tentar fazer via RPC ou Trigger para manter a segurança.
-
-    // No Lovable, não temos acesso direto ao supabaseAdmin aqui sem import dinâmico.
+    // 3. Processamento via admin
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
 
     try {
+        const empresaId = convite.empresa_id;
+        if (!empresaId) throw new Error("Empresa não definida no convite");
+
         // Criar perfil
         const { error: errPerfil } = await supabaseAdmin
             .from("perfis")
             .insert({
                 id: authUser.user.id,
-                empresa_id: convite.empresa_id,
+                empresa_id: empresaId,
                 nome: data.nome,
                 email: data.email,
                 cargo: convite.cargo,
@@ -81,7 +82,7 @@ export const aceitarConvite = createServerFn({ method: "POST" })
             .from("usuarios_papeis")
             .insert({
                 usuario_id: authUser.user.id,
-                papel: convite.papel
+                papel: convite.papel as Papel
             });
         if (errPapel) throw errPapel;
 
@@ -89,7 +90,8 @@ export const aceitarConvite = createServerFn({ method: "POST" })
         const permissoesObj = convite.permissoes as any;
         const insercoesPerms = Object.entries(permissoesObj).map(([modulo, perms]: [string, any]) => ({
             usuario_id: authUser.user.id,
-            modulo,
+            empresa_id: empresaId,
+            modulo: modulo as Modulo,
             pode_visualizar: perms.pode_visualizar ?? false,
             pode_criar: perms.pode_criar ?? false,
             pode_editar: perms.pode_editar ?? false,
@@ -97,10 +99,12 @@ export const aceitarConvite = createServerFn({ method: "POST" })
             ocultar_valores: perms.ocultar_valores ?? false
         }));
 
-        const { error: errPerms } = await supabaseAdmin
-            .from("permissoes_acesso")
-            .insert(insercoesPerms);
-        if (errPerms) throw errPerms;
+        if (insercoesPerms.length > 0) {
+            const { error: errPerms } = await supabaseAdmin
+                .from("permissoes_acesso")
+                .insert(insercoesPerms as any);
+            if (errPerms) throw errPerms;
+        }
 
         // Marcar convite como aceito
         const { error: errUpdateConvite } = await supabaseAdmin
@@ -114,7 +118,6 @@ export const aceitarConvite = createServerFn({ method: "POST" })
 
         return { success: true, userId: authUser.user.id };
     } catch (err) {
-        // Rollback manual do usuário se possível (ou deixar para limpeza)
         throw err;
     }
   });
