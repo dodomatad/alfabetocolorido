@@ -372,22 +372,30 @@ function PaginaAcessos() {
       />
 
       <section className="rounded-xl border bg-card p-6 shadow-panel">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
+        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1 text-center md:text-left">
+            <h3 className="text-base md:text-lg font-bold text-white flex items-center justify-center md:justify-start gap-2">
               <Activity className="size-4 text-primary" />
               Histórico Recente de Acessos
             </h3>
-            <p className="text-xs text-muted-foreground">
-              Acompanhe as últimas tentativas de login e sessões ativas da equipe.
-            </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => toast.info("Funcionalidade para registrar acesso em desenvolvimento")}>
+          <div className="flex flex-row justify-center items-center gap-2 mt-3 md:mt-0 w-full md:w-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => toast.info("Funcionalidade para registrar acesso em desenvolvimento")}
+              className="text-xs md:text-sm whitespace-nowrap px-3 h-8 md:h-9"
+            >
               <Plus className="mr-2 size-3" />
               Registrar Acesso
             </Button>
-            <Button variant="outline" size="sm">Ver Relatório Completo</Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-xs md:text-sm whitespace-nowrap px-3 h-8 md:h-9"
+            >
+              Ver Relatório Completo
+            </Button>
           </div>
         </div>
 
