@@ -979,6 +979,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_permission: {
+        Args: {
+          _acao?: string
+          _modulo: Database["public"]["Enums"]["modulo_sistema"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role:
         | {
             Args: {
