@@ -1083,7 +1083,10 @@ function ModalLogsAcesso({
   };
 
   const exportarLogs = () => {
-    if (!logs || logs.length === 0) return toast.error("Sem dados para exportar");
+    if (!logs || logs.length === 0) {
+      toast.error("Sem dados para exportar");
+      return;
+    }
     const headers = ["Data", "Colaborador", "E-mail", "Dispositivo", "IP", "Status"];
     const rows = logs.map(l => [
       l.created_at ? formatarData(l.created_at, "America/Sao_Paulo") : "",
