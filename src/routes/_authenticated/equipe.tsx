@@ -155,6 +155,24 @@ function PaginaAcessos() {
 
   return (
     <div className="space-y-6">
+  const consultaLogs = useQuery({
+    queryKey: ["logs-acesso", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("logs_acesso")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const logsRecentes = consultaLogs.data ?? [];
+
+  return (
+    <div className="space-y-6">
       <CabecalhoPagina
         titulo="Gestão de Equipe & Acessos"
         descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
@@ -171,6 +189,7 @@ function PaginaAcessos() {
           </div>
         }
       />
+
 
 
       <div className="grid grid-cols-2 gap-4">
