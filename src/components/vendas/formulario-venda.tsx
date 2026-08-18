@@ -369,11 +369,15 @@ export function FormularioVenda({
           />
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border bg-secondary px-4 py-3 text-sm">
-          <span className="text-muted-foreground">
-            Subtotal {formatarMoeda(subtotal)}
-          </span>
-          <span className="font-semibold">Total {formatarMoeda(total)}</span>
+        <div className="flex flex-col gap-2 rounded-2xl border border-blue-500/20 bg-blue-500/5 px-5 py-4 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Subtotal dos itens</span>
+            <span>{formatarMoeda(subtotal)}</span>
+          </div>
+          <div className="flex items-center justify-between border-t border-blue-500/20 pt-2 text-lg font-bold text-white">
+            <span>Valor Total do Pedido</span>
+            <span className="text-blue-400">{formatarMoeda(total)}</span>
+          </div>
         </div>
 
         <DialogFooter>
