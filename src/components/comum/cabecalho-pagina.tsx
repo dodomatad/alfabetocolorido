@@ -23,7 +23,7 @@ export function CabecalhoPagina({
   const router = useRouter();
   const { temPermissao } = useSessao();
 
-  const podeVoltar = router.state.location.pathname !== "/";
+  const podeVoltar = mostrarBotaoVoltar && router.state.location.pathname !== "/";
   const permitido = modulo ? temPermissao(modulo, acaoObrigatoria) : true;
 
   if (!permitido) return null;
