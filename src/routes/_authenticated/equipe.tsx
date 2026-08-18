@@ -170,12 +170,14 @@ function PaginaAcessos() {
           <CartaoMetrica 
             rotulo="Total da Equipe" 
             valor={String(totalMembros)}
+            icone={Users}
             className="border-blue-500/80 shadow-[0_0_15px_rgba(0,102,255,0.15)] bg-[#141417] rounded-2xl border-[#27272A]/40"
             corValor="text-white"
           />
           <CartaoMetrica 
             rotulo="Operadores (Contingência / Tráfego)" 
             valor={String(totalOperadores)}
+            icone={Activity}
             className="bg-[#141417] rounded-2xl border-[#27272A]/40"
             corValor="text-emerald-400"
           />
@@ -186,12 +188,14 @@ function PaginaAcessos() {
           <CartaoMetrica 
             rotulo="Administradores" 
             valor={String(totalAdmins)}
+            icone={ShieldCheck}
             className="bg-[#141417] rounded-2xl border-[#27272A]/40"
             corValor="text-blue-400"
           />
           <CartaoMetrica 
             rotulo="Acessos Pendentes / Convites" 
             valor={String(Math.floor(totalMembros * 0.1))}
+            icone={ShieldAlert}
             className="bg-[#141417] rounded-2xl border-[#27272A]/40"
             corValor="text-amber-400"
           />
@@ -210,18 +214,6 @@ function PaginaAcessos() {
                 className="pl-9"
               />
             </div>
-            
-            <Select defaultValue="todos">
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Cargo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Cargos</SelectItem>
-                <SelectItem value="administrador">Administrador</SelectItem>
-                <SelectItem value="operador">Operador</SelectItem>
-                <SelectItem value="financeiro">Financeiro</SelectItem>
-              </SelectContent>
-            </Select>
 
             <Select defaultValue="ativos">
               <SelectTrigger className="w-40">
