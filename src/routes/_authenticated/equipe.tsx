@@ -680,31 +680,30 @@ function ModalMembro({
       return;
     }
 
+    if (!membro && (!novaSenha || novaSenha.length < 6)) {
+      toast.error("Defina uma senha inicial de pelo menos 6 caracteres para o novo integrante.");
+      setAba("seguranca");
+      return;
+    }
+
     setCarregando(true);
     try {
       let usuarioId = membro?.id;
 
-      // Se for novo membro, precisa criar na tabela equipe_membros (persistência manual solicitada)
-      // Nota: Em um fluxo real de convite, isso seria via Auth.
-      // Aqui estamos implementando a persistência na tabela equipe_membros conforme o prompt.
-
       if (!membro) {
-        const { data: novoMembro, error: errNovo } = await (supabase as any)
-          .from("equipe_membros")
-          .insert({
-            empresa_id: empresa.id,
+        const { cadastrarMembroEquipe } = await import("@/lib/equipe.functions");
+        const resultado = await cadastrarMembroEquipe({
+          data: {
             nome,
-            email,
+            email: email.trim().toLowerCase(),
+            senha: novaSenha,
             cargo,
             papel,
-            permissoes: permissoes as any,
-            status: 'ativo'
-          })
-          .select()
-          .single();
-        
-        if (errNovo) throw errNovo;
-        usuarioId = novoMembro.id;
+            empresaId: empresa.id,
+            permissoes: permissoes,
+          },
+        });
+        usuarioId = resultado.userId;
       } else {
         // 1. Atualizar Perfil (se existir)
         const { error: errPerfil } = await supabase
@@ -717,15 +716,8 @@ function ModalMembro({
           .from("equipe_membros")
           .update({ nome, cargo, papel, permissoes: permissoes as any })
           .eq("id", membro.id);
-      }
 
-      if (!usuarioId) throw new Error("ID do usuário não definido");
-
-      // 2. Sincronizar Papéis e Permissões (para compatibilidade com useSessao)
-      // Só fazemos isso se o usuário tiver um perfil/auth vinculado
-      const { data: temPerfil } = await supabase.from("perfis").select("id").eq("id", usuarioId).maybeSingle();
-      
-      if (temPerfil) {
+        // 2. Sincronizar Papéis e Permissões
         await supabase.from("usuarios_papeis").delete().eq("usuario_id", usuarioId);
         await supabase.from("usuarios_papeis").insert({ usuario_id: usuarioId, papel, empresa_id: empresa.id });
 
@@ -968,16 +960,18 @@ function ModalMembro({
                 <div className="flex items-center gap-3">
                   <Key className="size-5 text-primary" />
                   <div>
-                    <h4 className="text-sm font-semibold">Alteração Direta de Senha</h4>
+                    <h4 className="text-sm font-semibold">{membro ? "Redefinir Senha do Colaborador" : "Senha Inicial de Acesso"}</h4>
                     <p className="text-xs text-muted-foreground">
-                      Defina uma nova senha para {membro?.nome || "o colaborador"}.
+                      {membro 
+                        ? `Defina uma nova senha para ${membro.nome}.` 
+                        : "Defina a senha que o colaborador usará no primeiro acesso."}
                     </p>
                   </div>
                 </div>
 
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="nova-senha">Nova Senha</Label>
+                    <Label htmlFor="nova-senha">{membro ? "Nova Senha" : "Senha Provisória"}</Label>
                     <div className="relative">
                       <Input
                         id="nova-senha"
@@ -1023,24 +1017,39 @@ function ModalMembro({
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full" 
-                  onClick={() => {
-                    if (novaSenha !== confirmarSenha) {
-                      toast.error("As senhas não coincidem!");
-                      return;
-                    }
-                    if (novaSenha.length < 6) {
-                      toast.error("A senha deve ter pelo menos 6 caracteres.");
-                      return;
-                    }
-                    toast.success(`Senha de ${membro?.nome} atualizada com sucesso!`);
-                    setNovaSenha("");
-                    setConfirmarSenha("");
-                  }}
-                >
-                  Salvar Nova Senha
-                </Button>
+                {membro && (
+                  <Button 
+                    className="w-full" 
+                    disabled={carregando}
+                    onClick={async () => {
+                      if (novaSenha !== confirmarSenha) {
+                        toast.error("As senhas não coincidem!");
+                        return;
+                      }
+                      if (novaSenha.length < 6) {
+                        toast.error("A senha deve ter pelo menos 6 caracteres.");
+                        return;
+                      }
+                      
+                      setCarregando(true);
+                      try {
+                        const { redefinirSenhaMembro } = await import("@/lib/equipe.functions");
+                        await redefinirSenhaMembro({
+                          data: { usuarioId: membro.id, novaSenha }
+                        });
+                        toast.success(`Senha de ${membro.nome} atualizada com sucesso!`);
+                        setNovaSenha("");
+                        setConfirmarSenha("");
+                      } catch (err: any) {
+                        toast.error(err.message);
+                      } finally {
+                        setCarregando(false);
+                      }
+                    }}
+                  >
+                    {carregando ? "Atualizando..." : "Atualizar Senha do Colaborador"}
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

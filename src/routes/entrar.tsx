@@ -181,8 +181,9 @@ function PaginaEntrar() {
       return;
     }
     setEnviando(true);
+    const emailSanitizado = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: emailSanitizado,
       password: senha,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
