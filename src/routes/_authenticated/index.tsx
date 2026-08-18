@@ -64,6 +64,7 @@ const ROTULO_STATUS: Record<string, string> = {
   parcialmente_entregue: "Parcialmente entregue",
   entregue: "Entregue",
   cancelada: "Cancelada",
+  reembolsada: "Reembolsada",
 };
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -138,10 +139,14 @@ function PaginaDashboard() {
     return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
   }, [permissoes]);
 
-  const validas = vendas.filter((v) => v.status !== "cancelada");
+  const validas = vendas.filter((v) => v.status !== "cancelada" && v.status !== "reembolsada");
+  const reembolsadas = vendas.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
+  const totalReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
+  const taxaReembolso = vendas.length > 0 ? (reembolsadas.length / vendas.length) * 100 : 0;
+
   const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
-  const bruto = liquido + descontos;
+  const bruto = liquido + totalReembolsado + descontos;
   const custos = itens.reduce(
     (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
     0,
@@ -149,7 +154,7 @@ function PaginaDashboard() {
   const lucro = liquido - custos;
   const roi = custos > 0 ? lucro / custos : 0;
   const convertidas = vendas.filter(
-    (v) => v.status !== "rascunho" && v.status !== "cancelada",
+    (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
   ).length;
   const taxaConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
 
@@ -206,7 +211,7 @@ function PaginaDashboard() {
       (v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice
     );
     const convertidasDia = vendasDia.filter(
-      (v) => v.status !== "rascunho" && v.status !== "cancelada"
+      (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)
     ).length;
     const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
     return {
@@ -305,8 +310,10 @@ function PaginaDashboard() {
               className="lg:col-span-1"
             />
             <CartaoMetrica
-              rotulo="Custo com Perfil"
-              valor={fmtValor(custos)}
+              rotulo="Taxa de Reembolso"
+              valor={ocultarValores ? "***%" : `${formatarNumero(taxaReembolso)}%`}
+              subvalor={fmtValor(totalReembolsado)}
+              corValor="text-rose-400"
             />
             <CartaoMetrica
               rotulo="Faturamento líquido"
@@ -325,7 +332,11 @@ function PaginaDashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <CartaoMetrica
+              rotulo="Custo com Perfil"
+              valor={fmtValor(custos)}
+            />
             <CartaoMetrica
               rotulo="Lucro"
               valor={fmtValor(lucro)}

@@ -36,6 +36,7 @@ const STATUS_INICIAIS = [
   { valor: "efetuada", rotulo: "Efetuada" },
   { valor: "falta_pagamento", rotulo: "Falta pagamento" },
   { valor: "confirmada", rotulo: "Confirmada" },
+  { valor: "reembolsada", rotulo: "Reembolsada" },
 ] as const;
 
 export function FormularioVenda({
@@ -126,7 +127,7 @@ export function FormularioVenda({
           numero: Number(proximo) || 1,
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
-          status: status as "rascunho" | "em_andamento" | "efetuada" | "falta_pagamento" | "confirmada",
+          status: status as "rascunho" | "em_andamento" | "efetuada" | "falta_pagamento" | "confirmada" | "reembolsada",
           subtotal,
           desconto: numero(desconto),
           acrescimo: numero(acrescimo),

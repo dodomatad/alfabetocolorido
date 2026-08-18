@@ -1054,6 +1054,7 @@ export type Database = {
         | "parcialmente_entregue"
         | "entregue"
         | "cancelada"
+        | "reembolsada"
         | "em_andamento"
         | "efetuada"
         | "falta_pagamento"
@@ -1241,6 +1242,7 @@ export const Constants = {
         "parcialmente_entregue",
         "entregue",
         "cancelada",
+        "reembolsada",
         "em_andamento",
         "efetuada",
         "falta_pagamento",
