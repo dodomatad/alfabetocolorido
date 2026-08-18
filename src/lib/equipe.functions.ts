@@ -1,0 +1,154 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
+
+type Papel = Database["public"]["Enums"]["app_role"];
+type Modulo = Database["public"]["Enums"]["modulo_sistema"];
+
+export const cadastrarMembroEquipe = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        nome: z.string().min(3),
+        email: z.string().email(),
+        senha: z.string().min(6),
+        cargo: z.string(),
+        papel: z.string(),
+        empresaId: z.string(),
+        permissoes: z.record(z.any()),
+      })
+      .parse(d)
+  )
+  .handler(async ({ data }) => {
+    // 1. Criar usuário no Supabase Auth (Admin API para confirmação automática)
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email.trim().toLowerCase(),
+      password: data.senha,
+      email_confirm: true,
+      user_metadata: {
+        nome: data.nome,
+        cargo: data.cargo,
+        papel: data.papel,
+      },
+    });
+
+    if (authError) {
+      console.error("Erro ao criar usuário no Auth:", authError);
+      throw new Error(`Erro ao criar usuário: ${authError.message}`);
+    }
+
+    const userId = authUser.user.id;
+
+    try {
+      // 2. Criar perfil
+      const { error: perfilError } = await supabaseAdmin.from("perfis").insert({
+        id: userId,
+        empresa_id: data.empresaId,
+        nome: data.nome,
+        email: data.email.trim().toLowerCase(),
+        cargo: data.cargo,
+        ativo: true,
+      });
+
+      if (perfilError) throw perfilError;
+
+      // 3. Atribuir papel
+      const { error: papelError } = await supabaseAdmin.from("usuarios_papeis").insert({
+        usuario_id: userId,
+        empresa_id: data.empresaId,
+        papel: data.papel as Papel,
+      } as any);
+
+      if (papelError) throw papelError;
+
+      // 4. Atribuir permissões
+      const permissoesRows = Object.entries(data.permissoes).map(([modulo, p]: [string, any]) => ({
+        usuario_id: userId,
+        empresa_id: data.empresaId,
+        modulo: modulo as Modulo,
+        pode_visualizar: p.visualiza ?? false,
+        pode_criar: p.edita ?? false,
+        pode_editar: p.edita ?? false,
+        pode_excluir: p.exclui ?? false,
+        ocultar_valores: p.ocultar ?? false,
+      }));
+
+      if (permissoesRows.length > 0) {
+        const { error: permsError } = await supabaseAdmin.from("permissoes_acesso").insert(permissoesRows as any);
+        if (permsError) throw permsError;
+      }
+
+      // 5. Opcional: Registrar na tabela equipe_membros para compatibilidade se necessário
+      // (Embora perfis + usuarios_papeis seja a forma correta para RBAC no sistema)
+      await (supabaseAdmin as any).from("equipe_membros").insert({
+        id: userId,
+        empresa_id: data.empresaId,
+        nome: data.nome,
+        email: data.email.trim().toLowerCase(),
+        cargo: data.cargo,
+        papel: data.papel,
+        status: "ativo",
+      });
+
+      return { success: true, userId };
+    } catch (err: any) {
+      console.error("Erro ao finalizar cadastro de membro:", err);
+      // Rollback do usuário auth se possível ou lidar com limpeza
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(`Erro ao finalizar cadastro: ${err.message}`);
+    }
+  });
+
+export const redefinirSenhaMembro = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        usuarioId: z.string(),
+        novaSenha: z.string().min(6),
+      })
+      .parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.usuarioId, {
+      password: data.novaSenha,
+    });
+
+    if (error) {
+      console.error("Erro ao atualizar senha:", error);
+      throw new Error(`Erro ao atualizar senha: ${error.message}`);
+    }
+
+    return { success: true };
+  });
+
+export const registrarFalhaLogin = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        email: z.string().email(),
+        dispositivo: z.string(),
+        ip: z.string().optional(),
+      })
+      .parse(d)
+  )
+  .handler(async ({ data }) => {
+    // Tentar encontrar o perfil para pegar a empresa_id se existir
+    const { data: perfil } = await supabaseAdmin
+      .from("perfis")
+      .select("id, nome, empresa_id")
+      .eq("email", data.email.trim().toLowerCase())
+      .maybeSingle();
+
+    await supabaseAdmin.from("logs_acesso").insert({
+      usuario_id: perfil?.id,
+      usuario_nome: perfil?.nome || data.email.split("@")[0],
+      usuario_email: data.email.trim().toLowerCase(),
+      dispositivo: data.dispositivo,
+      ip: data.ip || "0.0.0.0",
+      status: "erro", // Status para falha
+      empresa_id: perfil?.empresa_id,
+    } as any);
+
+    return { success: true };
+  });
