@@ -164,12 +164,42 @@ function PaginaAcessos() {
       />
 
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <CartaoMetrica rotulo="Total da Equipe" valor={String(totalMembros)} />
-        <CartaoMetrica rotulo="Administradores" valor={String(totalAdmins)} />
-        <CartaoMetrica rotulo="Operadores (Contingência / Tráfego)" valor={String(totalOperadores)} />
-        <CartaoMetrica rotulo="Acessos Pendentes / Convites" valor={String(Math.floor(totalMembros * 0.1))} />
+      <div className="grid grid-cols-2 gap-4">
+        {/* Coluna 1: Total e Operadores */}
+        <div className="space-y-4">
+          <CartaoMetrica 
+            rotulo="Total da Equipe" 
+            valor={String(totalMembros)}
+            icone={Users}
+            className="border-blue-500/80 shadow-[0_0_15px_rgba(0,102,255,0.15)] bg-[#141417] rounded-2xl border-[#27272A]/40"
+            corValor="text-white"
+          />
+          <CartaoMetrica 
+            rotulo="Operadores (Contingência / Tráfego)" 
+            valor={String(totalOperadores)}
+            icone={Activity}
+            className="bg-[#141417] rounded-2xl border-[#27272A]/40"
+            corValor="text-emerald-400"
+          />
+        </div>
 
+        {/* Coluna 2: Admins e Pendentes */}
+        <div className="space-y-4">
+          <CartaoMetrica 
+            rotulo="Administradores" 
+            valor={String(totalAdmins)}
+            icone={ShieldCheck}
+            className="bg-[#141417] rounded-2xl border-[#27272A]/40"
+            corValor="text-blue-400"
+          />
+          <CartaoMetrica 
+            rotulo="Acessos Pendentes / Convites" 
+            valor={String(Math.floor(totalMembros * 0.1))}
+            icone={ShieldAlert}
+            className="bg-[#141417] rounded-2xl border-[#27272A]/40"
+            corValor="text-amber-400"
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card shadow-panel">
@@ -184,18 +214,6 @@ function PaginaAcessos() {
                 className="pl-9"
               />
             </div>
-            
-            <Select defaultValue="todos">
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Cargo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Cargos</SelectItem>
-                <SelectItem value="administrador">Administrador</SelectItem>
-                <SelectItem value="operador">Operador</SelectItem>
-                <SelectItem value="financeiro">Financeiro</SelectItem>
-              </SelectContent>
-            </Select>
 
             <Select defaultValue="ativos">
               <SelectTrigger className="w-40">
