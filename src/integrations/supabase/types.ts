@@ -795,6 +795,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       usuarios_papeis: {
         Row: {
           created_at: string
@@ -962,7 +980,19 @@ export type Database = {
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
       pode_gerenciar: { Args: never; Returns: boolean }
-      proximo_numero_venda: { Args: { _empresa?: string }; Returns: number }
+      proximo_numero_venda:
+        | {
+            Args: { _empresa?: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.proximo_numero_venda(_empresa => text), public.proximo_numero_venda(_empresa => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { _empresa: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.proximo_numero_venda(_empresa => text), public.proximo_numero_venda(_empresa => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
     }
     Enums: {
       app_role:

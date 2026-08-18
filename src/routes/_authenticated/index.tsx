@@ -139,16 +139,15 @@ function PaginaDashboard() {
   }, [permissoes]);
 
   const validas = vendas.filter((v) => v.status !== "cancelada");
-  const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0);
-  const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0);
+  const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
+  const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
   const bruto = liquido + descontos;
   const custos = itens.reduce(
     (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
     0,
-  );
+  ) || 0;
   const lucro = liquido - custos;
   const roi = custos > 0 ? lucro / custos : 0;
-  const roas = custos > 0 ? liquido / custos : 0;
   const convertidas = vendas.filter(
     (v) => v.status !== "rascunho" && v.status !== "cancelada",
   ).length;

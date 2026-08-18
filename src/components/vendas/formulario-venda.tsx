@@ -123,7 +123,7 @@ export function FormularioVenda({
         .insert({
           empresa_id: empresa.id,
           cliente_id: clienteId || null,
-          numero: proximo ?? 1,
+          numero: Number(proximo) || 1,
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
           status: status as "rascunho" | "em_andamento" | "efetuada" | "falta_pagamento" | "confirmada",
