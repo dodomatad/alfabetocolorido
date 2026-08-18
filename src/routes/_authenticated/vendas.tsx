@@ -1,13 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
 import { SeloStatusVenda } from "@/components/comum/selo-status";
 import { FormularioVenda } from "@/components/vendas/formulario-venda";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
@@ -65,9 +78,10 @@ const STATUS = [
 ] as const;
 
 function PaginaVendas() {
-  const { empresa, fuso } = useSessao();
+  const { empresa, fuso, temPermissao } = useSessao();
   const [status, setStatus] = useState<string>("todos");
   const [formulario, setFormulario] = useState(false);
+  const queryClient = useQueryClient();
 
   const consulta = useQuery({
     queryKey: ["vendas", empresa?.id, status],
@@ -82,6 +96,26 @@ function PaginaVendas() {
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as unknown as Venda[];
+    },
+  });
+
+  const excluirVenda = useMutation({
+    mutationFn: async (vendaId: string) => {
+      // 1. Exclui os itens vinculados à venda (garantindo limpeza)
+      await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+
+      // 2. Exclui a venda principal
+      const { error } = await supabase.from("vendas").delete().eq("id", vendaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Venda excluída com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir venda:", error);
+      toast.error("Não foi possível excluir a venda.");
     },
   });
 
@@ -142,6 +176,7 @@ function PaginaVendas() {
                   <TableHead className="hidden md:table-cell">Previsão</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="w-[100px] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,6 +193,39 @@ function PaginaVendas() {
                     </TableCell>
                     <TableCell className="num text-right font-medium">
                       {formatarMoeda(venda.valor_total)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {temPermissao("vendas", "excluir") && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground hover:bg-red-950/30 hover:text-red-400 transition-colors"
+                              aria-label={`Excluir venda nº ${venda.numero}`}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Venda Nº {venda.numero}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação removerá o registro permanentemente e atualizará os totais de faturamento e lucro do Dashboard.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => excluirVenda.mutate(venda.id)}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                              >
+                                Confirmar Exclusão
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
