@@ -474,6 +474,7 @@ function PaginaAcessos() {
                       } else {
                         toast.success("Registro removido com sucesso!");
                         queryClient.invalidateQueries({ queryKey: ["logs-acesso"] });
+                        queryClient.invalidateQueries({ queryKey: ["logs-acesso-detalhado"] });
                       }
                     }
                   }}
