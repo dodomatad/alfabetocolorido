@@ -196,17 +196,17 @@ function PaginaAcessos() {
         titulo="Gestão de Equipe & Acessos"
         descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
         acoes={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setModalConviteAberto(true)}>
-              <LinkIcon className="mr-2 size-4" />
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-2 w-full touch-pan-x scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <Button variant="outline" className="shrink-0 whitespace-nowrap px-3.5 py-2 text-xs md:text-sm font-medium rounded-xl flex items-center gap-2 bg-[#141417] border-[#27272A]/80 hover:bg-[#27272A]/40 transition-colors" onClick={() => setModalConviteAberto(true)}>
+              <LinkIcon className="size-4" />
               Gerar Convite
             </Button>
-            <Button variant="outline" onClick={() => setModalLogsAberto(true)}>
-              <History className="mr-2 size-4" />
+            <Button variant="outline" className="shrink-0 whitespace-nowrap px-3.5 py-2 text-xs md:text-sm font-medium rounded-xl flex items-center gap-2 bg-[#141417] border-[#27272A]/80 hover:bg-[#27272A]/40 transition-colors" onClick={() => setModalLogsAberto(true)}>
+              <History className="size-4" />
               Logs de Acesso
             </Button>
-            <Button onClick={() => { setEditando(null); setAberto(true); }}>
-              <Plus className="mr-2 size-4" />
+            <Button className="shrink-0 whitespace-nowrap px-3.5 py-2 text-xs md:text-sm font-medium rounded-xl flex items-center gap-2 bg-[#0066FF] text-white hover:bg-[#0055DD] transition-colors" onClick={() => { setEditando(null); setAberto(true); }}>
+              <Plus className="size-4" />
               Novo Integrante
             </Button>
           </div>
