@@ -170,7 +170,7 @@ export function GraficoBarrasAgrupadas({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             barSize={20}
-            onClick={onBarClick ? (data) => onBarClick(data.payload) : undefined}
+            onClick={onBarClick ? (data: any) => onBarClick(data.payload) : undefined}
             className={onBarClick ? "cursor-pointer" : ""}
           />
           <Bar
@@ -180,7 +180,7 @@ export function GraficoBarrasAgrupadas({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             barSize={20}
-            onClick={onBarClick ? (data) => onBarClick(data.payload) : undefined}
+            onClick={onBarClick ? (data: any) => onBarClick(data.payload) : undefined}
             className={onBarClick ? "cursor-pointer" : ""}
           />
         </BarChart>
