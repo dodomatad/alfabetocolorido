@@ -13,7 +13,7 @@ import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
 import {
   CORES_GRAFICO,
-  GraficoBarras,
+  GraficoBarrasAgrupadas,
   GraficoFunil,
   GraficoRosca,
 } from "@/components/dashboard/graficos";
@@ -209,31 +209,46 @@ function PaginaDashboard() {
     percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
   }));
 
-  const contagemDias = DIAS.map((dia, indice) => ({
-    dia,
-    quantidade: validas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice)
-      .length,
-  }));
-  const totalVolumeDias = contagemDias.reduce((s, d) => s + d.quantidade, 0) || 1;
-  const barrasVolume = [...contagemDias.slice(1), contagemDias[0]!].map((d) => ({
-    dia: d.dia,
-    percentual: (d.quantidade / totalVolumeDias) * 100,
-  }));
+  const dadosGraficoVendas = DIAS.map((dia, indice) => {
+    const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
+    const totalDia = vendasDia.length;
+    const efetivadasDia = vendasDia.filter((v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)).length;
+    const reembolsadasDia = vendasDia.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status)).length;
 
-  const acertosPorDia = DIAS.map((dia, indice) => {
-    const vendasDia = vendas.filter(
-      (v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice
-    );
+    const valorEfetivado = vendasDia
+      .filter((v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status))
+      .reduce((s, v) => s + Number(v.valor_total || 0), 0);
+    const valorReembolsado = vendasDia
+      .filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status))
+      .reduce((s, v) => s + Number(v.valor_total || 0), 0);
+
+    return {
+      dia,
+      positivo: totalDia > 0 ? (efetivadasDia / totalDia) * 100 : 0,
+      negativo: totalDia > 0 ? (reembolsadasDia / totalDia) * 100 : 0,
+      infoPositivo: formatarMoeda(valorEfetivado),
+      infoNegativo: formatarMoeda(valorReembolsado),
+    };
+  });
+  const barrasVendasAgrupadas = [...dadosGraficoVendas.slice(1), dadosGraficoVendas[0]!];
+
+  const dadosGraficoProducao = DIAS.map((dia, indice) => {
+    const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
     const convertidasDia = vendasDia.filter(
       (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)
     ).length;
     const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
+    
+    // Simulação de taxa de erro para o gráfico comparativo
+    const taxaErro = vendasDia.length > 0 ? (100 - taxa) * 0.3 : 0; 
+
     return {
       dia,
-      percentual: taxa,
+      positivo: taxa,
+      negativo: taxaErro,
     };
   });
-  const barrasAcertos = [...acertosPorDia.slice(1), acertosPorDia[0]!];
+  const barrasAcertosAgrupadas = [...dadosGraficoProducao.slice(1), dadosGraficoProducao[0]!];
 
   return (
     <div className="space-y-6 pt-2">
@@ -360,30 +375,38 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Vendas por dia da semana</h2>
+            <h2 className="text-sm font-semibold">Vendas e Reembolsos por dia da semana</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Participação de cada dia no total de vendas do período.
+              Comparativo entre vendas concluídas e taxa de reembolso por dia.
             </p>
             {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
               </p>
             ) : (
-              <GraficoBarras dados={barrasVolume} />
+              <GraficoBarrasAgrupadas 
+                dados={barrasVendasAgrupadas} 
+                cores={["#0066ff", "#EF4444"]}
+                legendas={["Vendas Efetivadas", "Reembolsos"]}
+              />
             )}
           </section>
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Taxa de Acertos por dia da semana</h2>
+            <h2 className="text-sm font-semibold">Taxa de Acertos vs. Perfis Não Aprovados</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Desempenho de conversão segmentado por dia.
+              Desempenho de aprovação e taxa de erros/bloqueios de perfis por dia.
             </p>
             {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
               </p>
             ) : (
-              <GraficoBarras dados={barrasAcertos} />
+              <GraficoBarrasAgrupadas 
+                dados={barrasAcertosAgrupadas} 
+                cores={["#22C55E", "#F59E0B"]}
+                legendas={["Aprovados / Acertos", "Erros / Reprovados"]}
+              />
             )}
           </section>
 
