@@ -1439,6 +1439,8 @@ function ModalRegistrarAcesso({
       </DialogContent>
     </Dialog>
   );
+}
+
 function ModalGerarConvite({
   aberto,
   aoFechar,
