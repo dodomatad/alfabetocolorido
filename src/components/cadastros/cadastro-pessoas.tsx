@@ -85,6 +85,7 @@ export function CadastroPessoas({
   const [editando, setEditando] = useState<Registro | null>(null);
   const [form, setForm] = useState({ ...formularioVazio });
   const [semDocumento, setSemDocumento] = useState(false);
+  const [semTelefone, setSemTelefone] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const chave = useMemo(
@@ -122,7 +123,7 @@ export function CadastroPessoas({
       const payload = {
         nome: form.nome.trim(),
         documento: !semDocumento && form.documento.trim() ? apenasDigitos(form.documento) : null,
-        telefone: form.telefone.trim() || null,
+        telefone: !semTelefone && form.telefone.trim() ? form.telefone.trim() : null,
         email: form.email.trim() || null,
         endereco: form.endereco.trim() || null,
         observacoes: form.observacoes.trim() || null,
@@ -156,6 +157,7 @@ export function CadastroPessoas({
     setEditando(null);
     setForm({ ...formularioVazio });
     setSemDocumento(false);
+    setSemTelefone(false);
     setErros({});
     setAberto(true);
   }
@@ -172,6 +174,7 @@ export function CadastroPessoas({
       ativo: registro.ativo,
     });
     setSemDocumento(!registro.documento);
+    setSemTelefone(!registro.telefone);
     setErros({});
     setAberto(true);
   }
@@ -403,10 +406,24 @@ export function CadastroPessoas({
                 <Label htmlFor="campo-telefone">Telefone</Label>
                 <Input
                   id="campo-telefone"
-                  value={form.telefone}
+                  value={semTelefone ? "Isento / Não informado" : form.telefone}
                   onChange={(e) => setForm({ ...form, telefone: e.target.value })}
                   inputMode="tel"
+                  disabled={semTelefone}
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const novoEstado = !semTelefone;
+                    setSemTelefone(novoEstado);
+                  }}
+                  className="mt-1 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 cursor-pointer w-fit transition-colors"
+                >
+                  <div className={cn("size-3 rounded-sm border border-blue-400/50 flex items-center justify-center transition-colors", semTelefone && "bg-blue-400 border-blue-400")}>
+                    {semTelefone && <div className="size-1.5 bg-black rounded-full" />}
+                  </div>
+                  Não Possui Telefone
+                </button>
               </div>
             </div>
 
