@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  LabelList,
   Legend,
   ResponsiveContainer,
   Tooltip as TooltipRecharts,
@@ -21,6 +25,8 @@ import {
   Trash2,
   TrendingDown,
   TrendingUp,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -355,43 +361,88 @@ function Pagina() {
           }
         />
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          <Kpi rotulo="BMs Criadas" valor={criadas} icone={Factory} badge={`Meta: ${metaDia}/dia`} />
-          <Kpi rotulo="BMs Aquecidas" valor={aquecidas} icone={Flame} cor="text-[#3B82F6]" />
-          <Kpi rotulo="Contas Subidas" valor={subidas} icone={Rocket} />
-          <Kpi rotulo="Contas Viradas (Ativas)" valor={viradas} icone={Target} cor="text-[#10B981]" />
-          <Kpi
-            rotulo="Taxa de Aproveitamento"
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <CartaoKpi
+            rotulo="BMs Criadas"
+            valor={criadas}
+            icone={Factory}
+            detalhe={`Meta: ${metaDia}/dia`}
+          />
+          <CartaoKpi
+            rotulo="BMs Aquecidas"
+            valor={aquecidas}
+            icone={Flame}
+            corIcone="text-blue-500"
+          />
+          <CartaoKpi
+            rotulo="Contas Subidas"
+            valor={subidas}
+            icone={Rocket}
+            corIcone="text-amber-500"
+          />
+          <CartaoKpi
+            rotulo="Contas Viradas"
+            valor={viradas}
+            icone={Target}
+            corIcone="text-success"
+          />
+          <CartaoKpi
+            rotulo="Aproveitamento"
             valor={`${aproveitamento.toFixed(1)}%`}
             icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
-            cor={
-              aproveitamento > 50
-                ? "text-[#10B981]"
+            corValor={
+              aproveitamento >= 50
+                ? "text-success"
                 : aproveitamento < 30
-                  ? "text-[#EF4444]"
-                  : "text-foreground"
+                ? "text-destructive"
+                : "text-amber-500"
             }
-            detalhe="Contas viradas / BMs criadas"
+            detalhe="Viradas / Criadas"
           />
-          <Kpi
-            rotulo="Bloqueios / Quedas"
+          <CartaoKpi
+            rotulo="Bloqueios"
             valor={bloqueios}
             icone={AlertTriangle}
-            cor="text-[#EF4444]"
-            detalhe={`${perda.toFixed(1)}% de perda da esteira`}
+            corValor="text-destructive"
+            detalhe={`${perda.toFixed(1)}% de perda`}
           />
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-xl border bg-card p-5 shadow-panel">
-            <h2 className="text-sm font-semibold">Produção Diária vs. Viradas</h2>
-            <p className="mb-4 text-xs text-muted-foreground">Comparativo por dia da semana</p>
+        <section className="grid gap-6 xl:grid-cols-2">
+          <div className="rounded-xl border bg-card p-6 shadow-panel">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-200">Produção Diária vs. Viradas</h2>
+                <p className="text-xs text-muted-foreground">Volume de criação e ativação por dia</p>
+              </div>
+            </div>
+            
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={porDia} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <BarChart data={porDia} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCriadas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={AZUL} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={AZUL} stopOpacity={0.2}/>
+                    </linearGradient>
+                    <linearGradient id="colorViradas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={VERDE} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={VERDE} stopOpacity={0.2}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#242429" vertical={false} />
-                  <XAxis dataKey="dia" tickLine={false} axisLine={false} tick={{ fill: "#AAAAAA", fontSize: 12 }} />
-                  <YAxis tickLine={false} axisLine={false} tick={{ fill: "#AAAAAA", fontSize: 12 }} allowDecimals={false} />
+                  <XAxis 
+                    dataKey="dia" 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tick={{ fill: "#AAAAAA", fontSize: 12 }} 
+                  />
+                  <YAxis 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tick={{ fill: "#AAAAAA", fontSize: 12 }} 
+                    allowDecimals={false} 
+                  />
                   <TooltipRecharts
                     cursor={{ fill: "rgba(255,255,255,0.04)" }}
                     contentStyle={{
@@ -399,50 +450,104 @@ function Pagina() {
                       border: "1px solid #242429",
                       borderRadius: 12,
                       color: "#fff",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
                     }}
                   />
-                  <Legend wrapperStyle={{ fontSize: 12, color: "#AAAAAA" }} />
-                  <Bar dataKey="criadas" name="BMs Criadas" fill={AZUL} radius={[6, 6, 0, 0]} isAnimationActive={false} minPointSize={2} />
-                  <Bar dataKey="viradas" name="Contas Viradas" fill={VERDE} radius={[6, 6, 0, 0]} isAnimationActive={false} minPointSize={2} />
+                  <Legend 
+                    verticalAlign="top" 
+                    align="right" 
+                    wrapperStyle={{ fontSize: 12, paddingBottom: 20 }} 
+                  />
+                  <Bar 
+                    dataKey="criadas" 
+                    name="BMs Criadas" 
+                    fill="url(#colorCriadas)" 
+                    radius={[4, 4, 0, 0]} 
+                    isAnimationActive={false} 
+                    minPointSize={2} 
+                  />
+                  <Bar 
+                    dataKey="viradas" 
+                    name="Contas Viradas" 
+                    fill="url(#colorViradas)" 
+                    radius={[4, 4, 0, 0]} 
+                    isAnimationActive={false} 
+                    minPointSize={2} 
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="rounded-xl border bg-card p-5 shadow-panel">
-            <h2 className="text-sm font-semibold">Etapas da Contingência</h2>
-            <p className="mb-4 text-xs text-muted-foreground">Onde a esteira mais perde contas</p>
-            <ul className="space-y-4">
-              {etapas.map((e) => (
-                <li key={e.etapa}>
-                  <div className="flex items-baseline justify-between text-sm">
-                    <span className="font-medium">{e.etapa}</span>
-                    <span className="num text-muted-foreground">
-                      {e.valor} · {e.percentual.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(e.percentual, 1)}%`,
-                        backgroundColor: e.etapa.startsWith("Viradas") ? VERDE : AZUL,
-                      }}
+          <div className="rounded-xl border bg-card p-6 shadow-panel">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-200">Funil da Esteira de Contingência</h2>
+                <p className="text-xs text-muted-foreground">Taxa de sobrevivência entre etapas</p>
+              </div>
+            </div>
+
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={etapas} margin={{ top: 30, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorFunil" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={AZUL} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={AZUL} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <TooltipRecharts
+                    contentStyle={{
+                      background: "#141417",
+                      border: "1px solid #242429",
+                      borderRadius: 12,
+                      color: "#fff",
+                    }}
+                    formatter={(v: number, name: string) => [
+                      name === "percentual" ? `${v.toFixed(1)}%` : v,
+                      name === "percentual" ? "Aproveitamento" : "Volume"
+                    ]}
+                  />
+                  <XAxis 
+                    dataKey="etapa" 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tick={{ fill: "#AAAAAA", fontSize: 11 }} 
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="percentual"
+                    stroke={AZUL}
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorFunil)"
+                    isAnimationActive={false}
+                  >
+                    <LabelList
+                      dataKey="valor"
+                      position="top"
+                      offset={15}
+                      style={{ fill: "#ffffff", fontSize: 12, fontWeight: "bold" }}
                     />
+                  </Area>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              {etapas.slice(1).map((e) => (
+                <div key={e.etapa} className="rounded-lg bg-muted/30 p-3 border border-border/50">
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    <span>Queda {e.etapa}</span>
+                    {e.queda === maiorQueda && <Badge className="h-4 px-1 text-[9px] bg-destructive/20 text-destructive border-none">Gargalo</Badge>}
                   </div>
-                  {e.queda > 0 ? (
-                    <p
-                      className={`mt-1 text-xs ${
-                        e.queda === maiorQueda ? "text-[#EF4444]" : "text-muted-foreground"
-                      }`}
-                    >
-                      Queda de {e.queda} conta(s) nesta etapa
-                      {e.queda === maiorQueda ? " — maior perda da esteira" : ""}
-                    </p>
-                  ) : null}
-                </li>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-lg font-bold text-slate-200">{e.queda}</span>
+                    <span className="text-xs text-muted-foreground">contas perdidas</span>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </section>
 
@@ -489,32 +594,41 @@ function Pagina() {
                     const taxa = r.bms_criadas > 0 ? (r.contas_viradas / r.bms_criadas) * 100 : 0;
                     const bateu = r.bms_criadas >= r.meta_diaria;
                     return (
-                      <TableRow key={r.id}>
-                        <TableCell className="num">{formatarData(r.data_registro, fuso)}</TableCell>
-                        <TableCell>{r.operador}</TableCell>
-                        <TableCell className="num text-right">{r.bms_criadas}</TableCell>
-                        <TableCell className="num text-right text-[#3B82F6]">{r.bms_aquecidas}</TableCell>
-                        <TableCell className="num text-right">{r.contas_subidas}</TableCell>
-                        <TableCell className="num text-right text-[#10B981]">{r.contas_viradas}</TableCell>
+                      <TableRow key={r.id} className="hover:bg-muted/30">
+                        <TableCell className="num font-medium text-slate-200">{formatarData(r.data_registro, fuso)}</TableCell>
+                        <TableCell className="font-medium">{r.operador}</TableCell>
+                        <TableCell className="num text-right font-bold text-slate-200">{r.bms_criadas}</TableCell>
+                        <TableCell className="num text-right text-blue-400 font-semibold">{r.bms_aquecidas}</TableCell>
+                        <TableCell className="num text-right font-semibold">{r.contas_subidas}</TableCell>
+                        <TableCell className="num text-right text-success font-bold">{r.contas_viradas}</TableCell>
                         <TableCell>
                           {r.bloqueios > 0 ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Badge variant="destructive" className="cursor-default">
+                                <Badge className="bg-destructive/10 text-destructive border-none cursor-default font-semibold">
                                   {r.bloqueios} · {rotuloMotivo(r.motivo_queda)}
                                 </Badge>
                               </TooltipTrigger>
-                              <TooltipContent>
+                              <TooltipContent className="max-w-xs text-xs">
                                 {r.observacoes || `Motivo principal: ${rotuloMotivo(r.motivo_queda)}`}
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground/40">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="num text-right">{taxa.toFixed(1)}%</TableCell>
+                        <TableCell className="num text-right font-bold">
+                          <span className={cn(
+                            taxa >= 50 ? "text-success" : taxa < 30 ? "text-destructive" : "text-amber-500"
+                          )}>
+                            {taxa.toFixed(1)}%
+                          </span>
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={bateu ? "default" : "secondary"}>
+                          <Badge className={cn(
+                            "border-none font-semibold",
+                            bateu ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                          )}>
                             {bateu ? "Meta batida" : "Abaixo da meta"}
                           </Badge>
                         </TableCell>
@@ -655,36 +769,46 @@ function Campo({
   );
 }
 
-function Kpi({
+function CartaoKpi({
   rotulo,
   valor,
   icone: Icone,
-  cor = "text-foreground",
-  badge,
+  corIcone = "text-muted-foreground/60",
+  corValor = "text-foreground",
   detalhe,
 }: {
   rotulo: string;
   valor: string | number;
-  icone: typeof Factory;
-  cor?: string;
-  badge?: string;
+  icone: any;
+  corIcone?: string;
+  corValor?: string;
   detalhe?: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-panel">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground">{rotulo}</p>
-        <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <Icone className="size-4" aria-hidden="true" />
-        </span>
+    <div className="rounded-xl border bg-card p-4 shadow-panel transition-all duration-300 hover:border-primary/40 hover:shadow-[0_8px_30px_-10px_oklch(0.6_0.1_254_/_0.25)]">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            {rotulo}
+          </p>
+          <p className={cn("num mt-1 text-2xl font-bold tracking-tight", corValor)}>
+            {valor}
+          </p>
+        </div>
+        <div className={cn("rounded-lg bg-muted/40 p-2", corIcone)}>
+          <Icone className="size-4" />
+        </div>
       </div>
-      <p className={`num mt-2 text-3xl font-semibold tracking-tight ${cor}`}>{valor}</p>
-      {badge ? (
-        <Badge variant="secondary" className="mt-2">
-          {badge}
-        </Badge>
-      ) : null}
-      {detalhe ? <p className="mt-2 text-xs text-muted-foreground">{detalhe}</p> : null}
+      {detalhe && (
+        <p className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+          <Info className="size-3 opacity-50" />
+          {detalhe}
+        </p>
+      )}
     </div>
   );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }
