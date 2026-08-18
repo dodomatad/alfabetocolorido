@@ -711,11 +711,7 @@ function ModalMembro({
           .update({ nome, cargo })
           .eq("id", membro.id);
         
-        // Também atualizar na tabela equipe_membros se ela for a fonte
-        await (supabase as any)
-          .from("equipe_membros")
-          .update({ nome, cargo, papel, permissoes: permissoes as any })
-          .eq("id", membro.id);
+        if (errPerfil) throw errPerfil;
 
         // 2. Sincronizar Papéis e Permissões
         if (usuarioId) {
@@ -1055,12 +1051,28 @@ function ModalMembro({
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="text-xs flex items-center gap-2" onClick={() => {
-                  navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
-                  toast.success("Link copiado!");
-                }}>
-                  <Copy className="size-3" />
-                  Gerar Link de Redefinição
+                <Button 
+                  variant="outline" 
+                  className="text-xs flex items-center gap-2" 
+                  onClick={async () => {
+                    if (!membro?.email) return;
+                    setCarregando(true);
+                    try {
+                      const { error } = await supabase.auth.resetPasswordForEmail(membro.email.trim().toLowerCase(), {
+                        redirectTo: `${window.location.origin}/redefinir-senha`
+                      });
+                      if (error) throw error;
+                      toast.success("Link de redefinição enviado para o e-mail do colaborador!");
+                    } catch (err: any) {
+                      toast.error("Erro ao enviar link: " + err.message);
+                    } finally {
+                      setCarregando(false);
+                    }
+                  }}
+                  disabled={carregando}
+                >
+                  <RefreshCcw className="size-3" />
+                  Enviar Link de Redefinição
                 </Button>
                 <Button variant="outline" className="text-xs flex items-center gap-2 text-destructive hover:bg-destructive/10" onClick={() => toast.success("Sessão desconectada!")}>
                   <LogOut className="size-3" />
