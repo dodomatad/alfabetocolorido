@@ -760,36 +760,46 @@ function Campo({
   );
 }
 
-function Kpi({
+function CartaoKpi({
   rotulo,
   valor,
   icone: Icone,
-  cor = "text-foreground",
-  badge,
+  corIcone = "text-muted-foreground/60",
+  corValor = "text-foreground",
   detalhe,
 }: {
   rotulo: string;
   valor: string | number;
-  icone: typeof Factory;
-  cor?: string;
-  badge?: string;
+  icone: any;
+  corIcone?: string;
+  corValor?: string;
   detalhe?: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-panel">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground">{rotulo}</p>
-        <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <Icone className="size-4" aria-hidden="true" />
-        </span>
+    <div className="rounded-xl border bg-card p-4 shadow-panel transition-all duration-300 hover:border-primary/40 hover:shadow-[0_8px_30px_-10px_oklch(0.6_0.1_254_/_0.25)]">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            {rotulo}
+          </p>
+          <p className={cn("num mt-1 text-2xl font-bold tracking-tight", corValor)}>
+            {valor}
+          </p>
+        </div>
+        <div className={cn("rounded-lg bg-muted/40 p-2", corIcone)}>
+          <Icone className="size-4" />
+        </div>
       </div>
-      <p className={`num mt-2 text-3xl font-semibold tracking-tight ${cor}`}>{valor}</p>
-      {badge ? (
-        <Badge variant="secondary" className="mt-2">
-          {badge}
-        </Badge>
-      ) : null}
-      {detalhe ? <p className="mt-2 text-xs text-muted-foreground">{detalhe}</p> : null}
+      {detalhe && (
+        <p className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+          <Info className="size-3 opacity-50" />
+          {detalhe}
+        </p>
+      )}
     </div>
   );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }
