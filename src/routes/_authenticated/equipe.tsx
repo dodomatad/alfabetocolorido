@@ -84,6 +84,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
 
 type Membro = {
   id: string;
+  user_id: string | null;
   nome: string;
   email: string | null;
   cargo: string | null;
@@ -125,7 +126,7 @@ function PaginaAcessos() {
     queryFn: async () => {
       const [perfis, membrosExtras, vinculos] = await Promise.all([
         supabase.from("perfis").select("id, nome, email, cargo, ativo").order("nome"),
-        (supabase as any).from("equipe_membros").select("id, nome, email, cargo, status").order("nome"),
+        supabase.from("equipe_membros").select("id, user_id, nome, email, cargo, status").order("nome"),
         supabase.from("usuarios_papeis").select("usuario_id, papel"),
       ]);
 
@@ -134,12 +135,20 @@ function PaginaAcessos() {
       if (vinculos.error) throw vinculos.error;
 
       // Unificar perfis reais com membros cadastrados manualmente na tabela equipe_membros
-      const listaUnificada = [...(perfis.data ?? [])];
+      const listaUnificada = (perfis.data ?? []).map(p => ({
+        id: p.id,
+        user_id: p.id,
+        nome: p.nome,
+        email: p.email,
+        cargo: p.cargo,
+        ativo: p.ativo
+      }));
       
       ((membrosExtras as any).data ?? []).forEach((m: any) => {
         if (!listaUnificada.find(p => p.id === m.id)) {
           listaUnificada.push({
             id: m.id,
+            user_id: m.user_id,
             nome: m.nome,
             email: m.email,
             cargo: m.cargo,
@@ -155,8 +164,9 @@ function PaginaAcessos() {
         porUsuario.set(v.usuario_id, lista);
       }
 
-      return listaUnificada.map((p) => ({
+      return listaUnificada.map((p: any) => ({
         ...p,
+        user_id: p.user_id || p.id, // Fallback se vier apenas do perfil
         papeis: porUsuario.get(p.id) ?? [],
         ultima_atividade: new Date().toISOString(), // Mock para UI
       }));
@@ -332,7 +342,7 @@ function PaginaAcessos() {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {m.papeis.length > 0 ? (
-                        m.papeis.map((p) => (
+                        m.papeis.map((p: Papel) => (
                           <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
                             {ROTULO_PAPEL[p]}
                           </Badge>
@@ -403,9 +413,10 @@ function PaginaAcessos() {
                           if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
                             const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
                             const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
+                            const { error: errMembro } = await supabase.from("equipe_membros").delete().eq("id", m.id);
                             const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
                             
-                            if (errPerfil || errPapeis || errPerms) {
+                            if (errPerfil || errPapeis || errPerms || errMembro) {
                               toast.error("Erro ao remover membro");
                             } else {
                               toast.success("Membro removido com sucesso!");
@@ -718,12 +729,13 @@ function ModalMembro({
         if (errPerfil) throw errPerfil;
 
         // Atualizar também na tabela equipe_membros para manter consistência
-        await (supabase as any)
+        await supabase
           .from("equipe_membros")
           .update({ 
             nome, 
             cargo, 
             papel,
+            permissoes: permissoes,
             status_senha: 'Senha Ativa',
             updated_at: new Date().toISOString()
           })

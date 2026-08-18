@@ -304,6 +304,7 @@ export type Database = {
           status: string
           status_senha: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           cargo: string
@@ -317,6 +318,7 @@ export type Database = {
           status?: string
           status_senha?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           cargo?: string
@@ -330,6 +332,7 @@ export type Database = {
           status?: string
           status_senha?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {

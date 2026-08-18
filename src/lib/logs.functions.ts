@@ -18,13 +18,14 @@ export const registrarLogAcesso = createServerFn({ method: "POST" })
     // Buscamos o perfil para pegar a empresa_id
     const { data: perfil } = await supabaseAdmin
       .from("perfis")
-      .select("empresa_id")
+      .select("empresa_id, email")
       .eq("id", data.usuarioId)
       .single();
 
     const { error } = await supabaseAdmin.from("logs_acesso").insert({
       usuario_id: data.usuarioId,
       usuario_nome: data.usuarioNome,
+      usuario_email: perfil?.email || data.usuarioNome.toLowerCase() + "@example.com", // Fallback seguro
       dispositivo: data.dispositivo,
       ip: data.ip || "0.0.0.0",
       status: "ativo",
