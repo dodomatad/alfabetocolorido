@@ -160,7 +160,7 @@ function PaginaAcessos() {
         descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
         acoes={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => toast.info("Funcionalidade em desenvolvimento")}>
+            <Button variant="outline" onClick={() => setModalLogsAberto(true)}>
               <History className="mr-2 size-4" />
               Logs de Acesso
             </Button>
