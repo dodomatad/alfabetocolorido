@@ -629,11 +629,25 @@ function ModalMembro({
         </DialogHeader>
 
         <Tabs value={aba} onValueChange={setAba} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="perfil">Dados Pessoais & Função</TabsTrigger>
-            <TabsTrigger value="permissoes">Controle de Acessos & Permissões</TabsTrigger>
-            <TabsTrigger value="seguranca">Segurança</TabsTrigger>
-
+          <TabsList className="flex flex-col gap-1.5 w-full h-auto p-1.5 bg-[#141417] rounded-xl border border-[#27272A]/50">
+            <TabsTrigger 
+              value="perfil" 
+              className="w-full justify-center py-2.5 px-3 rounded-lg text-xs md:text-sm font-medium transition-all data-[state=active]:bg-[#27272A] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:font-semibold text-muted-foreground hover:text-white hover:bg-white/5"
+            >
+              Dados Pessoais & Função
+            </TabsTrigger>
+            <TabsTrigger 
+              value="permissoes"
+              className="w-full justify-center py-2.5 px-3 rounded-lg text-xs md:text-sm font-medium transition-all data-[state=active]:bg-[#27272A] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:font-semibold text-muted-foreground hover:text-white hover:bg-white/5"
+            >
+              Acessos & Permissões
+            </TabsTrigger>
+            <TabsTrigger 
+              value="seguranca"
+              className="w-full justify-center py-2.5 px-3 rounded-lg text-xs md:text-sm font-medium transition-all data-[state=active]:bg-[#27272A] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:font-semibold text-muted-foreground hover:text-white hover:bg-white/5"
+            >
+              Segurança
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="perfil" className="space-y-4 pt-4">
