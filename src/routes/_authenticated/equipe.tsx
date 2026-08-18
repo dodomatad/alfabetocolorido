@@ -123,13 +123,30 @@ function PaginaAcessos() {
     queryKey: ["equipe-acessos", empresa?.id],
     enabled: Boolean(empresa?.id),
     queryFn: async () => {
-      const [perfis, vinculos] = await Promise.all([
+      const [perfis, membrosExtras, vinculos] = await Promise.all([
         supabase.from("perfis").select("id, nome, email, cargo, ativo").order("nome"),
+        supabase.from("equipe_membros").select("id, nome, email, cargo, status").order("nome"),
         supabase.from("usuarios_papeis").select("usuario_id, papel"),
       ]);
 
       if (perfis.error) throw perfis.error;
+      if (membrosExtras.error) throw membrosExtras.error;
       if (vinculos.error) throw vinculos.error;
+
+      // Unificar perfis reais com membros cadastrados manualmente na tabela equipe_membros
+      const listaUnificada = [...(perfis.data ?? [])];
+      
+      (membrosExtras.data ?? []).forEach(m => {
+        if (!listaUnificada.find(p => p.id === m.id)) {
+          listaUnificada.push({
+            id: m.id,
+            nome: m.nome,
+            email: m.email,
+            cargo: m.cargo,
+            ativo: m.status === 'ativo'
+          });
+        }
+      });
 
       const porUsuario = new Map<string, Papel[]>();
       for (const v of vinculos.data ?? []) {
@@ -138,7 +155,7 @@ function PaginaAcessos() {
         porUsuario.set(v.usuario_id, lista);
       }
 
-      return (perfis.data ?? []).map((p) => ({
+      return listaUnificada.map((p) => ({
         ...p,
         papeis: porUsuario.get(p.id) ?? [],
         ultima_atividade: new Date().toISOString(), // Mock para UI
@@ -565,9 +582,19 @@ function ModalMembro({
   };
 
   // Estados do formulário
-  const [nome, setNome] = useState(membro?.nome || "");
-  const [cargo, setCargo] = useState(membro?.cargo || "");
-  const [papel, setPapel] = useState<Papel>(membro?.papeis[0] || "funcionario");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [cargo, setCargo] = useState("");
+  const [papel, setPapel] = useState<Papel>("funcionario");
+
+  useEffect(() => {
+    if (aberto) {
+      setNome(membro?.nome || "");
+      setEmail(membro?.email || "");
+      setCargo(membro?.cargo || "");
+      setPapel(membro?.papeis?.[0] || "funcionario");
+    }
+  }, [aberto, membro]);
 
   const permissoesIniciais = useMemo(() => {
     return MODULOS.reduce(
@@ -645,42 +672,78 @@ function ModalMembro({
     return novas;
   };
 
+  const { empresa } = useSessao();
+
   const salvar = async () => {
-    if (!membro) return;
+    if (!empresa?.id) {
+      toast.error("Empresa não identificada");
+      return;
+    }
+
     setCarregando(true);
     try {
-      // 1. Atualizar Perfil
-      const { error: errPerfil } = await supabase
-        .from("perfis")
-        .update({ nome, cargo })
-        .eq("id", membro.id);
-      if (errPerfil) throw errPerfil;
+      let usuarioId = membro?.id;
 
-      // 2. Atualizar Papel
-      await supabase.from("usuarios_papeis").delete().eq("usuario_id", membro.id);
-      const { error: errPapel } = await supabase
-        .from("usuarios_papeis")
-        .insert({ usuario_id: membro.id, papel, empresa_id: (membro as any).empresa_id });
+      // Se for novo membro, precisa criar na tabela equipe_membros (persistência manual solicitada)
+      // Nota: Em um fluxo real de convite, isso seria via Auth.
+      // Aqui estamos implementando a persistência na tabela equipe_membros conforme o prompt.
 
-      if (errPapel) throw errPapel;
+      if (!membro) {
+        const { data: novoMembro, error: errNovo } = await supabase
+          .from("equipe_membros")
+          .insert({
+            empresa_id: empresa.id,
+            nome,
+            email,
+            cargo,
+            papel,
+            permissoes: permissoes as any,
+            status: 'ativo'
+          })
+          .select()
+          .single();
+        
+        if (errNovo) throw errNovo;
+        usuarioId = novoMembro.id;
+      } else {
+        // 1. Atualizar Perfil (se existir)
+        const { error: errPerfil } = await supabase
+          .from("perfis")
+          .update({ nome, cargo })
+          .eq("id", membro.id);
+        
+        // Também atualizar na tabela equipe_membros se ela for a fonte
+        await supabase
+          .from("equipe_membros")
+          .update({ nome, cargo, papel, permissoes: permissoes as any })
+          .eq("id", membro.id);
+      }
 
-      // 3. Atualizar Permissões Granulares
-      await supabase.from("permissoes_acesso").delete().eq("usuario_id", membro.id);
-      const rows = Object.entries(permissoes).map(([modulo, p]: [string, any]) => ({
-        usuario_id: membro.id,
-        empresa_id: (membro as any).empresa_id,
-        modulo: modulo as any,
-        pode_visualizar: p.visualiza,
-        pode_criar: p.edita,
-        pode_editar: p.edita,
-        pode_excluir: p.exclui,
-        ocultar_valores: p.ocultar,
-      }));
-      const { error: errPerms } = await supabase.from("permissoes_acesso").insert(rows as any);
+      if (!usuarioId) throw new Error("ID do usuário não definido");
 
-      if (errPerms) throw errPerms;
+      // 2. Sincronizar Papéis e Permissões (para compatibilidade com useSessao)
+      // Só fazemos isso se o usuário tiver um perfil/auth vinculado
+      const { data: temPerfil } = await supabase.from("perfis").select("id").eq("id", usuarioId).maybeSingle();
+      
+      if (temPerfil) {
+        await supabase.from("usuarios_papeis").delete().eq("usuario_id", usuarioId);
+        await supabase.from("usuarios_papeis").insert({ usuario_id: usuarioId, papel, empresa_id: empresa.id });
 
-      toast.success("Permissões e perfil atualizados!");
+        await supabase.from("permissoes_acesso").delete().eq("usuario_id", usuarioId);
+        const rows = Object.entries(permissoes).map(([modulo, p]: [string, any]) => ({
+          usuario_id: usuarioId,
+          empresa_id: empresa.id,
+          modulo: modulo as any,
+          pode_visualizar: p.visualiza,
+          pode_criar: p.edita,
+          pode_editar: p.edita,
+          pode_excluir: p.exclui,
+          ocultar_valores: p.ocultar,
+        }));
+        await supabase.from("permissoes_acesso").insert(rows as any);
+      }
+
+      toast.success(membro ? "Integrante atualizado!" : "Integrante cadastrado!");
       queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
       aoFechar();
     } catch (e: any) {
@@ -742,7 +805,14 @@ function ModalMembro({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email">E-mail de Acesso</Label>
-                <Input id="email" type="email" defaultValue={membro?.email || ""} placeholder="email@empresa.com" disabled={!!membro} />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  placeholder="email@empresa.com" 
+                  disabled={!!membro} 
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="cargo">Cargo / Função</Label>
