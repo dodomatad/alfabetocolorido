@@ -36,6 +36,7 @@ import {
   formatarData,
   formatarDocumento,
 } from "@/lib/formatadores";
+import { cn } from "@/lib/utils";
 
 type Registro = {
   id: string;
@@ -83,6 +84,7 @@ export function CadastroPessoas({
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Registro | null>(null);
   const [form, setForm] = useState({ ...formularioVazio });
+  const [semDocumento, setSemDocumento] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const chave = useMemo(
@@ -119,7 +121,7 @@ export function CadastroPessoas({
       if (!empresa?.id) throw new Error("Empresa não configurada");
       const payload = {
         nome: form.nome.trim(),
-        documento: form.documento.trim() ? apenasDigitos(form.documento) : null,
+        documento: !semDocumento && form.documento.trim() ? apenasDigitos(form.documento) : null,
         telefone: form.telefone.trim() || null,
         email: form.email.trim() || null,
         endereco: form.endereco.trim() || null,
@@ -153,6 +155,7 @@ export function CadastroPessoas({
   function abrirNovo() {
     setEditando(null);
     setForm({ ...formularioVazio });
+    setSemDocumento(false);
     setErros({});
     setAberto(true);
   }
@@ -168,6 +171,7 @@ export function CadastroPessoas({
       observacoes: registro.observacoes ?? "",
       ativo: registro.ativo,
     });
+    setSemDocumento(!registro.documento);
     setErros({});
     setAberto(true);
   }
@@ -176,7 +180,7 @@ export function CadastroPessoas({
     evento.preventDefault();
     const novos: Record<string, string> = {};
     if (form.nome.trim().length < 2) novos["nome"] = "O nome é obrigatório.";
-    if (form.documento.trim() && !documentoValido(form.documento))
+    if (!semDocumento && form.documento.trim() && !documentoValido(form.documento))
       novos["documento"] = "Informe um CPF ou CNPJ válido.";
     if (form.email.trim() && !emailValido(form.email)) novos["email"] = "E-mail inválido.";
     setErros(novos);
@@ -371,12 +375,27 @@ export function CadastroPessoas({
                 <Label htmlFor="campo-documento">CPF ou CNPJ</Label>
                 <Input
                   id="campo-documento"
-                  value={form.documento}
+                  value={semDocumento ? "Isento / Não informado" : form.documento}
                   onChange={(e) => setForm({ ...form, documento: e.target.value })}
                   inputMode="numeric"
+                  disabled={semDocumento}
                   aria-invalid={Boolean(erros["documento"])}
                 />
-                {erros["documento"] ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const novoEstado = !semDocumento;
+                    setSemDocumento(novoEstado);
+                    if (novoEstado) setErros((prev) => ({ ...prev, documento: "" }));
+                  }}
+                  className="mt-1 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 cursor-pointer w-fit transition-colors"
+                >
+                  <div className={cn("size-3 rounded-sm border border-blue-400/50 flex items-center justify-center transition-colors", semDocumento && "bg-blue-400 border-blue-400")}>
+                    {semDocumento && <div className="size-1.5 bg-black rounded-full" />}
+                  </div>
+                  Não Possui CNPJ/CPF
+                </button>
+                {!semDocumento && erros["documento"] ? (
                   <p className="text-xs text-destructive">{erros["documento"]}</p>
                 ) : null}
               </div>
