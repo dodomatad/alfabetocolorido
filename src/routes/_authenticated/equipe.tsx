@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Check,
   X,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -381,16 +382,22 @@ function PaginaAcessos() {
               Acompanhe as últimas tentativas de login e sessões ativas da equipe.
             </p>
           </div>
-          <Button variant="outline" size="sm">Ver Relatório Completo</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => toast.info("Funcionalidade para registrar acesso em desenvolvimento")}>
+              <Plus className="mr-2 size-3" />
+              Registrar Acesso
+            </Button>
+            <Button variant="outline" size="sm">Ver Relatório Completo</Button>
+          </div>
         </div>
 
         <div className="space-y-3">
           {[
-            { user: "João Silva", status: "success", time: "Agora", device: "Chrome / Windows", ip: "177.23.44.1" },
-            { user: "Maria Oliveira", status: "success", time: "Há 45 min", device: "Safari / iPhone", ip: "189.12.33.2" },
-            { user: "Carlos Souza", status: "error", time: "Há 2 horas", device: "Firefox / Linux", ip: "45.11.22.8", motivo: "Senha incorreta" },
+            { id: 1, user: "João Silva", status: "success", time: "Agora", device: "Chrome / Windows", ip: "177.23.44.1" },
+            { id: 2, user: "Maria Oliveira", status: "success", time: "Há 45 min", device: "Safari / iPhone", ip: "189.12.33.2" },
+            { id: 3, user: "Carlos Souza", status: "error", time: "Há 2 horas", device: "Firefox / Linux", ip: "45.11.22.8", motivo: "Senha incorreta" },
           ].map((log, idx) => (
-            <div key={idx} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-xs">
+            <div key={log.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-xs">
               <div className="flex items-center gap-3">
                 <div className={`flex size-8 items-center justify-center rounded-full ${log.status === 'success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
                   {log.status === 'success' ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
@@ -403,11 +410,25 @@ function PaginaAcessos() {
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-medium text-muted-foreground">{log.time}</p>
-                {log.status === 'success' && idx === 0 && (
-                  <Badge variant="outline" className="h-4 px-1 text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">ATIVO</Badge>
-                )}
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="font-medium text-muted-foreground">{log.time}</p>
+                  {log.status === 'success' && idx === 0 && (
+                    <Badge variant="outline" className="h-4 px-1 text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">ATIVO</Badge>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="size-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30"
+                  onClick={() => {
+                    if (confirm(`Deseja remover este registro de acesso de ${log.user}?`)) {
+                      toast.success("Registro removido com sucesso!");
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
             </div>
           ))}
