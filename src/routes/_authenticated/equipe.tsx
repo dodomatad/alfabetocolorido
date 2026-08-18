@@ -1070,8 +1070,9 @@ function ModalLogsAcesso({
   };
 
   const limparHistorico = async () => {
+    if (!empresa?.id) return;
     if (!confirm("Deseja limpar TODO o histórico de acessos desta empresa? Esta ação não pode ser desfeita.")) return;
-    const { error } = await supabase.from("logs_acesso").delete().eq("empresa_id", empresa?.id);
+    const { error } = await supabase.from("logs_acesso").delete().eq("empresa_id", empresa.id);
     if (error) {
       toast.error("Erro ao limpar histórico");
     } else {
@@ -1085,7 +1086,7 @@ function ModalLogsAcesso({
     if (!logs || logs.length === 0) return toast.error("Sem dados para exportar");
     const headers = ["Data", "Colaborador", "E-mail", "Dispositivo", "IP", "Status"];
     const rows = logs.map(l => [
-      formatarData(l.created_at, "America/Sao_Paulo"),
+      l.created_at ? formatarData(l.created_at, "America/Sao_Paulo") : "",
       l.usuario_nome,
       l.usuario_email || "",
       l.dispositivo,
@@ -1096,8 +1097,10 @@ function ModalLogsAcesso({
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `logs-acesso-${empresa?.id}.csv`);
+    const empresaId = empresa?.id || "logs";
+    link.setAttribute("download", `logs-acesso-${empresaId}.csv`);
     document.body.appendChild(link);
+
     link.click();
     document.body.removeChild(link);
     toast.success("Logs exportados com sucesso!");
