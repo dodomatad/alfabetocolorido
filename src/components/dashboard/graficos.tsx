@@ -5,9 +5,11 @@ import {
   BarChart,
   Cell,
   LabelList,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
 } from "recharts";
 
@@ -106,6 +108,76 @@ export function GraficoFunil({ dados }: { dados: EtapaFunil[] }) {
             />
           </Area>
         </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export type BarraAgrupada = {
+  dia: string;
+  positivo: number;
+  negativo: number;
+  infoPositivo?: string;
+  infoNegativo?: string;
+};
+
+export function GraficoBarrasAgrupadas({
+  dados,
+  cores = ["#0066ff", "#ff4444"],
+  legendas = ["Positivo", "Negativo"],
+}: {
+  dados: BarraAgrupada[];
+  cores?: [string, string];
+  legendas?: [string, string];
+}) {
+  return (
+    <div className="h-72 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={dados} margin={{ top: 24, right: 8, left: 8, bottom: 8 }}>
+          <XAxis
+            dataKey="dia"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "#aaaaaa", fontSize: 12 }}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#141417",
+              border: "1px solid #27272a",
+              borderRadius: "8px",
+              fontSize: "12px",
+            }}
+            itemStyle={{ fontSize: "12px", padding: "2px 0" }}
+            cursor={{ fill: "rgba(255,255,255,0.05)" }}
+            formatter={(value: number, name: string, props: any) => {
+              const isPos = name === legendas[0];
+              const info = isPos ? props.payload.infoPositivo : props.payload.infoNegativo;
+              return [`${value.toFixed(1)}%${info ? ` | ${info}` : ""}`, name];
+            }}
+          />
+          <Legend
+            verticalAlign="top"
+            align="right"
+            iconType="circle"
+            wrapperStyle={{ paddingBottom: "20px", fontSize: "11px", color: "#aaaaaa" }}
+          />
+          <Bar
+            name={legendas[0]}
+            dataKey="positivo"
+            fill={cores[0]}
+            radius={[4, 4, 0, 0]}
+            isAnimationActive={false}
+            barSize={20}
+          />
+          <Bar
+            name={legendas[1]}
+            dataKey="negativo"
+            fill={cores[1]}
+            radius={[4, 4, 0, 0]}
+            isAnimationActive={false}
+            barSize={20}
+          />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

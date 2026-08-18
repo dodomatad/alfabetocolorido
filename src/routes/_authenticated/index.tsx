@@ -13,7 +13,7 @@ import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
 import {
   CORES_GRAFICO,
-  GraficoBarras,
+  GraficoBarrasAgrupadas,
   GraficoFunil,
   GraficoRosca,
 } from "@/components/dashboard/graficos";
@@ -360,30 +360,38 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Vendas por dia da semana</h2>
+            <h2 className="text-sm font-semibold">Vendas e Reembolsos por dia da semana</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Participação de cada dia no total de vendas do período.
+              Comparativo entre vendas concluídas e taxa de reembolso por dia.
             </p>
             {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
               </p>
             ) : (
-              <GraficoBarras dados={barrasVolume} />
+              <GraficoBarrasAgrupadas 
+                dados={barrasVendasAgrupadas} 
+                cores={["#0066ff", "#EF4444"]}
+                legendas={["Vendas Efetivadas", "Reembolsos"]}
+              />
             )}
           </section>
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Taxa de Acertos por dia da semana</h2>
+            <h2 className="text-sm font-semibold">Taxa de Acertos vs. Perfis Não Aprovados</h2>
             <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Desempenho de conversão segmentado por dia.
+              Desempenho de aprovação e taxa de erros/bloqueios de perfis por dia.
             </p>
             {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
               </p>
             ) : (
-              <GraficoBarras dados={barrasAcertos} />
+              <GraficoBarrasAgrupadas 
+                dados={barrasAcertosAgrupadas} 
+                cores={["#22C55E", "#F59E0B"]}
+                legendas={["Aprovados / Acertos", "Erros / Reprovados"]}
+              />
             )}
           </section>
 
