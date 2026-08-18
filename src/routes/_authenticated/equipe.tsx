@@ -135,7 +135,14 @@ function PaginaAcessos() {
       if (vinculos.error) throw vinculos.error;
 
       // Unificar perfis reais com membros cadastrados manualmente na tabela equipe_membros
-      const listaUnificada = [...(perfis.data ?? [])];
+      const listaUnificada = (perfis.data ?? []).map(p => ({
+        id: p.id,
+        user_id: p.id,
+        nome: p.nome,
+        email: p.email,
+        cargo: p.cargo,
+        ativo: p.ativo
+      }));
       
       ((membrosExtras as any).data ?? []).forEach((m: any) => {
         if (!listaUnificada.find(p => p.id === m.id)) {
