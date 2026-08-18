@@ -367,7 +367,9 @@ function Pagina() {
             valor={criadas}
             icone={Factory}
             detalhe={`Meta: ${metaDia}/dia`}
+            destaque
           />
+
           <CartaoKpi
             rotulo="BMs Aquecidas"
             valor={aquecidas}
@@ -384,28 +386,32 @@ function Pagina() {
             rotulo="Contas Viradas"
             valor={viradas}
             icone={Target}
-            corIcone="text-success"
+            corValor="text-emerald-500"
           />
+
           <CartaoKpi
             rotulo="Aproveitamento"
             valor={`${aproveitamento.toFixed(1)}%`}
             icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
             corValor={
               aproveitamento >= 50
-                ? "text-success"
+                ? "text-emerald-500"
                 : aproveitamento < 30
-                ? "text-destructive"
+                ? "text-red-500"
                 : "text-amber-500"
             }
             detalhe="Viradas / Criadas"
           />
+
           <CartaoKpi
             rotulo="Bloqueios"
             valor={bloqueios}
             icone={AlertTriangle}
-            corValor="text-destructive"
+            corValor="text-red-500"
             detalhe={`${perda.toFixed(1)}% de perda`}
           />
+
+
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
@@ -592,20 +598,30 @@ function Pagina() {
                 <TableBody>
                   {registros.map((r) => {
                     const taxa = r.bms_criadas > 0 ? (r.contas_viradas / r.bms_criadas) * 100 : 0;
-                    const bateu = r.bms_criadas >= r.meta_diaria;
+                    const bateu = r.contas_viradas >= r.meta_diaria;
+                    
                     return (
-                      <TableRow key={r.id} className="hover:bg-muted/30">
-                        <TableCell className="num font-medium text-slate-200">{formatarData(r.data_registro, fuso)}</TableCell>
-                        <TableCell className="font-medium">{r.operador}</TableCell>
-                        <TableCell className="num text-right font-bold text-slate-200">{r.bms_criadas}</TableCell>
-                        <TableCell className="num text-right text-blue-400 font-semibold">{r.bms_aquecidas}</TableCell>
-                        <TableCell className="num text-right font-semibold">{r.contas_subidas}</TableCell>
-                        <TableCell className="num text-right text-success font-bold">{r.contas_viradas}</TableCell>
+                      <TableRow key={r.id} className="group hover:bg-muted/30 transition-colors">
+                        <TableCell className="num font-medium text-white">{formatarData(r.data_registro, fuso)}</TableCell>
+                        <TableCell className="font-semibold text-white/90">{r.operador}</TableCell>
+                        <TableCell className="num text-right font-bold text-white">{r.bms_criadas}</TableCell>
+                        <TableCell className="num text-right text-blue-400 font-bold">{r.bms_aquecidas}</TableCell>
+                        <TableCell className="num text-right font-bold text-white/90">{r.contas_subidas}</TableCell>
+                        <TableCell className="num text-right">
+                          <Badge 
+                            className={cn(
+                              "border-none font-bold px-3 py-1 rounded-md",
+                              bateu ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20" : "bg-emerald-500/10 text-emerald-400"
+                            )}
+                          >
+                            {r.contas_viradas}
+                          </Badge>
+                        </TableCell>
                         <TableCell>
                           {r.bloqueios > 0 ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Badge className="bg-destructive/10 text-destructive border-none cursor-default font-semibold">
+                                <Badge className="bg-red-500/10 text-red-500 border-none cursor-default font-bold rounded-md px-2">
                                   {r.bloqueios} · {rotuloMotivo(r.motivo_queda)}
                                 </Badge>
                               </TooltipTrigger>
@@ -614,24 +630,26 @@ function Pagina() {
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="text-muted-foreground/40">—</span>
+                            <span className="text-muted-foreground/30 text-xs italic">Nenhuma perda</span>
                           )}
                         </TableCell>
-                        <TableCell className="num text-right font-bold">
+                        <TableCell className="num text-right">
                           <span className={cn(
-                            taxa >= 50 ? "text-success" : taxa < 30 ? "text-destructive" : "text-amber-500"
+                            "text-sm font-black",
+                            taxa >= 50 ? "text-emerald-500" : taxa < 30 ? "text-red-500" : "text-amber-500"
                           )}>
-                            {taxa.toFixed(1)}%
+                            {taxa.toFixed(0)}%
                           </span>
                         </TableCell>
                         <TableCell>
                           <Badge className={cn(
-                            "border-none font-semibold",
-                            bateu ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                            "border-none font-bold rounded-md px-2",
+                            bateu ? "bg-emerald-500/10 text-emerald-500" : "bg-muted/50 text-muted-foreground"
                           )}>
-                            {bateu ? "Meta batida" : "Abaixo da meta"}
+                            {bateu ? "Meta Batida" : "Abaixo Meta"}
                           </Badge>
                         </TableCell>
+
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button
@@ -776,6 +794,8 @@ function CartaoKpi({
   corIcone = "text-muted-foreground/60",
   corValor = "text-foreground",
   detalhe,
+  destaque = false,
+  explicacao,
 }: {
   rotulo: string;
   valor: string | number;
@@ -783,24 +803,43 @@ function CartaoKpi({
   corIcone?: string;
   corValor?: string;
   detalhe?: string;
+  destaque?: boolean;
+  explicacao?: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-panel transition-all duration-300 hover:border-primary/40 hover:shadow-[0_8px_30px_-10px_oklch(0.6_0.1_254_/_0.25)]">
-      <div className="flex items-start justify-between">
+    <div
+      className={cn(
+        "group relative flex flex-col justify-between rounded-xl border border-border bg-card p-4 sm:p-6 shadow-panel transition-all duration-300 hover:border-primary/60 hover:-translate-y-1 hover:shadow-[0_15px_40px_-12px_rgba(0,102,255,0.4)]",
+        destaque && "border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/20"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+          <p className="text-base font-bold text-white mb-1.5 sm:mb-3">
             {rotulo}
           </p>
-          <p className={cn("num mt-1 text-2xl font-bold tracking-tight", corValor)}>
+          <p className={cn("num font-bold tracking-tight", destaque ? "text-2xl sm:text-4xl" : "text-xl sm:text-2xl", corValor)}>
             {valor}
           </p>
         </div>
-        <div className={cn("rounded-lg bg-muted/40 p-2", corIcone)}>
-          <Icone className="size-4" />
+        <div className={cn("rounded-lg bg-secondary/50 p-2 transition-colors group-hover:bg-secondary", corIcone)}>
+          <Icone className="size-4 sm:size-5" />
         </div>
+        
+        {explicacao && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="absolute top-2 right-2 text-muted-foreground/30 hover:text-muted-foreground transition-colors">
+                <Info className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[280px] text-xs">{explicacao}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
+
       {detalhe && (
-        <p className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+        <p className="mt-2 sm:mt-4 text-[10px] sm:text-xs text-muted-foreground font-medium flex items-center gap-1.5">
           <Info className="size-3 opacity-50" />
           {detalhe}
         </p>
@@ -808,6 +847,7 @@ function CartaoKpi({
     </div>
   );
 }
+
 
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");
