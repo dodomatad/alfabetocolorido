@@ -170,8 +170,10 @@ export function GraficoBarrasAgrupadas({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             barSize={20}
-            onClick={onBarClick ? (data: any) => onBarClick(data.payload) : undefined}
-            className={onBarClick ? "cursor-pointer" : ""}
+            {...(onBarClick ? { 
+              onClick: (data: any) => onBarClick(data.payload),
+              className: "cursor-pointer"
+            } : {})}
           />
           <Bar
             name={legendas[1]}
@@ -180,8 +182,10 @@ export function GraficoBarrasAgrupadas({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             barSize={20}
-            onClick={onBarClick ? (data: any) => onBarClick(data.payload) : undefined}
-            className={onBarClick ? "cursor-pointer" : ""}
+            {...(onBarClick ? { 
+              onClick: (data: any) => onBarClick(data.payload),
+              className: "cursor-pointer"
+            } : {})}
           />
         </BarChart>
       </ResponsiveContainer>
