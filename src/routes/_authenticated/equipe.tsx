@@ -391,7 +391,7 @@ function PaginaAcessos() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => toast.info("Funcionalidade para registrar acesso em desenvolvimento")}
+              onClick={() => setModalRegistrarAberto(true)}
               className="text-xs md:text-sm whitespace-nowrap px-3 h-8 md:h-9"
             >
               <Plus className="mr-2 size-3" />
@@ -400,6 +400,7 @@ function PaginaAcessos() {
             <Button 
               variant="outline" 
               size="sm"
+              onClick={() => setModalLogsAberto(true)}
               className="text-xs md:text-sm whitespace-nowrap px-3 h-8 md:h-9"
             >
               Ver Relatório Completo
