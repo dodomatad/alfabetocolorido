@@ -136,6 +136,41 @@ export function ModuloRegistros({
     },
   });
 
+  const criarRelacaoRapida = useMutation({
+    mutationFn: async ({ campo, nome }: { campo: CampoModulo; nome: string }) => {
+      if (!empresa?.id || !campo.relacao) throw new Error("Operação inválida.");
+      
+      const payload: any = {
+        empresa_id: empresa.id,
+        criado_por: session?.user.id ?? null,
+        atualizado_por: session?.user.id ?? null,
+      };
+
+      // Define a coluna de rótulo (geralmente 'nome')
+      payload[campo.relacao.rotulo] = nome;
+      
+      const { data, error } = await supabase
+        .from(campo.relacao.tabela)
+        .insert(payload)
+        .select(`id, ${campo.relacao.rotulo}`)
+        .single();
+
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data, variables) => {
+      const { campo } = variables;
+      toast.success(`${campo.rotulo} criado com sucesso.`);
+      
+      // Atualiza o cache das relações para incluir o novo item imediatamente
+      void queryClient.invalidateQueries({ queryKey: ["relacoes-modulo"] });
+      
+      // Seleciona o novo item no formulário
+      setValores((a) => ({ ...a, [campo.nome]: String(data.id) }));
+    },
+    onError: (erro: Error) => toast.error(`Erro ao criar registro: ${erro.message}`),
+  });
+
   const salvar = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
@@ -220,6 +255,11 @@ export function ModuloRegistros({
                       value={valores[campo.nome] ?? ""}
                       onValueChange={(v) => setValores((a) => ({ ...a, [campo.nome]: v }))}
                       placeholder={`Selecionar ${campo.rotulo.toLowerCase()}...`}
+                      onCreate={campo.tipo === "relacao" && campo.relacao?.tabela === "clientes" 
+                        ? (nome) => criarRelacaoRapida.mutate({ campo, nome })
+                        : undefined
+                      }
+                      createLabel={`Criar ${campo.rotulo.toLowerCase()}`}
                     />
                   ) : (
                     <Select
