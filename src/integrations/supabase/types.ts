@@ -1105,6 +1105,10 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
+      onboarding_novo_usuario: {
+        Args: { _nome_usuario: string }
+        Returns: undefined
+      }
       pode_gerenciar: { Args: never; Returns: boolean }
       proximo_numero_venda: { Args: { _empresa?: string }; Returns: number }
     }
