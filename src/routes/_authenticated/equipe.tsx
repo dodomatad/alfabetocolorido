@@ -379,6 +379,18 @@ function PaginaAcessos() {
         abaPadrao={aba}
       />
 
+      <ModalLogsAcesso
+        aberto={modalLogsAberto}
+        aoFechar={() => setModalLogsAberto(false)}
+        membros={consulta.data ?? []}
+      />
+
+      <ModalRegistrarAcesso
+        aberto={modalRegistrarAberto}
+        aoFechar={() => setModalRegistrarAberto(false)}
+        membros={consulta.data ?? []}
+      />
+
       <section className="rounded-xl border bg-card p-6 shadow-panel">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1 text-center md:text-left">
