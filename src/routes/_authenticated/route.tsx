@@ -1,10 +1,12 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
+import { registrarLogAcesso } from "@/lib/logs.functions";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -55,7 +57,50 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function LayoutProtegido() {
-  const { carregando, erro, recarregar } = useSessao();
+  const { session, perfil, carregando, erro, recarregar } = useSessao();
+
+  useEffect(() => {
+    // Registra log apenas quando a sessão é carregada pela primeira vez neste layout
+    if (session?.user && !carregando && !erro) {
+      const chave = `log-acesso-registrado-${session.user.id}-${new Date().toISOString().split('T')[0]}`;
+      const jaRegistrouHoje = sessionStorage.getItem(chave);
+      
+      if (!jaRegistrouHoje) {
+        const registrar = async () => {
+          try {
+            const userAgent = navigator.userAgent;
+            let dispositivo = "Navegador Web";
+            if (/iPhone/i.test(userAgent)) dispositivo = "Safari / iPhone";
+            else if (/Android/i.test(userAgent)) dispositivo = "Chrome / Android";
+            else if (/Windows/i.test(userAgent)) dispositivo = "Chrome / Windows";
+            else if (/Macintosh/i.test(userAgent)) dispositivo = "Safari / macOS";
+
+            let ip = "127.0.0.1";
+            try {
+              const resp = await fetch("https://api.ipify.org?format=json");
+              const data = await resp.json();
+              ip = data.ip;
+            } catch (e) {
+              console.warn("Não foi possível obter o IP do cliente", e);
+            }
+
+            await registrarLogAcesso({
+              data: {
+                usuarioId: session.user.id,
+                usuarioNome: perfil?.nome || session.user.email?.split("@")[0] || "Usuário",
+                dispositivo,
+                ip,
+              },
+            });
+            sessionStorage.setItem(chave, "true");
+          } catch (e) {
+            console.error("Erro ao registrar log de acesso automático:", e);
+          }
+        };
+        void registrar();
+      }
+    }
+  }, [session, perfil, carregando, erro]);
 
   return (
     <AppLayout>
