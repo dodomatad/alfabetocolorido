@@ -117,6 +117,59 @@ export type Database = {
           },
         ]
       }
+      convites_equipe: {
+        Row: {
+          cargo: string
+          created_at: string | null
+          criado_por: string | null
+          email: string | null
+          empresa_id: string | null
+          expires_at: string | null
+          id: string
+          papel: string
+          permissoes: Json
+          status: string
+          token: string
+          usado_por: string | null
+        }
+        Insert: {
+          cargo?: string
+          created_at?: string | null
+          criado_por?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          expires_at?: string | null
+          id?: string
+          papel?: string
+          permissoes?: Json
+          status?: string
+          token?: string
+          usado_por?: string | null
+        }
+        Update: {
+          cargo?: string
+          created_at?: string | null
+          criado_por?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          expires_at?: string | null
+          id?: string
+          papel?: string
+          permissoes?: Json
+          status?: string
+          token?: string
+          usado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_equipe_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativo: boolean
