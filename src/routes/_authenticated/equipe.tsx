@@ -29,6 +29,8 @@ import {
   Download,
   Clock,
   Layout,
+  Link as LinkIcon,
+  Mail,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -115,6 +117,7 @@ function PaginaAcessos() {
   // Estados para os novos modais
   const [modalLogsAberto, setModalLogsAberto] = useState(false);
   const [modalRegistrarAberto, setModalRegistrarAberto] = useState(false);
+  const [modalConviteAberto, setModalConviteAberto] = useState(false);
 
   const consulta = useQuery({
     queryKey: ["equipe-acessos", empresa?.id],
@@ -177,6 +180,10 @@ function PaginaAcessos() {
         descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
         acoes={
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setModalConviteAberto(true)}>
+              <LinkIcon className="mr-2 size-4" />
+              Gerar Convite
+            </Button>
             <Button variant="outline" onClick={() => setModalLogsAberto(true)}>
               <History className="mr-2 size-4" />
               Logs de Acesso
@@ -429,6 +436,11 @@ function PaginaAcessos() {
         aberto={modalRegistrarAberto}
         aoFechar={() => setModalRegistrarAberto(false)}
         membros={consulta.data ?? []}
+      />
+
+      <ModalGerarConvite
+        aberto={modalConviteAberto}
+        aoFechar={() => setModalConviteAberto(false)}
       />
 
       <section className="rounded-xl border bg-card p-6 shadow-panel">
@@ -1428,4 +1440,206 @@ function ModalRegistrarAcesso({
     </Dialog>
   );
 }
+
+function ModalGerarConvite({
+  aberto,
+  aoFechar,
+}: {
+  aberto: boolean;
+  aoFechar: () => void;
+}) {
+  const { empresa, session } = useSessao();
+  const [carregando, setCarregando] = useState(false);
+  const [conviteGerado, setConviteGerado] = useState<string | null>(null);
+
+  const [email, setEmail] = useState("");
+  const [cargo, setCargo] = useState("Operador de Contingência");
+  const [papel, setPapel] = useState<Papel>("funcionario");
+
+  const permissoesIniciais = useMemo(() => {
+    return MODULOS.reduce(
+      (acc, mod) => ({
+        ...acc,
+        [mod.id]: { pode_visualizar: true, pode_criar: mod.id !== "equipe", pode_editar: mod.id !== "equipe", pode_excluir: false, ocultar_valores: mod.id === 'dashboard' },
+      }),
+      {} as Record<string, any>,
+    );
+  }, []);
+
+  const [permissoes, setPermissoes] = useState<Record<string, any>>(permissoesIniciais);
+
+  const toggle = (mod: string, campo: string) => {
+    setPermissoes((prev) => {
+      const atual = prev[mod] ?? { pode_visualizar: false, pode_criar: false, pode_editar: false, pode_excluir: false, ocultar_valores: false };
+      return { ...prev, [mod]: { ...atual, [campo]: !atual[campo] } };
+    });
+  };
+
+  const salvar = async () => {
+    if (!empresa?.id || !session?.user.id) return;
+    setCarregando(true);
+    try {
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      const { data, error } = await supabase.from("convites_equipe").insert({
+        empresa_id: empresa.id,
+        email: email || null,
+        cargo,
+        papel,
+        permissoes: permissoes as any,
+        criado_por: session.user.id,
+        token,
+        status: 'pendente'
+      }).select().single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/aceitar-convite?token=${token}`;
+      setConviteGerado(link);
+      toast.success("Convite gerado com sucesso!");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  return (
+    <Dialog open={aberto} onOpenChange={aoFechar}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Gerar Link de Convite</DialogTitle>
+          <DialogDescription>
+            Crie um link de cadastro personalizado com permissões pré-configuradas.
+          </DialogDescription>
+        </DialogHeader>
+
+        {conviteGerado ? (
+          <div className="space-y-6 py-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-6 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="bg-primary/20 p-3 rounded-full">
+                  <CheckCircle2 className="size-8 text-primary" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg">Link Gerado com Sucesso!</h3>
+                <p className="text-sm text-muted-foreground">Envie este link para o novo colaborador realizar o cadastro.</p>
+              </div>
+              
+              <div className="flex items-center gap-2 bg-[#0A0A0A] p-3 rounded border border-[#27272A]">
+                <code className="text-xs text-primary flex-1 truncate">{conviteGerado}</code>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(conviteGerado);
+                    toast.success("Link copiado!");
+                  }}
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <Button className="w-full" variant="outline" onClick={() => {
+              setConviteGerado(null);
+              setEmail("");
+              aoFechar();
+            }}>
+              Fechar e Voltar
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6 pt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="conv-email">E-mail do Convidado (Opcional)</Label>
+                <Input 
+                  id="conv-email" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  placeholder="exemplo@email.com" 
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="conv-cargo">Cargo / Função</Label>
+                <Input 
+                  id="conv-cargo" 
+                  value={cargo} 
+                  onChange={(e) => setCargo(e.target.value)} 
+                  placeholder="Ex: Operador de Contingência" 
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="conv-papel">Papel Principal</Label>
+                <Select value={papel} onValueChange={(v) => setPapel(v as Papel)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ROTULO_PAPEL).map(([valor, rotulo]) => (
+                      <SelectItem key={valor} value={valor}>{rotulo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider">Permissões Pré-definidas</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {MODULOS.map(mod => (
+                  <div key={mod.id} className="flex items-center space-x-3 p-2 rounded-lg border bg-muted/10">
+                    <Checkbox 
+                      id={`conv-perm-${mod.id}`} 
+                      checked={permissoes[mod.id]?.pode_visualizar} 
+                      onCheckedChange={() => toggle(mod.id, "pode_visualizar")} 
+                    />
+                    <div className="space-y-0.5">
+                      <Label htmlFor={`conv-perm-${mod.id}`} className="text-xs font-bold cursor-pointer">
+                        {mod.rotulo}
+                      </Label>
+                      <div className="flex gap-2">
+                        {mod.id !== 'dashboard' && (
+                          <button 
+                            type="button"
+                            onClick={() => toggle(mod.id, "pode_criar")}
+                            className={`text-[9px] uppercase font-bold ${permissoes[mod.id]?.pode_criar ? 'text-primary' : 'text-muted-foreground'}`}
+                          >
+                            Gravar
+                          </button>
+                        )}
+                        {mod.id === 'dashboard' && (
+                          <button 
+                            type="button"
+                            onClick={() => toggle(mod.id, "ocultar_valores")}
+                            className={`text-[9px] uppercase font-bold ${permissoes[mod.id]?.ocultar_valores ? 'text-amber-500' : 'text-muted-foreground'}`}
+                          >
+                            Ocultar Valores
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={aoFechar}>Cancelar</Button>
+              <Button onClick={salvar} disabled={carregando}>
+                {carregando ? "Gerando..." : "Gerar Link de Convite"}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
