@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarData, formatarMoeda } from "@/lib/formatadores";
+import { Combobox } from "@/components/ui/combobox";
 
 export type Registro = Record<string, unknown>;
 
@@ -43,7 +44,9 @@ export type CampoModulo = {
   nome: string;
   rotulo: string;
   tipo: "texto" | "numero" | "moeda" | "data" | "selecao" | "texto_longo" | "relacao";
+  subtipo?: "combobox";
   obrigatorio?: boolean;
+
   padrao?: string;
   opcoes?: { valor: string; rotulo: string }[];
   /** Para tipo "relacao": tabela de origem e coluna exibida. */
@@ -207,27 +210,40 @@ export function ModuloRegistros({
               >
                 <Label htmlFor={campo.nome}>{campo.rotulo}</Label>
                 {campo.tipo === "selecao" || campo.tipo === "relacao" ? (
-                  <Select
-                    value={valores[campo.nome] ?? ""}
-                    onValueChange={(v) => setValores((a) => ({ ...a, [campo.nome]: v }))}
-                  >
-                    <SelectTrigger id={campo.nome}>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {campo.tipo === "selecao"
-                        ? (campo.opcoes ?? []).map((o) => (
-                            <SelectItem key={o.valor} value={o.valor}>
-                              {o.rotulo}
-                            </SelectItem>
-                          ))
-                        : (relacoes.data?.[campo.nome] ?? []).map((o) => (
-                            <SelectItem key={o.id} value={o.id}>
-                              {o.rotulo}
-                            </SelectItem>
-                          ))}
-                    </SelectContent>
-                  </Select>
+                  campo.subtipo === "combobox" ? (
+                    <Combobox
+                      options={
+                        campo.tipo === "selecao"
+                          ? (campo.opcoes ?? []).map((o) => ({ id: o.valor, rotulo: o.rotulo }))
+                          : relacoes.data?.[campo.nome] ?? []
+                      }
+                      value={valores[campo.nome] ?? ""}
+                      onValueChange={(v) => setValores((a) => ({ ...a, [campo.nome]: v }))}
+                      placeholder={`Selecionar ${campo.rotulo.toLowerCase()}...`}
+                    />
+                  ) : (
+                    <Select
+                      value={valores[campo.nome] ?? ""}
+                      onValueChange={(v) => setValores((a) => ({ ...a, [campo.nome]: v }))}
+                    >
+                      <SelectTrigger id={campo.nome}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campo.tipo === "selecao"
+                          ? (campo.opcoes ?? []).map((o) => (
+                              <SelectItem key={o.valor} value={o.valor}>
+                                {o.rotulo}
+                              </SelectItem>
+                            ))
+                          : (relacoes.data?.[campo.nome] ?? []).map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.rotulo}
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
+                    </Select>
+                  )
                 ) : campo.tipo === "texto_longo" ? (
                   <Textarea
                     id={campo.nome}
