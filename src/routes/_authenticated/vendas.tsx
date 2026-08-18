@@ -89,7 +89,6 @@ function PaginaVendas() {
     <div className="space-y-6">
       <CabecalhoPagina
         titulo="Vendas"
-        descricao="Pedidos registrados na empresa, do rascunho até a entrega."
         acoes={<BotaoAdicionar modulo="Vendas" rotulo="Adicionar venda" aoClicar={() => setFormulario(true)} />}
       />
 
