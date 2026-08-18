@@ -125,10 +125,12 @@ export function GraficoBarrasAgrupadas({
   dados,
   cores = ["#0066ff", "#ff4444"],
   legendas = ["Positivo", "Negativo"],
+  onBarClick,
 }: {
   dados: BarraAgrupada[];
   cores?: [string, string];
   legendas?: [string, string];
+  onBarClick?: (data: BarraAgrupada) => void;
 }) {
   return (
     <div className="h-72 w-full">
@@ -168,6 +170,8 @@ export function GraficoBarrasAgrupadas({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             barSize={20}
+            onClick={onBarClick ? (data) => onBarClick(data.payload) : undefined}
+            className={onBarClick ? "cursor-pointer" : ""}
           />
           <Bar
             name={legendas[1]}
@@ -176,6 +180,8 @@ export function GraficoBarrasAgrupadas({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             barSize={20}
+            onClick={onBarClick ? (data) => onBarClick(data.payload) : undefined}
+            className={onBarClick ? "cursor-pointer" : ""}
           />
         </BarChart>
       </ResponsiveContainer>

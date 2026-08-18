@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { LayoutDashboard, Search, Menu } from "lucide-react";
+import { LayoutDashboard, Search, Menu, History } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 
@@ -26,7 +26,11 @@ import {
 } from "@/components/ui/select";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
-import { formatarData, formatarMoeda, formatarNumero } from "@/lib/formatadores";
+import { formatarData, formatarMoeda, formatarNumero, formatarDataHora } from "@/lib/formatadores";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -93,6 +97,10 @@ function PaginaDashboard() {
   const { empresa, fuso, permissoes } = useSessao();
   const [dias, setDias] = useState<string>("30");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
+  
+  const [modalVendasAberto, setModalVendasAberto] = useState(false);
+  const [modalProducaoAberto, setModalProducaoAberto] = useState(false);
+  const [filtroDiaModal, setFiltroDiaModal] = useState<string>("todos");
 
   const { inicioIso, hojeIso } = useMemo(() => {
     const d = new Date();
@@ -375,10 +383,23 @@ function PaginaDashboard() {
 
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Vendas e Reembolsos por dia da semana</h2>
-            <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Comparativo entre vendas concluídas e taxa de reembolso por dia.
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-semibold">Vendas e Reembolsos por dia da semana</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Comparativo entre vendas concluídas e taxa de reembolso por dia.
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { setFiltroDiaModal("todos"); setModalVendasAberto(true); }}
+                className="hover:bg-white/10 text-muted-foreground hover:text-white rounded-lg p-1.5 text-xs transition-colors h-8"
+              >
+                <History className="size-3.5 mr-1.5" />
+                <span className="hidden sm:inline">Ver Histórico</span>
+              </Button>
+            </div>
             {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
@@ -388,15 +409,32 @@ function PaginaDashboard() {
                 dados={barrasVendasAgrupadas} 
                 cores={["#0066ff", "#EF4444"]}
                 legendas={["Vendas Efetivadas", "Reembolsos"]}
+                onBarClick={(data) => {
+                  setFiltroDiaModal(data.dia);
+                  setModalVendasAberto(true);
+                }}
               />
             )}
           </section>
 
           <section className="rounded-xl border bg-card p-6 shadow-panel">
-            <h2 className="text-sm font-semibold">Taxa de Acertos vs. Perfis Não Aprovados</h2>
-            <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              Desempenho de aprovação e taxa de erros/bloqueios de perfis por dia.
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-semibold">Taxa de Acertos vs. Perfis Não Aprovados</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Desempenho de aprovação e taxa de erros/bloqueios de perfis por dia.
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { setFiltroDiaModal("todos"); setModalProducaoAberto(true); }}
+                className="hover:bg-white/10 text-muted-foreground hover:text-white rounded-lg p-1.5 text-xs transition-colors h-8"
+              >
+                <History className="size-3.5 mr-1.5" />
+                <span className="hidden sm:inline">Ver Histórico</span>
+              </Button>
+            </div>
             {vendas.length === 0 ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
                 Nenhuma venda registrada no período.
@@ -406,9 +444,197 @@ function PaginaDashboard() {
                 dados={barrasAcertosAgrupadas} 
                 cores={["#22C55E", "#F59E0B"]}
                 legendas={["Aprovados / Acertos", "Erros / Reprovados"]}
+                onBarClick={(data) => {
+                  setFiltroDiaModal(data.dia);
+                  setModalProducaoAberto(true);
+                }}
               />
             )}
           </section>
+
+          {/* Modal Histórico de Vendas */}
+          <Dialog open={modalVendasAberto} onOpenChange={setModalVendasAberto}>
+            <DialogContent className="max-w-4xl bg-[#141417] border-[#27272A]/50 text-white max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Histórico de Vendas e Reembolsos</DialogTitle>
+              </DialogHeader>
+              
+              <div className="flex flex-col gap-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <Select value={filtroDiaModal} onValueChange={setFiltroDiaModal}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Filtrar por dia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todo o Período</SelectItem>
+                      {DIAS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Resumo no Modal */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Vendas Concluídas</p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <p className="text-xl font-bold text-emerald-400">
+                        {vendas.filter(v => 
+                          (filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal) &&
+                          !["rascunho", "cancelada", "reembolsada"].includes(v.status)
+                        ).length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatarMoeda(vendas.filter(v => 
+                          (filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal) &&
+                          !["rascunho", "cancelada", "reembolsada"].includes(v.status)
+                        ).reduce((acc, v) => acc + Number(v.valor_total || 0), 0))}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Total Reembolsos</p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <p className="text-xl font-bold text-rose-400">
+                        {vendas.filter(v => 
+                          (filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal) &&
+                          ["reembolsada", "estornada", "cancelada"].includes(v.status)
+                        ).length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatarMoeda(vendas.filter(v => 
+                          (filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal) &&
+                          ["reembolsada", "estornada", "cancelada"].includes(v.status)
+                        ).reduce((acc, v) => acc + Number(v.valor_total || 0), 0))}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Taxa de Reembolso</p>
+                    <p className="text-xl font-bold text-white mt-1">
+                      {(() => {
+                        const vds = vendas.filter(v => filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal);
+                        const rmb = vds.filter(v => ["reembolsada", "estornada", "cancelada"].includes(v.status)).length;
+                        return vds.length > 0 ? `${((rmb / vds.length) * 100).toFixed(1)}%` : "0%";
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                <ScrollArea className="h-[400px] border rounded-md">
+                  <Table>
+                    <TableHeader className="bg-white/5">
+                      <TableRow>
+                        <TableHead>Data/Hora</TableHead>
+                        <TableHead>Nº Pedido</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {vendas
+                        .filter(v => filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
+                        .map(v => (
+                          <TableRow key={v.id} className="hover:bg-white/5 border-white/5">
+                            <TableCell className="text-xs">{formatarData(v.data_venda)}</TableCell>
+                            <TableCell className="font-mono text-xs">#{v.id.slice(0, 8)}</TableCell>
+                            <TableCell className="text-xs">{formatarMoeda(Number(v.valor_total))}</TableCell>
+                            <TableCell>
+                              <Badge variant={["reembolsada", "cancelada"].includes(v.status) ? "destructive" : "default"} className="text-[10px] py-0">
+                                {ROTULO_STATUS[v.status] || v.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal Histórico de Produção (Simplificado com dados de vendas para exemplo) */}
+          <Dialog open={modalProducaoAberto} onOpenChange={setModalProducaoAberto}>
+            <DialogContent className="max-w-4xl bg-[#141417] border-[#27272A]/50 text-white max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Detalhamento de Produção e Acertos</DialogTitle>
+              </DialogHeader>
+              
+              <div className="flex flex-col gap-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <Select value={filtroDiaModal} onValueChange={setFiltroDiaModal}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Filtrar por dia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todo o Período</SelectItem>
+                      {DIAS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Contas Aprovadas</p>
+                    <p className="text-xl font-bold text-emerald-400 mt-1">
+                      {vendas.filter(v => 
+                        (filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal) &&
+                        !["rascunho", "cancelada", "reembolsada"].includes(v.status)
+                      ).length}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Bloqueios / Erros</p>
+                    <p className="text-xl font-bold text-amber-500 mt-1">
+                      {vendas.filter(v => 
+                        (filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal) &&
+                        ["rascunho", "cancelada", "reembolsada"].includes(v.status)
+                      ).length}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Aproveitamento</p>
+                    <p className="text-xl font-bold text-white mt-1">
+                      {(() => {
+                        const vds = vendas.filter(v => filtroDiaModal === "todos" || DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal);
+                        const ok = vds.filter(v => !["rascunho", "cancelada", "reembolsada"].includes(v.status)).length;
+                        return vds.length > 0 ? `${((ok / vds.length) * 100).toFixed(1)}%` : "0%";
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                <ScrollArea className="h-[400px] border rounded-md">
+                  <Table>
+                    <TableHeader className="bg-white/5">
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>BMs Criadas</TableHead>
+                        <TableHead>Aprovadas</TableHead>
+                        <TableHead>Taxa de Sucesso</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {DIAS.filter(d => filtroDiaModal === "todos" || d === filtroDiaModal).map(dia => {
+                        const vdsDia = vendas.filter(v => DIAS[new Date(`${v.data_venda}T12:00:00Z`).getUTCDay()] === dia);
+                        if (vdsDia.length === 0 && filtroDiaModal !== dia) return null;
+                        const ok = vdsDia.filter(v => !["rascunho", "cancelada", "reembolsada"].includes(v.status)).length;
+                        return (
+                          <TableRow key={dia} className="hover:bg-white/5 border-white/5">
+                            <TableCell className="text-xs font-medium">{dia}</TableCell>
+                            <TableCell className="text-xs">{vdsDia.length}</TableCell>
+                            <TableCell className="text-xs">{ok}</TableCell>
+                            <TableCell className="text-xs">
+                              {vdsDia.length > 0 ? `${((ok / vdsDia.length) * 100).toFixed(1)}%` : "0%"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            </DialogContent>
+          </Dialog>
 
         </>
       )}
