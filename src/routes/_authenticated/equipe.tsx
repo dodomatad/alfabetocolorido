@@ -1269,7 +1269,15 @@ function ModalRegistrarAcesso({
   });
 
   const salvar = async () => {
-    if (!formData.usuario_id) return toast.error("Selecione um colaborador");
+    if (!formData.usuario_id) {
+      toast.error("Selecione um colaborador");
+      return;
+    }
+
+    if (!empresa?.id) {
+      toast.error("Empresa não identificada");
+      return;
+    }
     
     setCarregando(true);
     try {
