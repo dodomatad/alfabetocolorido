@@ -75,6 +75,7 @@ const STATUS = [
   "parcialmente_entregue",
   "entregue",
   "cancelada",
+  "reembolsada",
 ] as const;
 
 function PaginaVendas() {

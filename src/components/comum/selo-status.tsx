@@ -46,6 +46,7 @@ const STATUS_VENDA: Record<string, { rotulo: string; tom: TomSelo; icone: Lucide
   parcialmente_entregue: { rotulo: "Parcialmente entregue", tom: "alerta", icone: Truck },
   entregue: { rotulo: "Entregue", tom: "positivo", icone: CheckCircle2 },
   cancelada: { rotulo: "Cancelada", tom: "negativo", icone: Ban },
+  reembolsada: { rotulo: "Reembolsada", tom: "negativo", icone: AlertTriangle },
 };
 
 export function SeloStatusVenda({ status }: { status: string }) {
