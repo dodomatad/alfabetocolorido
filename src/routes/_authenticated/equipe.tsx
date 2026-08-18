@@ -1284,10 +1284,10 @@ function ModalRegistrarAcesso({
       const membro = membros.find(m => m.id === formData.usuario_id);
       
       const { error } = await supabase.from("logs_acesso").insert({
-        empresa_id: empresa?.id,
+        empresa_id: empresa.id,
         usuario_id: formData.usuario_id,
         usuario_nome: membro?.nome || "Desconhecido",
-        usuario_email: membro?.email,
+        usuario_email: membro?.email ?? null,
         dispositivo: formData.dispositivo,
         ip: formData.ip,
         status: formData.status,
