@@ -112,6 +112,10 @@ function PaginaAcessos() {
   const [editando, setEditando] = useState<Membro | null>(null);
   const [aba, setAba] = useState("perfil");
 
+  // Estados para os novos modais
+  const [modalLogsAberto, setModalLogsAberto] = useState(false);
+  const [modalRegistrarAberto, setModalRegistrarAberto] = useState(false);
+
   const consulta = useQuery({
     queryKey: ["equipe-acessos", empresa?.id],
     enabled: Boolean(empresa?.id),
