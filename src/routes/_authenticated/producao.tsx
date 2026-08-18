@@ -369,6 +369,7 @@ function Pagina() {
             detalhe={`Meta: ${metaDia}/dia`}
             destaque
           />
+
           <CartaoKpi
             rotulo="BMs Aquecidas"
             valor={aquecidas}
