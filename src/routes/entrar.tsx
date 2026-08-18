@@ -169,8 +169,8 @@ function PaginaEntrar() {
         void registrarLog(data.user);
       }
 
-    toast.success("Login realizado com sucesso!");
-    await router.navigate({ to: "/" });
+      toast.success("Login realizado com sucesso!");
+      await router.navigate({ to: "/" });
     } catch (err: any) {
       console.error("Erro no login:", err);
       toast.error("Erro de conexão ao servidor (Failed to fetch). Verifique a internet e tente novamente.");
