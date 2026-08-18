@@ -156,7 +156,7 @@ export function ModuloRegistros({
         .single();
 
       if (error) throw error;
-      return data as { id: string | number; [key: string]: any };
+      return data as any;
     },
     onSuccess: (data, variables) => {
       const { campo } = variables;
