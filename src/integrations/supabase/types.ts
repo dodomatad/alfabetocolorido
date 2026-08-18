@@ -291,6 +291,56 @@ export type Database = {
           },
         ]
       }
+      equipe_membros: {
+        Row: {
+          cargo: string
+          created_at: string | null
+          email: string
+          empresa_id: string
+          id: string
+          nome: string
+          papel: string
+          permissoes: Json | null
+          status: string
+          status_senha: string
+          updated_at: string | null
+        }
+        Insert: {
+          cargo: string
+          created_at?: string | null
+          email: string
+          empresa_id: string
+          id?: string
+          nome: string
+          papel?: string
+          permissoes?: Json | null
+          status?: string
+          status_senha?: string
+          updated_at?: string | null
+        }
+        Update: {
+          cargo?: string
+          created_at?: string | null
+          email?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          papel?: string
+          permissoes?: Json | null
+          status?: string
+          status_senha?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipe_membros_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
