@@ -86,6 +86,8 @@ export function CadastroPessoas({
   const [form, setForm] = useState({ ...formularioVazio });
   const [semDocumento, setSemDocumento] = useState(false);
   const [semTelefone, setSemTelefone] = useState(false);
+  const [semEmail, setSemEmail] = useState(false);
+  const [semEndereco, setSemEndereco] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const chave = useMemo(
@@ -124,8 +126,8 @@ export function CadastroPessoas({
         nome: form.nome.trim(),
         documento: !semDocumento && form.documento.trim() ? apenasDigitos(form.documento) : null,
         telefone: !semTelefone && form.telefone.trim() ? form.telefone.trim() : null,
-        email: form.email.trim() || null,
-        endereco: form.endereco.trim() || null,
+        email: !semEmail && form.email.trim() ? form.email.trim() : null,
+        endereco: !semEndereco && form.endereco.trim() ? form.endereco.trim() : null,
         observacoes: form.observacoes.trim() || null,
         ativo: form.ativo,
       };
@@ -158,6 +160,8 @@ export function CadastroPessoas({
     setForm({ ...formularioVazio });
     setSemDocumento(false);
     setSemTelefone(false);
+    setSemEmail(false);
+    setSemEndereco(false);
     setErros({});
     setAberto(true);
   }
@@ -175,6 +179,8 @@ export function CadastroPessoas({
     });
     setSemDocumento(!registro.documento);
     setSemTelefone(!registro.telefone);
+    setSemEmail(!registro.email);
+    setSemEndereco(!registro.endereco);
     setErros({});
     setAberto(true);
   }
@@ -185,7 +191,7 @@ export function CadastroPessoas({
     if (form.nome.trim().length < 2) novos["nome"] = "O nome é obrigatório.";
     if (!semDocumento && form.documento.trim() && !documentoValido(form.documento))
       novos["documento"] = "Informe um CPF ou CNPJ válido.";
-    if (form.email.trim() && !emailValido(form.email)) novos["email"] = "E-mail inválido.";
+    if (!semEmail && form.email.trim() && !emailValido(form.email)) novos["email"] = "E-mail inválido.";
     setErros(novos);
     if (Object.keys(novos).length > 0) return;
     salvar.mutate();
@@ -432,20 +438,48 @@ export function CadastroPessoas({
               <Input
                 id="campo-email"
                 type="email"
-                value={form.email}
+                value={semEmail ? "Isento / Não informado" : form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                disabled={semEmail}
                 aria-invalid={Boolean(erros["email"])}
               />
-              {erros["email"] ? <p className="text-xs text-destructive">{erros["email"]}</p> : null}
+              <button
+                type="button"
+                onClick={() => {
+                  const novoEstado = !semEmail;
+                  setSemEmail(novoEstado);
+                  if (novoEstado) setErros((prev) => ({ ...prev, email: "" }));
+                }}
+                className="mt-1 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 cursor-pointer w-fit transition-colors"
+              >
+                <div className={cn("size-3 rounded-sm border border-blue-400/50 flex items-center justify-center transition-colors", semEmail && "bg-blue-400 border-blue-400")}>
+                  {semEmail && <div className="size-1.5 bg-black rounded-full" />}
+                </div>
+                Não Possui E-mail
+              </button>
+              {!semEmail && erros["email"] ? <p className="text-xs text-destructive">{erros["email"]}</p> : null}
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="campo-endereco">Endereço</Label>
               <Input
                 id="campo-endereco"
-                value={form.endereco}
+                value={semEndereco ? "Não informado" : form.endereco}
                 onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                disabled={semEndereco}
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setSemEndereco(!semEndereco);
+                }}
+                className="mt-1 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 cursor-pointer w-fit transition-colors"
+              >
+                <div className={cn("size-3 rounded-sm border border-blue-400/50 flex items-center justify-center transition-colors", semEndereco && "bg-blue-400 border-blue-400")}>
+                  {semEndereco && <div className="size-1.5 bg-black rounded-full" />}
+                </div>
+                Não Possui Endereço
+              </button>
             </div>
 
             <div className="grid gap-2">
