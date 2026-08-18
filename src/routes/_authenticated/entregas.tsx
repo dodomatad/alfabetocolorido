@@ -26,7 +26,13 @@ function Pagina() {
       rotuloBotao="Adicionar entrega"
       ordenarPor={{ coluna: "created_at" }}
       campos={[
-        { nome: "cliente_id", rotulo: "Cliente", tipo: "relacao", relacao: { tabela: "clientes", rotulo: "nome" } },
+        { 
+          nome: "cliente_id", 
+          rotulo: "Cliente", 
+          tipo: "relacao", 
+          subtipo: "combobox",
+          relacao: { tabela: "clientes", rotulo: "nome" } 
+        },
         { nome: "destinatario", rotulo: "Destinatário", tipo: "texto" },
         { nome: "endereco", rotulo: "Endereço", tipo: "texto" },
         { nome: "data_prevista", rotulo: "Data prevista", tipo: "data" },
