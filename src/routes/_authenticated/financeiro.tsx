@@ -131,7 +131,7 @@ function PaginaFinanceiro() {
   const queryClient = useQueryClient();
 
   const ocultarValores = useMemo(() => {
-    return permissoes.find(p => p.modulo === 'financeiro')?.ocultar_valores ?? false;
+    return permissoes.find(p => p.modulo === 'financeiro')?.ocultar_valores === true;
   }, [permissoes]);
 
   

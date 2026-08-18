@@ -185,7 +185,7 @@ function Pagina() {
     registros.reduce((s, r) => s + (Number(r[chave]) || 0), 0);
 
   const ocultarValores = useMemo(() => {
-    return permissoes.find(p => p.modulo === 'producao')?.ocultar_valores ?? false;
+    return permissoes.find(p => p.modulo === 'producao')?.ocultar_valores === true;
   }, [permissoes]);
 
   const criadas = soma("bms_criadas");

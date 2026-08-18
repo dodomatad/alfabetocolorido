@@ -93,7 +93,7 @@ export function ModuloRegistros({
   vazioTitulo,
   vazioDescricao,
 }: Props) {
-  const { empresa, session, fuso } = useSessao();
+  const { empresa, session, fuso, temPermissao } = useSessao();
   const queryClient = useQueryClient();
   const [aberto, setAberto] = useState(false);
 

@@ -135,7 +135,7 @@ function PaginaDashboard() {
   const itens = consulta.data?.itens ?? [];
 
   const ocultarValores = useMemo(() => {
-    return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores ?? false;
+    return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
   }, [permissoes]);
 
   const validas = vendas.filter((v) => v.status !== "cancelada");
