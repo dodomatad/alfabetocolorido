@@ -454,27 +454,36 @@ export type Database = {
       logs_acesso: {
         Row: {
           created_at: string | null
+          dispositivo: string
           empresa_id: string
           id: string
-          ip_address: string | null
-          user_agent: string | null
-          usuario_id: string
+          ip: string
+          status: string
+          usuario_email: string | null
+          usuario_id: string | null
+          usuario_nome: string
         }
         Insert: {
           created_at?: string | null
+          dispositivo: string
           empresa_id: string
           id?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          usuario_id: string
+          ip: string
+          status?: string
+          usuario_email?: string | null
+          usuario_id?: string | null
+          usuario_nome: string
         }
         Update: {
           created_at?: string | null
+          dispositivo?: string
           empresa_id?: string
           id?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          usuario_id?: string
+          ip?: string
+          status?: string
+          usuario_email?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string
         }
         Relationships: [
           {
