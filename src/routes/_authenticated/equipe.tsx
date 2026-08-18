@@ -125,18 +125,18 @@ function PaginaAcessos() {
     queryFn: async () => {
       const [perfis, membrosExtras, vinculos] = await Promise.all([
         supabase.from("perfis").select("id, nome, email, cargo, ativo").order("nome"),
-        supabase.from("equipe_membros").select("id, nome, email, cargo, status").order("nome"),
+        (supabase as any).from("equipe_membros").select("id, nome, email, cargo, status").order("nome"),
         supabase.from("usuarios_papeis").select("usuario_id, papel"),
       ]);
 
       if (perfis.error) throw perfis.error;
-      if (membrosExtras.error) throw membrosExtras.error;
+      if (membrosExtras.error) throw (membrosExtras as any).error;
       if (vinculos.error) throw vinculos.error;
 
       // Unificar perfis reais com membros cadastrados manualmente na tabela equipe_membros
       const listaUnificada = [...(perfis.data ?? [])];
       
-      (membrosExtras.data ?? []).forEach(m => {
+      ((membrosExtras as any).data ?? []).forEach((m: any) => {
         if (!listaUnificada.find(p => p.id === m.id)) {
           listaUnificada.push({
             id: m.id,
@@ -689,7 +689,7 @@ function ModalMembro({
       // Aqui estamos implementando a persistência na tabela equipe_membros conforme o prompt.
 
       if (!membro) {
-        const { data: novoMembro, error: errNovo } = await supabase
+        const { data: novoMembro, error: errNovo } = await (supabase as any)
           .from("equipe_membros")
           .insert({
             empresa_id: empresa.id,
@@ -713,7 +713,7 @@ function ModalMembro({
           .eq("id", membro.id);
         
         // Também atualizar na tabela equipe_membros se ela for a fonte
-        await supabase
+        await (supabase as any)
           .from("equipe_membros")
           .update({ nome, cargo, papel, permissoes: permissoes as any })
           .eq("id", membro.id);
