@@ -210,8 +210,7 @@ function PaginaEntrar() {
 
     if (data.user) {
       // 2. Executar Onboarding (Cria empresa, perfil e papel padrão)
-      // A função SQL public.criar_empresa_inicial já cuida da transação no banco
-      const { error: errorOnboarding } = await supabase.rpc('criar_empresa_inicial', {
+      const { error: errorOnboarding } = await supabase.rpc('onboarding_novo_usuario', {
         _nome_usuario: nome.trim()
       });
 
