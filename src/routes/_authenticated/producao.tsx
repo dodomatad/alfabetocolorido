@@ -153,9 +153,17 @@ function Pagina() {
     queryKey: ["producao_diaria", empresa?.id],
     enabled: Boolean(empresa?.id),
     queryFn: async () => {
-      const { data, error } = await tabela()
-        .select("*")
-        .order("data_registro", { ascending: false });
+      const query = tabela().select("*");
+      
+      const { data: usuario } = await supabase.auth.getUser();
+      const p = permissoes.find(x => x.modulo === 'producao');
+      
+      if (usuario.user && p?.ocultar_valores) {
+        // Se ocultar_valores for true na produção, interpretamos como "Ver apenas a própria produção"
+        query.eq("criado_por", usuario.user.id);
+      }
+
+      const { data, error } = await query.order("data_registro", { ascending: false });
       if (error) throw error;
       return (data as unknown as Registro[]) ?? [];
     },
