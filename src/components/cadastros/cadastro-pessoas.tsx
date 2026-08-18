@@ -36,6 +36,7 @@ import {
   formatarData,
   formatarDocumento,
 } from "@/lib/formatadores";
+import { cn } from "@/lib/utils";
 
 type Registro = {
   id: string;
