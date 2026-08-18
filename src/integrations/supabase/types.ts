@@ -1070,14 +1070,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_permission: {
-        Args: {
-          _acao?: string
-          _modulo: Database["public"]["Enums"]["modulo_sistema"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      check_permission:
+        | {
+            Args: {
+              _acao?: string
+              _modulo: Database["public"]["Enums"]["modulo_sistema"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: { _acao: string; _modulo: string; _user_id: string }
+            Returns: boolean
+          }
       has_role:
         | {
             Args: {
@@ -1089,7 +1094,7 @@ export type Database = {
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
       onboarding_novo_usuario: {
         Args: { _nome_usuario: string }
-        Returns: undefined
+        Returns: Json
       }
       pode_gerenciar: { Args: never; Returns: boolean }
       proximo_numero_venda: { Args: { _empresa?: string }; Returns: number }
