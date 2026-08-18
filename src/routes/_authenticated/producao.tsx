@@ -203,6 +203,12 @@ function Pagina() {
   const bloqueios = soma("bloqueios");
   const aproveitamento = criadas > 0 ? (viradas / criadas) * 100 : 0;
   const perda = criadas > 0 ? (bloqueios / criadas) * 100 : 0;
+  
+  // Métrica consolidada para meta baseada nos registros carregados
+  const metaDiariaMedia = registros.length > 0 
+    ? registros.reduce((s, r) => s + (Number(r.meta_diaria) || 0), 0) / registros.length 
+    : 10;
+  
   const metaDia = registros[0]?.meta_diaria ?? 10;
 
   const fmtNumero = (v: number | string) => (ocultarValores ? "***" : v);
