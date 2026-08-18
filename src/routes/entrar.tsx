@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { registrarLogAcesso } from "@/lib/logs.functions";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { emailValido } from "@/lib/formatadores";
@@ -46,6 +47,7 @@ function PaginaEntrar() {
   const [nome, setNome] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [lembrar, setLembrar] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState("entrar");
 
   useEffect(() => {
     const emailSalvo = localStorage.getItem(CHAVE_EMAIL_LEMBRADO);
@@ -64,6 +66,38 @@ function PaginaEntrar() {
     });
   }, [router]);
 
+  async function registrarLog(user: any) {
+    try {
+      const userAgent = navigator.userAgent;
+      let dispositivo = "Navegador Web";
+      if (/iPhone/i.test(userAgent)) dispositivo = "Safari / iPhone";
+      else if (/Android/i.test(userAgent)) dispositivo = "Chrome / Android";
+      else if (/Windows/i.test(userAgent)) dispositivo = "Chrome / Windows";
+      else if (/Macintosh/i.test(userAgent)) dispositivo = "Safari / macOS";
+
+      // Tentamos pegar o IP via API pública simples
+      let ip = "127.0.0.1";
+      try {
+        const resp = await fetch("https://api.ipify.org?format=json");
+        const data = await resp.json();
+        ip = data.ip;
+      } catch (e) {
+        console.warn("Não foi possível obter o IP do cliente", e);
+      }
+
+      await registrarLogAcesso({
+        data: {
+          usuarioId: user.id,
+          usuarioNome: user.user_metadata?.nome || user.email?.split("@")[0] || "Usuário",
+          dispositivo,
+          ip,
+        },
+      });
+    } catch (e) {
+      console.error("Erro ao registrar log de login:", e);
+    }
+  }
+
   async function entrar(evento: React.FormEvent) {
     evento.preventDefault();
     if (!emailValido(email)) {
@@ -71,7 +105,10 @@ function PaginaEntrar() {
       return;
     }
     setEnviando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: senha,
+    });
     setEnviando(false);
     if (error) {
       toast.error("Não foi possível entrar", {
@@ -89,6 +126,11 @@ function PaginaEntrar() {
       localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
       localStorage.removeItem(CHAVE_SENHA_LEMBRADA);
     }
+
+    if (data.user) {
+      void registrarLog(data.user);
+    }
+
     toast.success("Bem-vindo de volta");
     await router.navigate({ to: "/" });
   }
@@ -104,7 +146,7 @@ function PaginaEntrar() {
       return;
     }
     setEnviando(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
       options: {
@@ -114,8 +156,16 @@ function PaginaEntrar() {
     });
     setEnviando(false);
     if (error) {
+      if (error.message.toLowerCase().includes("already registered")) {
+        toast.info("Este e-mail já possui cadastro. Redirecionando para a tela de login...");
+        setAbaAtiva("entrar");
+        return;
+      }
       toast.error("Não foi possível criar a conta", { description: error.message });
       return;
+    }
+    if (data.user) {
+      void registrarLog(data.user);
     }
     toast.success("Conta criada", {
       description: "Se a confirmação por e-mail estiver ativa, verifique sua caixa de entrada.",
@@ -159,7 +209,7 @@ function PaginaEntrar() {
             <CardDescription>Use as credenciais fornecidas pela sua empresa.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="entrar">
+            <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="entrar">Entrar</TabsTrigger>
                 <TabsTrigger value="criar">Criar conta</TabsTrigger>
@@ -187,6 +237,17 @@ function PaginaEntrar() {
                       value={senha}
                       onChange={(e) => setSenha(e.target.value)}
                     />
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="h-auto p-0 text-xs text-muted-foreground"
+                        type="button"
+                        onClick={() => toast.info("Funcionalidade de recuperação de senha em desenvolvimento.")}
+                      >
+                        Esqueceu sua senha?
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Checkbox
