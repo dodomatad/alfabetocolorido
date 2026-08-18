@@ -373,7 +373,7 @@ function Pagina() {
               rotulo="BMs Criadas"
               valor={fmtNumero(criadas)}
               icone={Factory}
-              detalhe={ocultarValores ? undefined : `Meta: ${metaDia}/dia`}
+              detalhe={ocultarValores ? "" : `Meta: ${metaDia}/dia`}
               destaque
             />
             <CartaoKpi
@@ -394,7 +394,7 @@ function Pagina() {
                   ? "text-red-500"
                   : "text-amber-500"
               }
-              detalhe={ocultarValores ? undefined : "Viradas / Criadas"}
+              detalhe={ocultarValores ? "" : "Viradas / Criadas"}
             />
           </div>
 
@@ -416,7 +416,7 @@ function Pagina() {
               valor={fmtNumero(bloqueios)}
               icone={AlertTriangle}
               corValor="text-red-500"
-              detalhe={ocultarValores ? undefined : `${perda.toFixed(1)}% de perda`}
+              detalhe={ocultarValores ? "" : `${perda.toFixed(1)}% de perda`}
             />
           </div>
         </section>
