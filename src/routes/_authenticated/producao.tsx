@@ -594,32 +594,41 @@ function Pagina() {
                     const taxa = r.bms_criadas > 0 ? (r.contas_viradas / r.bms_criadas) * 100 : 0;
                     const bateu = r.bms_criadas >= r.meta_diaria;
                     return (
-                      <TableRow key={r.id}>
-                        <TableCell className="num">{formatarData(r.data_registro, fuso)}</TableCell>
-                        <TableCell>{r.operador}</TableCell>
-                        <TableCell className="num text-right">{r.bms_criadas}</TableCell>
-                        <TableCell className="num text-right text-[#3B82F6]">{r.bms_aquecidas}</TableCell>
-                        <TableCell className="num text-right">{r.contas_subidas}</TableCell>
-                        <TableCell className="num text-right text-[#10B981]">{r.contas_viradas}</TableCell>
+                      <TableRow key={r.id} className="hover:bg-muted/30">
+                        <TableCell className="num font-medium text-slate-200">{formatarData(r.data_registro, fuso)}</TableCell>
+                        <TableCell className="font-medium">{r.operador}</TableCell>
+                        <TableCell className="num text-right font-bold text-slate-200">{r.bms_criadas}</TableCell>
+                        <TableCell className="num text-right text-blue-400 font-semibold">{r.bms_aquecidas}</TableCell>
+                        <TableCell className="num text-right font-semibold">{r.contas_subidas}</TableCell>
+                        <TableCell className="num text-right text-success font-bold">{r.contas_viradas}</TableCell>
                         <TableCell>
                           {r.bloqueios > 0 ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Badge variant="destructive" className="cursor-default">
+                                <Badge className="bg-destructive/10 text-destructive border-none cursor-default font-semibold">
                                   {r.bloqueios} · {rotuloMotivo(r.motivo_queda)}
                                 </Badge>
                               </TooltipTrigger>
-                              <TooltipContent>
+                              <TooltipContent className="max-w-xs text-xs">
                                 {r.observacoes || `Motivo principal: ${rotuloMotivo(r.motivo_queda)}`}
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground/40">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="num text-right">{taxa.toFixed(1)}%</TableCell>
+                        <TableCell className="num text-right font-bold">
+                          <span className={cn(
+                            taxa >= 50 ? "text-success" : taxa < 30 ? "text-destructive" : "text-amber-500"
+                          )}>
+                            {taxa.toFixed(1)}%
+                          </span>
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={bateu ? "default" : "secondary"}>
+                          <Badge className={cn(
+                            "border-none font-semibold",
+                            bateu ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                          )}>
                             {bateu ? "Meta batida" : "Abaixo da meta"}
                           </Badge>
                         </TableCell>
