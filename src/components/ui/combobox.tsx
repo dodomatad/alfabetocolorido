@@ -27,7 +27,7 @@ interface ComboboxProps {
   onValueChange: (value: string) => void
   placeholder?: string
   emptyMessage?: string
-  onCreate?: (value: string) => void
+  onCreate?: ((value: string) => void) | undefined
   createLabel?: string
 }
 

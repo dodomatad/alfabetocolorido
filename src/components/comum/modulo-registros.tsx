@@ -140,19 +140,23 @@ export function ModuloRegistros({
     mutationFn: async ({ campo, nome }: { campo: CampoModulo; nome: string }) => {
       if (!empresa?.id || !campo.relacao) throw new Error("Operação inválida.");
       
+      const payload: any = {
+        empresa_id: empresa.id,
+        criado_por: session?.user.id ?? null,
+        atualizado_por: session?.user.id ?? null,
+      };
+
+      // Define a coluna de rótulo (geralmente 'nome')
+      payload[campo.relacao.rotulo] = nome;
+      
       const { data, error } = await supabase
         .from(campo.relacao.tabela)
-        .insert({
-          nome: nome,
-          empresa_id: empresa.id,
-          criado_por: session?.user.id,
-          atualizado_por: session?.user.id,
-        })
-        .select("id, nome")
+        .insert(payload)
+        .select(`id, ${campo.relacao.rotulo}`)
         .single();
 
       if (error) throw error;
-      return data;
+      return data as { id: string | number; [key: string]: any };
     },
     onSuccess: (data, variables) => {
       const { campo } = variables;
