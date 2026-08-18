@@ -85,7 +85,7 @@ export const aceitarConvite = createServerFn({ method: "POST" })
                 usuario_id: userId,
                 empresa_id: empresaId,
                 papel: convite.papel as Papel
-            });
+            } as any);
         if (errPapel) throw errPapel;
 
         // Atribuir permissões
