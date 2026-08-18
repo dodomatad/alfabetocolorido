@@ -84,6 +84,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
 
 type Membro = {
   id: string;
+  user_id: string | null;
   nome: string;
   email: string | null;
   cargo: string | null;
@@ -125,7 +126,7 @@ function PaginaAcessos() {
     queryFn: async () => {
       const [perfis, membrosExtras, vinculos] = await Promise.all([
         supabase.from("perfis").select("id, nome, email, cargo, ativo").order("nome"),
-        (supabase as any).from("equipe_membros").select("id, nome, email, cargo, status").order("nome"),
+        supabase.from("equipe_membros").select("id, user_id, nome, email, cargo, status").order("nome"),
         supabase.from("usuarios_papeis").select("usuario_id, papel"),
       ]);
 
@@ -140,6 +141,7 @@ function PaginaAcessos() {
         if (!listaUnificada.find(p => p.id === m.id)) {
           listaUnificada.push({
             id: m.id,
+            user_id: m.user_id,
             nome: m.nome,
             email: m.email,
             cargo: m.cargo,

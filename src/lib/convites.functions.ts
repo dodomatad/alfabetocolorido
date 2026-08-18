@@ -118,6 +118,22 @@ export const aceitarConvite = createServerFn({ method: "POST" })
             .eq("id", convite.id);
         if (errUpdateConvite) throw errUpdateConvite;
 
+        // 4. Inserir em equipe_membros para manter consistência
+        await supabaseAdmin
+            .from("equipe_membros")
+            .insert({
+                id: userId,
+                user_id: userId,
+                empresa_id: empresaId,
+                nome: data.nome,
+                email: data.email,
+                cargo: convite.cargo,
+                papel: convite.papel,
+                permissoes: permissoesObj,
+                status: 'ativo',
+                status_senha: 'Senha Ativa'
+            });
+
         return { success: true, userId: userId };
     } catch (err) {
         throw err;
