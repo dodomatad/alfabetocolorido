@@ -93,7 +93,7 @@ export function ModuloRegistros({
   vazioTitulo,
   vazioDescricao,
 }: Props) {
-  const { empresa, session, fuso } = useSessao();
+  const { empresa, session, fuso, temPermissao } = useSessao();
   const queryClient = useQueryClient();
   const [aberto, setAberto] = useState(false);
 
@@ -105,6 +105,9 @@ export function ModuloRegistros({
     queryKey: [chaveConsulta, empresa?.id, filtroFixo],
     enabled: Boolean(empresa?.id),
     queryFn: async () => {
+      if (!temPermissao(tabela.replace('ordens_', '').replace('itens_', '').replace('lancamentos_', ''), 'visualizar')) {
+        return [];
+      }
       const { data, error } = await consultarTabela(tabela)
         .select("*")
         .order(ordenarPor?.coluna ?? "created_at", { ascending: ordenarPor?.ascendente ?? false });

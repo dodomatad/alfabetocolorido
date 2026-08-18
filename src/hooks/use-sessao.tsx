@@ -152,28 +152,14 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       temPermissao: (modulo: string, acao: 'visualizar' | 'criar' | 'editar' | 'excluir' = 'visualizar') => {
         if (isAdmin) return true;
         
-        // Mapeamento de módulos do menu para os IDs no banco
-        const mapa = {
-          'dashboard': 'dashboard',
-          'vendas': 'vendas',
-          'producao': 'producao',
-          'estoque': 'estoque',
-          'entregas': 'entregas',
-          'financeiro': 'financeiro',
-          'clientes': 'clientes',
-          'fornecedores': 'fornecedores',
-          'equipe': 'equipe',
-          'relatorios': 'relatorios',
-          'configuracoes': 'configuracoes'
-        };
-        
-        const idModulo = (mapa as any)[modulo] || modulo;
+        const idModulo = modulo === 'equipe' ? 'equipe' : modulo;
         const p = permissoes.find(x => x.modulo === idModulo);
         
         if (!p) return false;
-        if (acao === 'criar' || acao === 'editar') return p.pode_editar || p.pode_criar;
-        if (acao === 'excluir') return p.pode_excluir;
-        return p.pode_visualizar;
+        if (acao === 'criar') return p.pode_criar === true;
+        if (acao === 'editar') return p.pode_editar === true;
+        if (acao === 'excluir') return p.pode_excluir === true;
+        return p.pode_visualizar === true;
       },
       podeGerenciar: isAdmin || papeis.includes("gestor"),
       fuso: consulta.data?.empresa?.fuso_horario ?? "America/Sao_Paulo",

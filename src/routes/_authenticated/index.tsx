@@ -135,7 +135,7 @@ function PaginaDashboard() {
   const itens = consulta.data?.itens ?? [];
 
   const ocultarValores = useMemo(() => {
-    return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores ?? false;
+    return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
   }, [permissoes]);
 
   const validas = vendas.filter((v) => v.status !== "cancelada");
@@ -301,7 +301,6 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Faturamento bruto"
               valor={fmtValor(bruto)}
-
               destaque
               className="lg:col-span-1"
             />
@@ -322,7 +321,7 @@ function PaginaDashboard() {
                 roi < 4.0 ? "text-emerald-500" :
                 "text-blue-500"
               }
-              explicacao="< 1.0: Crítico | 1.0 a 1.99: Alerta | 2.0 a 3.99: Bom | 4.0+: Excelente"
+              explicacao={ocultarValores ? "" : "< 1.0: Crítico | 1.0 a 1.99: Alerta | 2.0 a 3.99: Bom | 4.0+: Excelente"}
             />
           </div>
 
