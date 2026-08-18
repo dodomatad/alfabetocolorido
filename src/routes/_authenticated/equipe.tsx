@@ -153,8 +153,6 @@ function PaginaAcessos() {
   const totalAdmins = (consulta.data ?? []).filter((m) => m.papeis.includes("administrador")).length;
   const totalOperadores = (consulta.data ?? []).filter((m) => m.papeis.includes("funcionario")).length;
 
-  return (
-    <div className="space-y-6">
   const consultaLogs = useQuery({
     queryKey: ["logs-acesso", empresa?.id],
     enabled: Boolean(empresa?.id),
@@ -173,6 +171,7 @@ function PaginaAcessos() {
 
   return (
     <div className="space-y-6">
+
       <CabecalhoPagina
         titulo="Gestão de Equipe & Acessos"
         descricao="Cadastre colaboradores, defina cargos e gerencie o nível de acesso de cada membro da equipe."
