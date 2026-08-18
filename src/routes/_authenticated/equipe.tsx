@@ -439,28 +439,26 @@ function PaginaAcessos() {
         </div>
 
         <div className="space-y-3">
-          {[
-            { id: 1, user: "João Silva", status: "success", time: "Agora", device: "Chrome / Windows", ip: "177.23.44.1" },
-            { id: 2, user: "Maria Oliveira", status: "success", time: "Há 45 min", device: "Safari / iPhone", ip: "189.12.33.2" },
-            { id: 3, user: "Carlos Souza", status: "error", time: "Há 2 horas", device: "Firefox / Linux", ip: "45.11.22.8", motivo: "Senha incorreta" },
-          ].map((log, idx) => (
+          {logsRecentes.map((log, idx) => (
             <div key={log.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-xs">
               <div className="flex items-center gap-3">
-                <div className={`flex size-8 items-center justify-center rounded-full ${log.status === 'success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
-                  {log.status === 'success' ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
+                <div className={`flex size-8 items-center justify-center rounded-full ${log.status === 'sucesso' || log.status === 'ativo' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
+                  {log.status === 'sucesso' || log.status === 'ativo' ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
                 </div>
                 <div>
-                  <p className="font-medium">{log.user}</p>
+                  <p className="font-medium">{log.usuario_nome}</p>
                   <p className="text-muted-foreground flex items-center gap-2">
-                    {log.device} • {log.ip}
-                    {log.status === 'error' && <span className="text-destructive font-semibold">({log.motivo})</span>}
+                    {log.dispositivo} • {log.ip}
+                    {(log.status === 'erro' || log.status === 'suspeito') && <span className="text-destructive font-semibold">({log.status.toUpperCase()})</span>}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="font-medium text-muted-foreground">{log.time}</p>
-                  {log.status === 'success' && idx === 0 && (
+                  <p className="font-medium text-muted-foreground">
+                    {log.created_at ? formatarData(log.created_at, "America/Sao_Paulo") : '—'}
+                  </p>
+                  {(log.status === 'ativo' || (log.status === 'sucesso' && idx === 0)) && (
                     <Badge variant="outline" className="h-4 px-1 text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">ATIVO</Badge>
                   )}
                 </div>
@@ -468,9 +466,15 @@ function PaginaAcessos() {
                   variant="ghost" 
                   size="icon" 
                   className="size-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30"
-                  onClick={() => {
-                    if (confirm(`Deseja remover este registro de acesso de ${log.user}?`)) {
-                      toast.success("Registro removido com sucesso!");
+                  onClick={async () => {
+                    if (confirm(`Deseja remover este registro de acesso de ${log.usuario_nome}?`)) {
+                      const { error } = await supabase.from("logs_acesso").delete().eq("id", log.id);
+                      if (error) {
+                        toast.error("Erro ao remover registro");
+                      } else {
+                        toast.success("Registro removido com sucesso!");
+                        queryClient.invalidateQueries({ queryKey: ["logs-acesso"] });
+                      }
                     }
                   }}
                 >
@@ -479,6 +483,12 @@ function PaginaAcessos() {
               </div>
             </div>
           ))}
+          {logsRecentes.length === 0 && (
+            <div className="py-8 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+              Nenhum acesso registrado recentemente.
+            </div>
+          )}
+
         </div>
       </section>
     </div>
