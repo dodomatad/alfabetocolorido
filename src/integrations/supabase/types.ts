@@ -962,6 +962,7 @@ export type Database = {
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
       pode_gerenciar: { Args: never; Returns: boolean }
+      proximo_numero_venda: { Args: { _empresa?: string }; Returns: number }
     }
     Enums: {
       app_role:
