@@ -367,6 +367,7 @@ function Pagina() {
             valor={criadas}
             icone={Factory}
             detalhe={`Meta: ${metaDia}/dia`}
+            destaque
           />
           <CartaoKpi
             rotulo="BMs Aquecidas"
@@ -384,7 +385,7 @@ function Pagina() {
             rotulo="Contas Viradas"
             valor={viradas}
             icone={Target}
-            corIcone="text-success"
+            corValor="text-emerald-500"
           />
           <CartaoKpi
             rotulo="Aproveitamento"
@@ -392,9 +393,9 @@ function Pagina() {
             icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
             corValor={
               aproveitamento >= 50
-                ? "text-success"
+                ? "text-emerald-500"
                 : aproveitamento < 30
-                ? "text-destructive"
+                ? "text-red-500"
                 : "text-amber-500"
             }
             detalhe="Viradas / Criadas"
@@ -403,9 +404,10 @@ function Pagina() {
             rotulo="Bloqueios"
             valor={bloqueios}
             icone={AlertTriangle}
-            corValor="text-destructive"
+            corValor="text-red-500"
             detalhe={`${perda.toFixed(1)}% de perda`}
           />
+
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
