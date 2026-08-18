@@ -1097,7 +1097,9 @@ export type Database = {
         Returns: Json
       }
       pode_gerenciar: { Args: never; Returns: boolean }
-      proximo_numero_venda: { Args: { _empresa?: string }; Returns: number }
+      proximo_numero_venda:
+        | { Args: never; Returns: number }
+        | { Args: { _empresa?: string }; Returns: number }
     }
     Enums: {
       app_role:

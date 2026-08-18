@@ -210,21 +210,29 @@ function PaginaEntrar() {
 
     if (data.user) {
       // 2. Executar Onboarding (Cria empresa, perfil e papel padrão)
-      const { error: errorOnboarding } = await supabase.rpc('onboarding_novo_usuario', {
+      // O RPC agora retorna um JSONB com o status da operação
+      const { data: onboardingRes, error: errorOnboarding } = await supabase.rpc('onboarding_novo_usuario', {
         _nome_usuario: nome.trim()
       });
 
-      if (errorOnboarding) {
-        console.error("Erro no onboarding:", errorOnboarding);
+      if (errorOnboarding || (onboardingRes as any)?.success === false) {
+        console.error("Erro no onboarding:", errorOnboarding || (onboardingRes as any)?.error);
+        toast.error("Erro ao configurar sua empresa", { 
+          description: "Sua conta foi criada, mas houve um problema na configuração inicial. Tente atualizar a página." 
+        });
       }
 
       void registrarLog(data.user);
-      toast.success("Conta criada com sucesso!", {
-        description: "Bem-vindo ao Gestão BMs. Você já pode acessar seu painel.",
-      });
+      
+      if (!errorOnboarding && (onboardingRes as any)?.success !== false) {
+        toast.success("Conta criada com sucesso!", {
+          description: "Bem-vindo ao Gestão BMs. Sua empresa foi configurada.",
+        });
+      }
       
       setEnviando(false);
-      await router.navigate({ to: "/" });
+      // Forçar recarregamento para garantir que a sessão e empresa_id sejam injetados corretamente
+      window.location.href = "/";
     } else {
       setEnviando(false);
     }
