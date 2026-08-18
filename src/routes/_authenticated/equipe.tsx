@@ -705,18 +705,38 @@ function ModalMembro({
         });
         usuarioId = resultado.userId;
       } else {
-        // 1. Atualizar Perfil (se existir)
+        // 1. Atualizar Perfil e equipe_membros
         const { error: errPerfil } = await supabase
           .from("perfis")
-          .update({ nome, cargo })
+          .update({ 
+            nome, 
+            cargo,
+            updated_at: new Date().toISOString()
+          })
           .eq("id", membro.id);
         
         if (errPerfil) throw errPerfil;
 
+        // Atualizar também na tabela equipe_membros para manter consistência
+        await (supabase as any)
+          .from("equipe_membros")
+          .update({ 
+            nome, 
+            cargo, 
+            papel,
+            status_senha: 'Senha Ativa',
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", membro.id);
+
         // 2. Sincronizar Papéis e Permissões
         if (usuarioId) {
           await supabase.from("usuarios_papeis").delete().eq("usuario_id", usuarioId);
-          await supabase.from("usuarios_papeis").insert({ usuario_id: usuarioId, papel, empresa_id: empresa.id });
+          await supabase.from("usuarios_papeis").insert({ 
+            usuario_id: usuarioId, 
+            papel, 
+            empresa_id: empresa.id 
+          });
 
           await supabase.from("permissoes_acesso").delete().eq("usuario_id", usuarioId);
           const rows = Object.entries(permissoes).map(([modulo, p]: [string, any]) => ({
