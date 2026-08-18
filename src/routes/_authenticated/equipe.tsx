@@ -373,6 +373,28 @@ function PaginaAcessos() {
                       </Button>
                       <Button
                         variant="ghost"
+                        size="icon"
+                        title="Remover Integrante"
+                        onClick={async () => {
+                          if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
+                            const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
+                            const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
+                            const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
+                            
+                            if (errPerfil || errPapeis || errPerms) {
+                              toast.error("Erro ao remover membro");
+                            } else {
+                              toast.success("Membro removido com sucesso!");
+                              queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
+                            }
+                          }
+                        }}
+                        className="size-8 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => { setEditando(m); setAba("perfil"); setAberto(true); }}
                         className="ml-2"
