@@ -388,6 +388,7 @@ function Pagina() {
             icone={Target}
             corValor="text-emerald-500"
           />
+
           <CartaoKpi
             rotulo="Aproveitamento"
             valor={`${aproveitamento.toFixed(1)}%`}
