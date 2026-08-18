@@ -152,6 +152,11 @@ function PaginaDashboard() {
     0,
   ) || 0;
   const lucro = liquido - custos;
+  const convertidas = vendas.filter(
+    (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
+  ).length;
+  const taxaConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
+
   const calcularDadosROI = (lucroVal: number, custoVal: number) => {
     if (custoVal === 0) {
       if (lucroVal > 0) return { valor: "100%", cor: "text-emerald-400" };
