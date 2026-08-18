@@ -80,6 +80,52 @@ interface Lancamento {
   observacoes: string | null;
 }
 
+function CartaoFinanceiro({
+  rotulo,
+  valor,
+  detalhe,
+  corValor,
+  icone: Icone,
+  corIcone,
+  destaque = false,
+}: {
+  rotulo: string;
+  valor: string;
+  detalhe: string;
+  corValor: string;
+  icone: any;
+  corIcone: string;
+  destaque?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-[#141417] p-5 shadow-lg shadow-black/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/10",
+        destaque ? "border-2 border-blue-500/80 shadow-[0_0_15px_rgba(0,102,255,0.15)]" : "border border-[#27272A]/40"
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <span className="text-base font-bold text-white uppercase tracking-tight">
+          {rotulo}
+        </span>
+        <div className="flex size-10 items-center justify-center rounded-full bg-black/40 shadow-inner">
+          <Icone className={cn("size-5", corIcone)} />
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col">
+        <span className={cn("num text-3xl font-bold tracking-tighter", corValor)}>
+          {valor}
+        </span>
+        <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-[#9CA3AF]">
+          <Clock className="size-3 opacity-60" />
+          {detalhe}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PaginaFinanceiro() {
   const { empresa, session, fuso, temPermissao, permissoes } = useSessao();
   const queryClient = useQueryClient();
@@ -213,37 +259,48 @@ function PaginaFinanceiro() {
       {consulta.isLoading ? (
         <CarregandoCartoes />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <CartaoIndicador
-            rotulo="Total a Receber"
-            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.receber.valor)}
-            detalhe={`${resumo.receber.qtd} títulos pendentes`}
-            tom="positivo"
-            icone={ArrowUpCircle}
-          />
-          <CartaoIndicador
-            rotulo="Total a Pagar"
-            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.pagar.valor)}
-            detalhe={`${resumo.pagar.qtd} contas pendentes`}
-            tom="negativo"
-            icone={ArrowDownCircle}
-          />
-          <CartaoIndicador
-            rotulo="Saldo Previsto (Líquido)"
-            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
-            detalhe="Diferença total de caixa"
-            tom="neutro"
-            icone={Wallet}
-          />
-          <CartaoIndicador
-            rotulo="Contas em Atraso"
-            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.atrasado.valor)}
-            detalhe={`${resumo.atrasado.qtd} títulos vencidos`}
-            tom="alerta"
-            icone={Clock}
-          />
-        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Coluna 1: Receber e Líquido */}
+          <div className="space-y-4">
+            <CartaoFinanceiro
+              rotulo="Total a Receber"
+              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.receber.valor)}
+              detalhe={`${resumo.receber.qtd} títulos pendentes`}
+              corValor="text-emerald-400"
+              icone={ArrowUpCircle}
+              corIcone="text-emerald-400"
+              destaque
+            />
+            <CartaoFinanceiro
+              rotulo="Saldo Previsto (Líquido)"
+              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
+              detalhe="Diferença total de caixa"
+              corValor="text-white"
+              icone={Wallet}
+              corIcone="text-blue-500"
+            />
+          </div>
 
+          {/* Coluna 2: Pagar e Atraso */}
+          <div className="space-y-4">
+            <CartaoFinanceiro
+              rotulo="Total a Pagar"
+              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.pagar.valor)}
+              detalhe={`${resumo.pagar.qtd} contas pendentes`}
+              corValor="text-red-500"
+              icone={ArrowDownCircle}
+              corIcone="text-red-500"
+            />
+            <CartaoFinanceiro
+              rotulo="Contas em Atraso"
+              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.atrasado.valor)}
+              detalhe={`${resumo.atrasado.qtd} títulos vencidos`}
+              corValor="text-amber-400"
+              icone={Clock}
+              corIcone="text-amber-400"
+            />
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
