@@ -157,8 +157,9 @@ function PaginaAcessos() {
         porUsuario.set(v.usuario_id, lista);
       }
 
-      return listaUnificada.map((p) => ({
+      return listaUnificada.map((p: any) => ({
         ...p,
+        user_id: p.user_id || p.id, // Fallback se vier apenas do perfil
         papeis: porUsuario.get(p.id) ?? [],
         ultima_atividade: new Date().toISOString(), // Mock para UI
       }));
