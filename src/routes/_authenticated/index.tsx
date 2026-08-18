@@ -312,7 +312,7 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Taxa de Reembolso"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaReembolso)}%`}
-              subvalor={fmtValor(totalReembolso)}
+              subvalor={fmtValor(totalReembolsado)}
               corValor="text-rose-400"
             />
             <CartaoMetrica

@@ -18,6 +18,7 @@ export function CartaoMetrica({
   corValor,
   explicacao,
   icone: Icone,
+  subvalor,
 }: {
   rotulo: string;
   valor: string;
@@ -28,6 +29,7 @@ export function CartaoMetrica({
   corValor?: string;
   explicacao?: string;
   icone?: React.ElementType;
+  subvalor?: string;
 }) {
   const content = (
     <div
@@ -56,6 +58,7 @@ export function CartaoMetrica({
       >
         {valor}
       </p>
+      {subvalor ? <p className="mt-1 text-xs text-muted-foreground">{subvalor}</p> : null}
       {detalhe ? <p className="mt-1 text-[10px] text-muted-foreground">{detalhe}</p> : null}
     </div>
   );
