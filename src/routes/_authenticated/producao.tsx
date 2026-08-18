@@ -80,13 +80,12 @@ export const Route = createFileRoute("/_authenticated/producao")({
       { title: "Produção & Contingência | Gestão BMs" },
       {
         name: "description",
-        content:
-          "Controle diário de criação de BMs, esteira de aquecimento, contas viradas e desempenho da equipe.",
+        content: "Desempenho da equipe e controle operacional de BMs.",
       },
       { property: "og:title", content: "Produção & Contingência | Gestão BMs" },
       {
         property: "og:description",
-        content: "Controle diário de criação de BMs, esteira de aquecimento e contas viradas.",
+        content: "Desempenho da equipe e controle operacional de BMs.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -321,7 +320,7 @@ function Pagina() {
         <CabecalhoPagina
           modulo="producao"
           titulo="Produção & Contingência"
-          descricao="Controle diário de criação de BMs, esteira de aquecimento e contas viradas"
+          descricao="Desempenho da equipe e controle operacional de BMs"
 
           acoes={
             <div className="flex flex-wrap items-center gap-2">
