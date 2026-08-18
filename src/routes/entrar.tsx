@@ -75,7 +75,6 @@ function PaginaEntrar() {
       else if (/Windows/i.test(userAgent)) dispositivo = "Chrome / Windows";
       else if (/Macintosh/i.test(userAgent)) dispositivo = "Safari / macOS";
 
-      // Tentamos pegar o IP via API pública simples
       let ip = "127.0.0.1";
       try {
         const resp = await fetch("https://api.ipify.org?format=json");
@@ -98,6 +97,35 @@ function PaginaEntrar() {
     }
   }
 
+  async function registrarTentativaFalha(emailAlvo: string) {
+    try {
+      const { registrarFalhaLogin } = await import("@/lib/equipe.functions");
+      const userAgent = navigator.userAgent;
+      let dispositivo = "Navegador Web";
+      if (/iPhone/i.test(userAgent)) dispositivo = "Safari / iPhone";
+      else if (/Android/i.test(userAgent)) dispositivo = "Chrome / Android";
+      else if (/Windows/i.test(userAgent)) dispositivo = "Chrome / Windows";
+      else if (/Macintosh/i.test(userAgent)) dispositivo = "Safari / macOS";
+
+      let ip = "127.0.0.1";
+      try {
+        const resp = await fetch("https://api.ipify.org?format=json");
+        const data = await resp.json();
+        ip = data.ip;
+      } catch (e) {}
+
+      await registrarFalhaLogin({
+        data: {
+          email: emailAlvo,
+          dispositivo,
+          ip,
+        },
+      });
+    } catch (e) {
+      console.error("Erro ao registrar falha de login:", e);
+    }
+  }
+
   async function entrar(evento: React.FormEvent) {
     evento.preventDefault();
     if (!emailValido(email)) {
@@ -105,22 +133,29 @@ function PaginaEntrar() {
       return;
     }
     setEnviando(true);
+    const emailSanitizado = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: emailSanitizado,
       password: senha,
     });
     setEnviando(false);
+    
     if (error) {
-      toast.error("Não foi possível entrar", {
-        description:
-          error.message === "Invalid login credentials"
-            ? "E-mail ou senha incorretos."
-            : error.message,
-      });
+      if (error.message === "Invalid login credentials") {
+        void registrarTentativaFalha(emailSanitizado);
+        toast.error("Não foi possível entrar", {
+          description: "E-mail ou senha incorretos.",
+        });
+      } else {
+        toast.error("Não foi possível entrar", {
+          description: error.message,
+        });
+      }
       return;
     }
+    
     if (lembrar) {
-      localStorage.setItem(CHAVE_EMAIL_LEMBRADO, email.trim());
+      localStorage.setItem(CHAVE_EMAIL_LEMBRADO, emailSanitizado);
       localStorage.setItem(CHAVE_SENHA_LEMBRADA, senha);
     } else {
       localStorage.removeItem(CHAVE_EMAIL_LEMBRADO);
@@ -146,8 +181,9 @@ function PaginaEntrar() {
       return;
     }
     setEnviando(true);
+    const emailSanitizado = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: emailSanitizado,
       password: senha,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
