@@ -172,6 +172,10 @@ function PaginaEntrar() {
 
   async function criarConta(evento: React.FormEvent) {
     evento.preventDefault();
+    if (!nome.trim()) {
+      toast.error("Informe seu nome completo");
+      return;
+    }
     if (!emailValido(email)) {
       toast.error("Informe um e-mail válido");
       return;
@@ -182,6 +186,8 @@ function PaginaEntrar() {
     }
     setEnviando(true);
     const emailSanitizado = email.trim().toLowerCase();
+    
+    // 1. Criar usuário no Auth
     const { data, error } = await supabase.auth.signUp({
       email: emailSanitizado,
       password: senha,
@@ -190,8 +196,9 @@ function PaginaEntrar() {
         data: { nome: nome.trim() },
       },
     });
-    setEnviando(false);
+
     if (error) {
+      setEnviando(false);
       if (error.message.toLowerCase().includes("already registered")) {
         toast.info("Este e-mail já possui cadastro. Redirecionando para a tela de login...");
         setAbaAtiva("entrar");
@@ -200,13 +207,27 @@ function PaginaEntrar() {
       toast.error("Não foi possível criar a conta", { description: error.message });
       return;
     }
+
     if (data.user) {
+      // 2. Executar Onboarding (Cria empresa, perfil e papel padrão)
+      const { error: errorOnboarding } = await supabase.rpc('onboarding_novo_usuario', {
+        _nome_usuario: nome.trim()
+      });
+
+      if (errorOnboarding) {
+        console.error("Erro no onboarding:", errorOnboarding);
+      }
+
       void registrarLog(data.user);
+      toast.success("Conta criada com sucesso!", {
+        description: "Bem-vindo ao Gestão BMs. Você já pode acessar seu painel.",
+      });
+      
+      setEnviando(false);
+      await router.navigate({ to: "/" });
+    } else {
+      setEnviando(false);
     }
-    toast.success("Conta criada", {
-      description: "Se a confirmação por e-mail estiver ativa, verifique sua caixa de entrada.",
-    });
-    await router.navigate({ to: "/" });
   }
 
   async function entrarComGoogle() {
