@@ -411,6 +411,7 @@ function Pagina() {
             detalhe={`${perda.toFixed(1)}% de perda`}
           />
 
+
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
