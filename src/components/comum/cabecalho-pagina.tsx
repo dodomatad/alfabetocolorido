@@ -36,8 +36,9 @@ export function CabecalhoPagina({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-primary"
-            onClick={() => window.history.back()}
+            className="h-9 w-9 text-blue-400 hover:text-blue-300 hover:bg-white/10"
+            onClick={() => router.navigate({ to: "/" })}
+            aria-label="Voltar para o Dashboard"
           >
             <ChevronLeft className="h-5 w-5" />
             <span className="sr-only">Voltar</span>
