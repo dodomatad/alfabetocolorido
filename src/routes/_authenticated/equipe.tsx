@@ -719,12 +719,13 @@ function ModalMembro({
         if (errPerfil) throw errPerfil;
 
         // Atualizar também na tabela equipe_membros para manter consistência
-        await (supabase as any)
+        await supabase
           .from("equipe_membros")
           .update({ 
             nome, 
             cargo, 
             papel,
+            permissoes: permissoes,
             status_senha: 'Senha Ativa',
             updated_at: new Date().toISOString()
           })
