@@ -361,57 +361,57 @@ function Pagina() {
           }
         />
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          <CartaoKpi
-            rotulo="BMs Criadas"
-            valor={criadas}
-            icone={Factory}
-            detalhe={`Meta: ${metaDia}/dia`}
-            destaque
-          />
+        <section className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <CartaoKpi
+              rotulo="BMs Criadas"
+              valor={criadas}
+              icone={Factory}
+              detalhe={`Meta: ${metaDia}/dia`}
+              destaque
+            />
+            <CartaoKpi
+              rotulo="Contas Subidas"
+              valor={subidas}
+              icone={Rocket}
+              corIcone="text-amber-500"
+            />
+            <CartaoKpi
+              rotulo="Aproveitamento"
+              valor={`${aproveitamento.toFixed(1)}%`}
+              icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
+              corValor={
+                aproveitamento >= 50
+                  ? "text-emerald-400"
+                  : aproveitamento < 30
+                  ? "text-red-500"
+                  : "text-amber-500"
+              }
+              detalhe="Viradas / Criadas"
+            />
+          </div>
 
-          <CartaoKpi
-            rotulo="BMs Aquecidas"
-            valor={aquecidas}
-            icone={Flame}
-            corIcone="text-blue-500"
-          />
-          <CartaoKpi
-            rotulo="Contas Subidas"
-            valor={subidas}
-            icone={Rocket}
-            corIcone="text-amber-500"
-          />
-          <CartaoKpi
-            rotulo="Contas Viradas"
-            valor={viradas}
-            icone={Target}
-            corValor="text-emerald-500"
-          />
-
-          <CartaoKpi
-            rotulo="Aproveitamento"
-            valor={`${aproveitamento.toFixed(1)}%`}
-            icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
-            corValor={
-              aproveitamento >= 50
-                ? "text-emerald-500"
-                : aproveitamento < 30
-                ? "text-red-500"
-                : "text-amber-500"
-            }
-            detalhe="Viradas / Criadas"
-          />
-
-          <CartaoKpi
-            rotulo="Bloqueios"
-            valor={bloqueios}
-            icone={AlertTriangle}
-            corValor="text-red-500"
-            detalhe={`${perda.toFixed(1)}% de perda`}
-          />
-
-
+          <div className="space-y-4">
+            <CartaoKpi
+              rotulo="BMs Aquecidas"
+              valor={aquecidas}
+              icone={Flame}
+              corIcone="text-blue-500"
+            />
+            <CartaoKpi
+              rotulo="Contas Viradas"
+              valor={viradas}
+              icone={Target}
+              corValor="text-emerald-400"
+            />
+            <CartaoKpi
+              rotulo="Bloqueios"
+              valor={bloqueios}
+              icone={AlertTriangle}
+              corValor="text-red-500"
+              detalhe={`${perda.toFixed(1)}% de perda`}
+            />
+          </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
@@ -809,21 +809,21 @@ function CartaoKpi({
   return (
     <div
       className={cn(
-        "group relative flex flex-col justify-between rounded-xl border border-border bg-card p-4 sm:p-6 shadow-panel transition-all duration-300 hover:border-primary/60 hover:-translate-y-1 hover:shadow-[0_15px_40px_-12px_rgba(0,102,255,0.4)]",
-        destaque && "border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/20"
+        "group relative flex flex-col justify-between rounded-2xl border bg-[#141417] p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg shadow-black/40 border-[#27272A]/40",
+        destaque ? "border-blue-500/80 shadow-[0_0_15px_rgba(0,102,255,0.15)]" : "hover:border-primary/60"
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-base font-bold text-white mb-1.5 sm:mb-3">
+          <p className="text-base font-bold text-white mb-3">
             {rotulo}
           </p>
-          <p className={cn("num font-bold tracking-tight", destaque ? "text-2xl sm:text-4xl" : "text-xl sm:text-2xl", corValor)}>
+          <p className={cn("font-bold text-2xl tracking-tight", corValor)}>
             {valor}
           </p>
         </div>
-        <div className={cn("rounded-lg bg-secondary/50 p-2 transition-colors group-hover:bg-secondary", corIcone)}>
-          <Icone className="size-4 sm:size-5" />
+        <div className={cn("rounded-full bg-secondary/30 p-2.5 transition-colors group-hover:bg-secondary/50", corIcone)}>
+          <Icone className="size-5" />
         </div>
         
         {explicacao && (
@@ -839,7 +839,7 @@ function CartaoKpi({
       </div>
 
       {detalhe && (
-        <p className="mt-2 sm:mt-4 text-[10px] sm:text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+        <p className="mt-4 text-xs text-[#9CA3AF] font-medium flex items-center gap-1.5">
           <Info className="size-3 opacity-50" />
           {detalhe}
         </p>
