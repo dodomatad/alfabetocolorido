@@ -63,12 +63,13 @@ export const aceitarConvite = createServerFn({ method: "POST" })
     try {
         const empresaId = convite.empresa_id;
         if (!empresaId) throw new Error("Empresa não definida no convite");
+        const userId = authUser.user.id;
 
         // Criar perfil
         const { error: errPerfil } = await supabaseAdmin
             .from("perfis")
             .insert({
-                id: authUser.user.id,
+                id: userId,
                 empresa_id: empresaId,
                 nome: data.nome,
                 email: data.email,
@@ -81,7 +82,8 @@ export const aceitarConvite = createServerFn({ method: "POST" })
         const { error: errPapel } = await supabaseAdmin
             .from("usuarios_papeis")
             .insert({
-                usuario_id: authUser.user.id,
+                usuario_id: userId,
+                empresa_id: empresaId,
                 papel: convite.papel as Papel
             });
         if (errPapel) throw errPapel;
@@ -89,7 +91,7 @@ export const aceitarConvite = createServerFn({ method: "POST" })
         // Atribuir permissões
         const permissoesObj = convite.permissoes as any;
         const insercoesPerms = Object.entries(permissoesObj).map(([modulo, perms]: [string, any]) => ({
-            usuario_id: authUser.user.id,
+            usuario_id: userId,
             empresa_id: empresaId,
             modulo: modulo as Modulo,
             pode_visualizar: perms.pode_visualizar ?? false,
@@ -111,12 +113,12 @@ export const aceitarConvite = createServerFn({ method: "POST" })
             .from("convites_equipe")
             .update({
                 status: 'aceito',
-                usado_por: authUser.user.id
+                usado_por: userId
             })
             .eq("id", convite.id);
         if (errUpdateConvite) throw errUpdateConvite;
 
-        return { success: true, userId: authUser.user.id };
+        return { success: true, userId: userId };
     } catch (err) {
         throw err;
     }
