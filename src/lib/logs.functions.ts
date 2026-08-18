@@ -18,7 +18,7 @@ export const registrarLogAcesso = createServerFn({ method: "POST" })
     // Buscamos o perfil para pegar a empresa_id
     const { data: perfil } = await supabaseAdmin
       .from("perfis")
-      .select("empresa_id")
+      .select("empresa_id, email")
       .eq("id", data.usuarioId)
       .single();
 
