@@ -402,6 +402,7 @@ function Pagina() {
             }
             detalhe="Viradas / Criadas"
           />
+
           <CartaoKpi
             rotulo="Bloqueios"
             valor={bloqueios}
