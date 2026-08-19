@@ -276,8 +276,8 @@ function PaginaDashboard() {
 
   const dadosGraficoVendas = DIAS.map((dia, indice) => {
     const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
-    const reposicoesDia = reposicoes.filter((r) => new Date(r.created_at).getUTCDay() === indice);
-    const entregasReposicaoDia = entregas.filter((e) => e.status === 'reposicao' && new Date(e.created_at).getUTCDay() === indice);
+    const reposicoesDia = reposicoes.filter((r: LinhaReposicao) => new Date(r.created_at).getUTCDay() === indice);
+    const entregasReposicaoDia = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao' && new Date(e.created_at).getUTCDay() === indice);
     
     const totalVendasDia = vendasDia.length;
     
@@ -291,8 +291,8 @@ function PaginaDashboard() {
 
     const valorEfetivado = efetivadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
     const valorReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
-    const custoReposicoesPerfis = reposicoesDia.reduce((s, r) => s + Number(r.custo_reposicao || 0), 0);
-    const custoReposicoesEntregas = entregasReposicaoDia.reduce((s, e) => s + Number(e.custo_reposicao || 0), 0);
+    const custoReposicoesPerfis = reposicoesDia.reduce((s: number, r: LinhaReposicao) => s + Number(r.custo_reposicao || 0), 0);
+    const custoReposicoesEntregas = entregasReposicaoDia.reduce((s: number, e: LinhaEntrega) => s + Number(e.custo_reposicao || 0), 0);
     
     const totalReembolsoReposicao = valorReembolsado + custoReposicoesPerfis + custoReposicoesEntregas;
     const totalValorDia = valorEfetivado + totalReembolsoReposicao;
