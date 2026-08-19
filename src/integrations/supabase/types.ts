@@ -1278,6 +1278,23 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
+      listar_acessos_pendentes: {
+        Args: never
+        Returns: {
+          cargo_sugerido: string
+          convite_id: string
+          created_at: string
+          email: string
+          nome: string
+          papel_sugerido: Database["public"]["Enums"]["app_role"]
+          permissoes_sugeridas: Json
+          user_id: string
+        }[]
+      }
+      marcar_convite_usado: {
+        Args: { _convite_id: string; _user_id: string }
+        Returns: undefined
+      }
       onboarding_novo_usuario: {
         Args: { _nome_usuario: string }
         Returns: Json

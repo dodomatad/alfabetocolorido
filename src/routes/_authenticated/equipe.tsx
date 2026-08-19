@@ -114,6 +114,7 @@ function PaginaAcessos() {
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Membro | null>(null);
   const [aba, setAba] = useState("perfil");
+  const [abaPrincipal, setAbaPrincipal] = useState("membros");
 
   // Estados para os novos modais
   const [modalLogsAberto, setModalLogsAberto] = useState(false);
@@ -199,6 +200,16 @@ function PaginaAcessos() {
     },
   });
 
+  const consultaPendentes = useQuery({
+    queryKey: ["acessos-pendentes", empresa?.id],
+    enabled: Boolean(empresa?.id) && temPapel("administrador", "gestor"),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("listar_acessos_pendentes");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   const logsRecentes = consultaLogs.data ?? [];
 
   return (
@@ -265,189 +276,211 @@ function PaginaAcessos() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card shadow-panel">
-        <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou e-mail..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-9"
-              />
+      <Tabs value={abaPrincipal} onValueChange={setAbaPrincipal} className="space-y-6">
+        <TabsList className="bg-[#141417] border-[#27272A]/40 p-1">
+          <TabsTrigger value="membros" className="data-[state=active]:bg-[#27272A] data-[state=active]:text-white">
+            Equipe Ativa ({totalMembros})
+          </TabsTrigger>
+          {temPapel("administrador", "gestor") && (
+            <TabsTrigger value="pendentes" className="data-[state=active]:bg-[#27272A] data-[state=active]:text-white relative">
+              Aprovações Pendentes
+              {consultaPendentes.data && consultaPendentes.data.length > 0 && (
+                <Badge className="ml-2 bg-amber-500 text-black border-none animate-pulse">
+                  {consultaPendentes.data.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="membros" className="space-y-6">
+          <div className="rounded-xl border bg-card shadow-panel">
+            <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-1 flex-wrap items-center gap-3">
+                <div className="relative w-full max-w-xs">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou e-mail..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                <Select defaultValue="ativos">
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos Status</SelectItem>
+                    <SelectItem value="ativos">Ativos</SelectItem>
+                    <SelectItem value="pendentes">Pendentes</SelectItem>
+                    <SelectItem value="inativos">Inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <Select defaultValue="ativos">
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Status</SelectItem>
-                <SelectItem value="ativos">Ativos</SelectItem>
-                <SelectItem value="pendentes">Pendentes</SelectItem>
-                <SelectItem value="inativos">Inativos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex gap-2">
-          </div>
-        </div>
-
-
-        {consulta.isLoading ? (
-          <div className="p-8">
-            <CarregandoTabela colunas={5} />
-          </div>
-        ) : consulta.isError ? (
-          <div className="p-8">
-            <EstadoErro
-              descricao={(consulta.error as Error).message}
-              aoTentarNovamente={() => void consulta.refetch()}
-            />
-          </div>
-        ) : membros.length === 0 ? (
-          <div className="p-8">
-            <EstadoVazio
-              titulo="Nenhum membro encontrado"
-              descricao="Não encontramos membros da equipe com os critérios de busca informados."
-            />
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Membro</TableHead>
-                <TableHead>Cargo / Função</TableHead>
-                <TableHead>Último Login</TableHead>
-                <TableHead>Status Senha</TableHead>
-                <TableHead>Dados Fin.</TableHead>
-                <TableHead className="text-right">Ações de Acesso</TableHead>
-
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {membros.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                        {m.nome.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium">{m.nome}</p>
-                        <p className="text-xs text-muted-foreground">{m.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {m.papeis.length > 0 ? (
-                        m.papeis.map((p: Papel) => (
-                          <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
-                            {ROTULO_PAPEL[p]}
+            {consulta.isLoading ? (
+              <div className="p-8">
+                <CarregandoTabela colunas={5} />
+              </div>
+            ) : consulta.isError ? (
+              <div className="p-8">
+                <EstadoErro
+                  descricao={(consulta.error as Error).message}
+                  aoTentarNovamente={() => void consulta.refetch()}
+                />
+              </div>
+            ) : membros.length === 0 ? (
+              <div className="p-8">
+                <EstadoVazio
+                  titulo="Nenhum membro encontrado"
+                  descricao="Não encontramos membros da equipe com os critérios de busca informados."
+                />
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Membro</TableHead>
+                      <TableHead>Cargo / Função</TableHead>
+                      <TableHead>Último Login</TableHead>
+                      <TableHead>Status Senha</TableHead>
+                      <TableHead>Dados Fin.</TableHead>
+                      <TableHead className="text-right">Ações de Acesso</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {membros.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                              {m.nome.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium">{m.nome}</p>
+                              <p className="text-xs text-muted-foreground">{m.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {m.papeis.length > 0 ? (
+                              m.papeis.map((p: Papel) => (
+                                <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
+                                  {ROTULO_PAPEL[p]}
+                                </Badge>
+                              ))
+                            ) : (
+                              <Badge variant="outline">Sem Papel</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                              {m.ativo && <div className="absolute inset-0 size-2 animate-ping rounded-full bg-emerald-500 opacity-75" />}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-normal">
+                            Senha Ativa
                           </Badge>
-                        ))
-                      ) : (
-                        <Badge variant="outline">Sem Papel</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                        {m.ativo && <div className="absolute inset-0 size-2 animate-ping rounded-full bg-emerald-500 opacity-75" />}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-normal">
-                      Senha Ativa
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <Eye className="size-4 text-emerald-500" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Alterar Senha"
-                        onClick={() => { setEditando(m); setAba("seguranca"); setAberto(true); }}
-                        className="size-8 text-muted-foreground hover:text-primary"
-                      >
-                        <Key className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Gerar Link de Redefinição"
-                        onClick={() => {
-                          navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
-                          toast.success("Link de redefinição copiado!");
-                        }}
-                        className="size-8 text-muted-foreground hover:text-primary"
-                      >
-                        <RefreshCcw className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Desconectar Sessão"
-                        onClick={() => toast.success("Sessão desconectada com sucesso!")}
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <LogOut className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Remover Integrante"
-                        onClick={async () => {
-                          if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
-                            const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
-                            const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
-                            const { error: errMembro } = await supabase.from("equipe_membros").delete().eq("id", m.id);
-                            const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
-                            
-                            if (errPerfil || errPapeis || errPerms || errMembro) {
-                              toast.error("Erro ao remover membro");
-                            } else {
-                              toast.success("Membro removido com sucesso!");
-                              queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
-                            }
-                          }
-                        }}
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setEditando(m); setAba("perfil"); setAberto(true); }}
-                        className="ml-2"
-                      >
-                        Editar
-                        <ArrowRight className="ml-2 size-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Eye className="size-4 text-emerald-500" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Alterar Senha"
+                              onClick={() => { setEditando(m); setAba("seguranca"); setAberto(true); }}
+                              className="size-8 text-muted-foreground hover:text-primary"
+                            >
+                              <Key className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Gerar Link de Redefinição"
+                              onClick={() => {
+                                navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
+                                toast.success("Link de redefinição copiado!");
+                              }}
+                              className="size-8 text-muted-foreground hover:text-primary"
+                            >
+                              <RefreshCcw className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Desconectar Sessão"
+                              onClick={() => toast.success("Sessão desconectada com sucesso!")}
+                              className="size-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <LogOut className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Remover Integrante"
+                              onClick={async () => {
+                                if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
+                                  const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
+                                  const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
+                                  const { error: errMembro } = await supabase.from("equipe_membros").delete().eq("id", m.id);
+                                  const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
+                                  
+                                  if (errPerfil || errPapeis || errPerms || errMembro) {
+                                    toast.error("Erro ao remover membro");
+                                  } else {
+                                    toast.success("Membro removido com sucesso!");
+                                    queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
+                                  }
+                                }
+                              }}
+                              className="size-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setEditando(m); setAba("perfil"); setAberto(true); }}
+                              className="ml-2"
+                            >
+                              Editar
+                              <ArrowRight className="ml-2 size-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+          </div>
+        </TabsContent>
 
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        {temPapel("administrador", "gestor") && (
+          <TabsContent value="pendentes" className="space-y-6">
+            <SecaoAprovacoesPendentes />
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
 
       <ModalMembro
         aberto={aberto}
@@ -472,6 +505,7 @@ function PaginaAcessos() {
         aberto={modalConviteAberto}
         aoFechar={() => setModalConviteAberto(false)}
       />
+
 
       <section className="rounded-xl border bg-card p-6 shadow-panel">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -1424,6 +1458,224 @@ function ModalLogsAcesso({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SecaoAprovacoesPendentes() {
+  const { empresa } = useSessao();
+  const queryClient = useQueryClient();
+
+  const consulta = useQuery({
+    queryKey: ["acessos-pendentes", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("listar_acessos_pendentes");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const [aprovando, setAprovando] = useState<any | null>(null);
+  const [carregando, setCarregando] = useState(false);
+
+  // Estados do form de aprovação
+  const [cargo, setCargo] = useState("");
+  const [papel, setPapel] = useState<Papel>("funcionario");
+  const [permissoes, setPermissoes] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (aprovando) {
+      setCargo(aprovando.cargo_sugerido || "");
+      setPapel(aprovando.papel_sugerido || "funcionario");
+      
+      const pSugeridas = aprovando.permissoes_sugeridas || {};
+      const novasPerms = MODULOS.reduce(
+        (acc, mod) => ({
+          ...acc,
+          [mod.id]: pSugeridas[mod.id] || { visualiza: true, edita: mod.id !== "equipe", exclui: false, ocultar: false },
+        }),
+        {} as Record<string, any>
+      );
+      setPermissoes(novasPerms);
+    }
+  }, [aprovando]);
+
+  const aprovar = async () => {
+    if (!empresa?.id || !aprovando) return;
+
+    setCarregando(true);
+    try {
+      const { aprovarAcessoPendente } = await import("@/lib/equipe.functions");
+      await aprovarAcessoPendente({
+        data: {
+          userId: aprovando.user_id,
+          empresaId: empresa.id,
+          cargo,
+          papel,
+          permissoes,
+          conviteId: aprovando.convite_id,
+        },
+      });
+
+      toast.success("Acesso aprovado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["acessos-pendentes"] });
+      queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
+      setAprovando(null);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  if (consulta.isLoading) return <CarregandoTabela colunas={4} />;
+  
+  if (consulta.data?.length === 0) {
+    return (
+      <EstadoVazio 
+        titulo="Nenhuma aprovação pendente" 
+        descricao="Todos os usuários que tentaram acessar já estão vinculados ou não há novos pedidos."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-[#141417] overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-[#27272A]/40 hover:bg-transparent">
+              <TableHead className="text-muted-foreground">Usuário</TableHead>
+              <TableHead className="text-muted-foreground">Origem / Sugestão</TableHead>
+              <TableHead className="text-muted-foreground">Data Registro</TableHead>
+              <TableHead className="text-right text-muted-foreground">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {consulta.data?.map((p) => (
+              <TableRow key={p.user_id} className="border-[#27272A]/40 hover:bg-[#27272A]/20 transition-colors">
+                <TableCell>
+                  <div>
+                    <p className="font-bold text-white">{p.nome}</p>
+                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {p.convite_id ? (
+                    <div className="space-y-1">
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">
+                        VIA CONVITE
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        {p.cargo_sugerido} ({ROTULO_PAPEL[p.papel_sugerido as Papel]})
+                      </p>
+                    </div>
+                  ) : (
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
+                      ACESSO DIRETO / LIMBO
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatarData(p.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    size="sm" 
+                    onClick={() => setAprovando(p)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Aprovar Acesso
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={!!aprovando} onOpenChange={() => setAprovando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl bg-[#0A0A0A] border-[#27272A]">
+          <DialogHeader>
+            <DialogTitle>Confirmar Aprovação de Acesso</DialogTitle>
+            <DialogDescription>
+              Revise os dados e permissões antes de vincular <strong>{aprovando?.email}</strong> à empresa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Cargo / Função</Label>
+                <Input 
+                  value={cargo} 
+                  onChange={(e) => setCargo(e.target.value)} 
+                  placeholder="Ex: Gestor"
+                  className="bg-[#141417] border-[#27272A]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Papel Principal</Label>
+                <Select value={papel} onValueChange={(v) => setPapel(v as Papel)}>
+                  <SelectTrigger className="bg-[#141417] border-[#27272A]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#141417] border-[#27272A]">
+                    {Object.entries(ROTULO_PAPEL).map(([v, r]) => (
+                      <SelectItem key={v} value={v}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator className="bg-[#27272A]" />
+            
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider">Permissões de Módulo</h4>
+              <div className="grid gap-2">
+                {MODULOS.map(mod => (
+                  <div key={mod.id} className="flex items-center justify-between p-2 rounded-lg bg-[#141417] border border-[#27272A]/50">
+                    <span className="text-xs font-medium text-white">{mod.rotulo}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <Checkbox 
+                          id={`perm-v-${mod.id}`}
+                          checked={permissoes[mod.id]?.visualiza} 
+                          onCheckedChange={(checked) => setPermissoes(prev => ({
+                            ...prev,
+                            [mod.id]: { ...prev[mod.id], visualiza: !!checked }
+                          }))}
+                        />
+                        <Label htmlFor={`perm-v-${mod.id}`} className="text-[10px] text-muted-foreground cursor-pointer">Ver</Label>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Checkbox 
+                          id={`perm-e-${mod.id}`}
+                          checked={permissoes[mod.id]?.edita} 
+                          onCheckedChange={(checked) => setPermissoes(prev => ({
+                            ...prev,
+                            [mod.id]: { ...prev[mod.id], edita: !!checked }
+                          }))}
+                        />
+                        <Label htmlFor={`perm-e-${mod.id}`} className="text-[10px] text-muted-foreground cursor-pointer">Editar</Label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button variant="ghost" onClick={() => setAprovando(null)}>Cancelar</Button>
+            <Button onClick={aprovar} disabled={carregando}>
+              {carregando ? "Processando..." : "Confirmar e Vincular"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
