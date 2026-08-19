@@ -12,7 +12,9 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/entrar" });
+    if (error || !data.user) {
+      throw redirect({ to: "/entrar" });
+    }
 
     // Verificação de permissão de módulo
     const path = location.pathname.split('/')[1] || 'dashboard';
