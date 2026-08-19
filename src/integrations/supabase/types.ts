@@ -1174,6 +1174,7 @@ export type Database = {
         Row: {
           acrescimo: number
           atualizado_por: string | null
+          cliente: string | null
           cliente_id: string | null
           created_at: string
           criado_por: string | null
@@ -1194,6 +1195,7 @@ export type Database = {
         Insert: {
           acrescimo?: number
           atualizado_por?: string | null
+          cliente?: string | null
           cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -1214,6 +1216,7 @@ export type Database = {
         Update: {
           acrescimo?: number
           atualizado_por?: string | null
+          cliente?: string | null
           cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
