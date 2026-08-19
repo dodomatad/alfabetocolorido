@@ -23,7 +23,7 @@ function Pagina() {
       descricao="Programação e acompanhamento das entregas aos clientes."
       tabela="entregas"
       chaveConsulta="entregas"
-      rotuloBotao="Adicionar entrega"
+      selectCustom="*, clientes(nome)"
       ordenarPor={{ coluna: "created_at" }}
       campos={[
         { 

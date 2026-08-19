@@ -60,6 +60,7 @@ export type ColunaModulo = {
   rotulo: string;
   formato?: "texto" | "moeda" | "data" | "numero";
   alinharDireita?: boolean;
+  relacao?: { tabela: string; rotulo: string };
 };
 
 type Props = {
@@ -214,8 +215,12 @@ export function ModuloRegistros({
     onError: (erro: Error) => toast.error(erro.message),
   });
 
-  const formatar = (valor: unknown, formato: ColunaModulo["formato"], c: ColunaModulo) => {
+  const formatar = (valor: unknown, formato: ColunaModulo["formato"], c: ColunaModulo, registro?: any) => {
     if (valor === null || valor === undefined || valor === "") return "—";
+    if (c.relacao && registro) {
+      const relName = c.nome.replace('_id', '');
+      if (registro[relName]) return registro[relName][c.relacao.rotulo] || String(valor);
+    }
     if (formato === "moeda") return formatarMoeda(valor as number);
     if (formato === "data") return formatarData(String(valor), fuso);
     if (c.nome === "status") return <SeloStatusVenda status={String(valor)} />;
@@ -366,7 +371,7 @@ export function ModuloRegistros({
                         key={c.nome}
                         className={c.alinharDireita ? "num text-right" : undefined}
                       >
-                        {formatar(registro[c.nome], c.formato, c)}
+                        {formatar(registro[c.nome], c.formato, c, registro)}
                       </TableCell>
                     ))}
                   </TableRow>
