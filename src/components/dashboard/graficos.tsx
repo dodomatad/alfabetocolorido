@@ -89,7 +89,7 @@ export function GraficoFunil({ dados }: { dados: EtapaFunil[] }) {
             dataKey="etapa"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#aaaaaa", fontSize: 12 }}
+            tick={{ fill: "#E4E4E7", fontSize: 12, fontWeight: "bold" }}
           />
           <Area
             type="monotone"
@@ -150,7 +150,7 @@ export function GraficoBarrasAgrupadas({
             dataKey="dia"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#aaaaaa", fontSize: 12 }}
+            tick={{ fill: "#E4E4E7", fontSize: 12, fontWeight: "bold" }}
           />
           <Tooltip
             contentStyle={{
@@ -221,7 +221,7 @@ export function GraficoBarras({ dados }: { dados: Array<{ dia: string; percentua
             dataKey="dia"
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#aaaaaa", fontSize: 12 }}
+            tick={{ fill: "#E4E4E7", fontSize: 12, fontWeight: "bold" }}
           />
           <Bar dataKey="percentual" fill="#0066ff" radius={[6, 6, 0, 0]} isAnimationActive={false}>
             <LabelList
