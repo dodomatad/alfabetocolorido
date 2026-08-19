@@ -487,7 +487,7 @@ function PaginaDashboard() {
               <GraficoBarrasAgrupadas 
                 dados={barrasVendasAgrupadas} 
                 cores={["#0066ff", "#EF4444"]}
-                legendas={["Vendas Efetivadas", "Reembolsos"]}
+                legendas={["Vendas Efetivadas", "Reembolsos/Reposição"]}
                 onBarClick={(data) => {
                   setFiltroDiaModal(data.dia);
                   setModalVendasAberto(true);
