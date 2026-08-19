@@ -62,7 +62,6 @@ function PaginaEstoque() {
       ]}
       vazioTitulo="Seu estoque está vazio"
       vazioDescricao="Registre manualmente ou aguarde a sincronização automática da produção diária."
-      vazioIcone={<Package className="size-10" />}
     />
   );
 }
