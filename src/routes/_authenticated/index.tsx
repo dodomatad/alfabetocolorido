@@ -435,7 +435,7 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Taxa de Reposição"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaReposicao)}%`}
-              subvalor={ocultarValores ? "" : `${totalReposicoesPerfis + totalReposicoesEntregas} de ${totalEntregue} perfis entregues`}
+              subvalor=""
               corValor={ocultarValores ? "text-white" : getCorTaxaReposicao(taxaReposicao)}
               className="cursor-pointer hover:bg-white/5 transition-colors"
               onClick={() => setModalReposicoesAberto(true)}
