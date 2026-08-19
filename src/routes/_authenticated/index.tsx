@@ -70,6 +70,9 @@ const ROTULO_STATUS: Record<string, string> = {
   entregue: "Entregue",
   cancelada: "Cancelada",
   reembolsada: "Reembolsada",
+  reposicao: "Reposição",
+  pendente: "Pendente",
+  em_rota: "Em rota",
 };
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
