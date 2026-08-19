@@ -176,13 +176,14 @@ function PaginaDashboard() {
   const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
   const bruto = liquido + totalReembolsado + descontos;
-  const custos = itens.reduce(
+  const custosProducao = itens.reduce(
     (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
     0,
   ) || 0;
 
   const totalCustoReposicoes = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
-  const lucro = liquido - custos - totalCustoReposicoes;
+  const custosTotais = custosProducao + totalCustoReposicoes;
+  const lucro = liquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
   const totalReposicoes = reposicoes.length;
