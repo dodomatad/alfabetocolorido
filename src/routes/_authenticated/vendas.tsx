@@ -90,7 +90,7 @@ function PaginaVendas() {
     queryFn: async () => {
       let q = supabase
         .from("vendas")
-        .select("id, numero, status, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
+        .select("id, numero, status, status_entrega, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
         .order("numero", { ascending: false })
         .limit(50);
       if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
@@ -175,7 +175,8 @@ function PaginaVendas() {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="hidden md:table-cell">Previsão</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Status Venda</TableHead>
+                  <TableHead>Status Entrega</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="w-[100px] text-center">Ações</TableHead>
                 </TableRow>
@@ -191,6 +192,9 @@ function PaginaVendas() {
                     </TableCell>
                     <TableCell>
                       <SeloStatusVenda status={venda.status} />
+                    </TableCell>
+                    <TableCell>
+                      <SeloStatusVenda status={(venda as any).status_entrega || "pendente"} />
                     </TableCell>
                     <TableCell className="num text-right font-medium">
                       {formatarMoeda(venda.valor_total)}

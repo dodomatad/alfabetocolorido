@@ -128,6 +128,7 @@ export function FormularioVenda({
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
           status: status as "rascunho" | "em_andamento" | "efetuada" | "falta_pagamento" | "confirmada" | "reembolsada",
+          status_entrega: status === "confirmada" ? "pendente" : "pendente", // O trigger cuida da sincronização
           subtotal,
           desconto: numero(desconto),
           acrescimo: numero(acrescimo),

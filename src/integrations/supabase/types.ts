@@ -1142,6 +1142,7 @@ export type Database = {
           numero_venda: number
           observacoes: string | null
           status: Database["public"]["Enums"]["venda_status"]
+          status_entrega: string | null
           subtotal: number
           updated_at: string
           valor_total: number
@@ -1161,6 +1162,7 @@ export type Database = {
           numero_venda?: number
           observacoes?: string | null
           status?: Database["public"]["Enums"]["venda_status"]
+          status_entrega?: string | null
           subtotal?: number
           updated_at?: string
           valor_total?: number
@@ -1180,6 +1182,7 @@ export type Database = {
           numero_venda?: number
           observacoes?: string | null
           status?: Database["public"]["Enums"]["venda_status"]
+          status_entrega?: string | null
           subtotal?: number
           updated_at?: string
           valor_total?: number
