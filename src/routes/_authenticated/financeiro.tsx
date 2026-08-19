@@ -6,12 +6,15 @@ import {
   Calendar, 
   CheckCircle2, 
   Clock, 
+  Cpu,
   FileText, 
   Filter, 
   Inbox, 
+  Layers,
   MoreHorizontal, 
   Plus, 
-  Wallet 
+  Wallet,
+  Wrench
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -72,6 +75,8 @@ interface Lancamento {
   tipo: TipoLancamento;
   descricao: string;
   categoria: string | null;
+  subcategoria: string | null;
+  quantidade_unidades: number | null;
   valor: number;
   data_vencimento: string;
   data_pagamento: string | null;
@@ -143,6 +148,8 @@ function PaginaFinanceiro() {
     tipo: "receber" as TipoLancamento,
     descricao: "",
     categoria: "",
+    subcategoria: "",
+    quantidade_unidades: "0",
     valor: "0",
     data_vencimento: new Date().toISOString().slice(0, 10),
     data_pagamento: "",
@@ -168,7 +175,11 @@ function PaginaFinanceiro() {
   const dados = useMemo(() => {
     let lista = consulta.data || [];
     if (filtroTipo !== "todos") {
-      lista = lista.filter(item => item.tipo === filtroTipo);
+      if (filtroTipo === "Produção de BM / Insumos") {
+        lista = lista.filter(item => item.categoria === "Produção de BM / Insumos");
+      } else {
+        lista = lista.filter(item => item.tipo === filtroTipo);
+      }
     }
     if (filtroStatus !== "todos") {
       lista = lista.filter(item => item.situacao === filtroStatus);
@@ -183,16 +194,26 @@ function PaginaFinanceiro() {
     const aReceber = lista.filter(i => i.tipo === "receber" && i.situacao === "aberto");
     const aPagar = lista.filter(i => i.tipo === "pagar" && i.situacao === "aberto");
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
+    const producaoBM = lista.filter(i => i.categoria === "Produção de BM / Insumos");
 
     const totalReceber = aReceber.reduce((acc, i) => acc + i.valor, 0);
     const totalPagar = aPagar.reduce((acc, i) => acc + i.valor, 0);
     const totalAtrasado = atrasados.reduce((acc, i) => acc + i.valor, 0);
+    const totalProducao = producaoBM.reduce((acc, i) => acc + i.valor, 0);
+    const totalUnidadesBM = producaoBM.reduce((acc, i) => acc + (Number(i.quantidade_unidades) || 0), 0);
+    const custoMedioBM = totalUnidadesBM > 0 ? totalProducao / totalUnidadesBM : 0;
 
     return {
       receber: { valor: totalReceber, qtd: aReceber.length },
       pagar: { valor: totalPagar, qtd: aPagar.length },
       liquido: totalReceber - totalPagar,
-      atrasado: { valor: totalAtrasado, qtd: atrasados.length }
+      atrasado: { valor: totalAtrasado, qtd: atrasados.length },
+      producao: { 
+        valor: totalProducao, 
+        qtd: producaoBM.length,
+        unidades: totalUnidadesBM,
+        custoMedio: custoMedioBM
+      }
     };
   }, [consulta.data]);
 
@@ -206,7 +227,9 @@ function PaginaFinanceiro() {
         tipo: valores.tipo,
         descricao: valores.descricao,
         categoria: valores.categoria || null,
-        valor: Number(valores.valor.replace(",", ".")) || 0,
+        subcategoria: valores.subcategoria || null,
+        quantidade_unidades: Number(valores.quantidade_unidades) || 0,
+        valor: Number(valores.valor.toString().replace(",", ".")) || 0,
         data_vencimento: valores.data_vencimento,
         data_pagamento: valores.data_pagamento || null,
         forma_pagamento: valores.forma_pagamento || null,
@@ -227,6 +250,8 @@ function PaginaFinanceiro() {
         tipo: "receber",
         descricao: "",
         categoria: "",
+        subcategoria: "",
+        quantidade_unidades: "0",
         valor: "0",
         data_vencimento: new Date().toISOString().slice(0, 10),
         data_pagamento: "",
@@ -259,47 +284,52 @@ function PaginaFinanceiro() {
       {consulta.isLoading ? (
         <CarregandoCartoes />
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {/* Coluna 1: Receber e Líquido */}
-          <div className="space-y-4">
-            <CartaoFinanceiro
-              rotulo="Total a Receber"
-              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.receber.valor)}
-              detalhe={`${resumo.receber.qtd} títulos pendentes`}
-              corValor="text-emerald-400"
-              icone={ArrowUpCircle}
-              corIcone="text-emerald-400"
-              destaque
-            />
-            <CartaoFinanceiro
-              rotulo="Saldo Previsto (Líquido)"
-              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
-              detalhe="Diferença total de caixa"
-              corValor="text-white"
-              icone={Wallet}
-              corIcone="text-blue-500"
-            />
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Linha 1 Mobile / Grid Desktop */}
+          <CartaoFinanceiro
+            rotulo="Total a Receber"
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.receber.valor)}
+            detalhe={`${resumo.receber.qtd} títulos pendentes`}
+            corValor="text-emerald-400"
+            icone={ArrowUpCircle}
+            corIcone="text-emerald-400"
+            destaque
+          />
+          <CartaoFinanceiro
+            rotulo="Total a Pagar"
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.pagar.valor)}
+            detalhe={`${resumo.pagar.qtd} contas pendentes`}
+            corValor="text-red-500"
+            icone={ArrowDownCircle}
+            corIcone="text-red-500"
+          />
+          
+          <CartaoFinanceiro
+            rotulo="CUSTO PRODUÇÃO BM"
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.producao.valor)}
+            detalhe={resumo.producao.unidades > 0 ? `Custo médio: ${formatarMoeda(resumo.producao.custoMedio)} / BM` : `${resumo.producao.qtd} insumos/lançamentos`}
+            corValor="text-amber-400 font-bold text-2xl"
+            icone={Layers}
+            corIcone="text-amber-400"
+          />
 
-          {/* Coluna 2: Pagar e Atraso */}
-          <div className="space-y-4">
-            <CartaoFinanceiro
-              rotulo="Total a Pagar"
-              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.pagar.valor)}
-              detalhe={`${resumo.pagar.qtd} contas pendentes`}
-              corValor="text-red-500"
-              icone={ArrowDownCircle}
-              corIcone="text-red-500"
-            />
-            <CartaoFinanceiro
-              rotulo="Contas em Atraso"
-              valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.atrasado.valor)}
-              detalhe={`${resumo.atrasado.qtd} títulos vencidos`}
-              corValor="text-amber-400"
-              icone={Clock}
-              corIcone="text-amber-400"
-            />
-          </div>
+          <CartaoFinanceiro
+            rotulo="Saldo Previsto (Líquido)"
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
+            detalhe="Diferença total de caixa"
+            corValor="text-white"
+            icone={Wallet}
+            corIcone="text-blue-500"
+          />
+
+          <CartaoFinanceiro
+            rotulo="Contas em Atraso"
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.atrasado.valor)}
+            detalhe={`${resumo.atrasado.qtd} títulos vencidos`}
+            corValor="text-rose-500"
+            icone={Clock}
+            corIcone="text-rose-500"
+          />
         </div>
       )}
 
@@ -309,6 +339,7 @@ function PaginaFinanceiro() {
             <TabsTrigger value="todos">Todos</TabsTrigger>
             <TabsTrigger value="receber">Entradas</TabsTrigger>
             <TabsTrigger value="pagar">Saídas</TabsTrigger>
+            <TabsTrigger value="Produção de BM / Insumos" className="bg-amber-500/10 text-amber-500 data-[state=active]:bg-amber-500 data-[state=active]:text-black">Produção BM</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -459,11 +490,20 @@ function PaginaFinanceiro() {
 
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria</Label>
-              <Select value={valores.categoria} onValueChange={v => setValores(a => ({ ...a, categoria: v }))}>
+              <Select value={valores.categoria} onValueChange={v => {
+                const isProd = v === "Produção de BM / Insumos";
+                setValores(a => ({ 
+                  ...a, 
+                  categoria: v, 
+                  tipo: isProd ? "pagar" : a.tipo,
+                  subcategoria: isProd ? a.subcategoria : ""
+                }));
+              }}>
                 <SelectTrigger id="categoria">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Produção de BM / Insumos">Produção de BM / Insumos</SelectItem>
                   <SelectItem value="vendas">Vendas Diretas</SelectItem>
                   <SelectItem value="trafego">Tráfego Pago</SelectItem>
                   <SelectItem value="ferramentas">Ferramentas / SaaS</SelectItem>
@@ -473,6 +513,37 @@ function PaginaFinanceiro() {
                 </SelectContent>
               </Select>
             </div>
+
+            {valores.categoria === "Produção de BM / Insumos" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="subcategoria">Tipo de Insumo</Label>
+                  <Select value={valores.subcategoria} onValueChange={v => setValores(a => ({ ...a, subcategoria: v }))}>
+                    <SelectTrigger id="subcategoria">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Perfis / Contas de Aquecimento">Perfis / Contas de Aquecimento</SelectItem>
+                      <SelectItem value="Proxies / IPs Residenciais">Proxies / IPs Residenciais</SelectItem>
+                      <SelectItem value="Chips / SMS Virtual">Chips / SMS Virtual</SelectItem>
+                      <SelectItem value="Cartões / Taxas de Gateway">Cartões / Taxas de Gateway</SelectItem>
+                      <SelectItem value="Navegador Multilogin / Ferramentas">Navegador Multilogin / Ferramentas</SelectItem>
+                      <SelectItem value="Outros Insumos">Outros Insumos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantidade_unidades">Qtd. BMs Produzidas</Label>
+                  <Input 
+                    id="quantidade_unidades" 
+                    type="number"
+                    value={valores.quantidade_unidades}
+                    onChange={e => setValores(a => ({ ...a, quantidade_unidades: e.target.value }))}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="forma">Forma de Pagamento</Label>

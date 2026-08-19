@@ -477,7 +477,9 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           observacoes: string | null
+          quantidade_unidades: number | null
           situacao: Database["public"]["Enums"]["financeiro_situacao"]
+          subcategoria: string | null
           tipo: Database["public"]["Enums"]["financeiro_tipo"]
           updated_at: string
           valor: number
@@ -498,7 +500,9 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           observacoes?: string | null
+          quantidade_unidades?: number | null
           situacao?: Database["public"]["Enums"]["financeiro_situacao"]
+          subcategoria?: string | null
           tipo: Database["public"]["Enums"]["financeiro_tipo"]
           updated_at?: string
           valor?: number
@@ -519,7 +523,9 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           observacoes?: string | null
+          quantidade_unidades?: number | null
           situacao?: Database["public"]["Enums"]["financeiro_situacao"]
+          subcategoria?: string | null
           tipo?: Database["public"]["Enums"]["financeiro_tipo"]
           updated_at?: string
           valor?: number
