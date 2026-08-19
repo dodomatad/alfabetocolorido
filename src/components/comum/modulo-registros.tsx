@@ -72,6 +72,7 @@ type Props = {
   colunas: ColunaModulo[];
   filtroFixo?: Record<string, string>;
   ordenarPor?: { coluna: string; ascendente?: boolean };
+  selectCustom?: string;
   rotuloBotao?: string;
   vazioTitulo: string;
   vazioDescricao: string;
@@ -112,7 +113,7 @@ export function ModuloRegistros({
         return [];
       }
       const { data, error } = await consultarTabela(tabela)
-        .select("*")
+        .select(selectCustom || "*")
         .order(ordenarPor?.coluna ?? "created_at", { ascending: ordenarPor?.ascendente ?? false });
       if (error) throw error;
       const lista = data ?? [];
