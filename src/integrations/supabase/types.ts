@@ -347,6 +347,47 @@ export type Database = {
           },
         ]
       }
+      estoque: {
+        Row: {
+          custo_medio_unitario: number | null
+          empresa_id: string
+          id: string
+          quantidade_disponivel: number
+          quantidade_reservada: number
+          status: string
+          tipo_ativo: string
+          updated_at: string | null
+        }
+        Insert: {
+          custo_medio_unitario?: number | null
+          empresa_id: string
+          id?: string
+          quantidade_disponivel?: number
+          quantidade_reservada?: number
+          status?: string
+          tipo_ativo: string
+          updated_at?: string | null
+        }
+        Update: {
+          custo_medio_unitario?: number | null
+          empresa_id?: string
+          id?: string
+          quantidade_disponivel?: number
+          quantidade_reservada?: number
+          status?: string
+          tipo_ativo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
@@ -869,6 +910,7 @@ export type Database = {
           observacoes: string | null
           operador: string
           operador_id: string | null
+          tipo_bm: string | null
           updated_at: string
         }
         Insert: {
@@ -888,6 +930,7 @@ export type Database = {
           observacoes?: string | null
           operador: string
           operador_id?: string | null
+          tipo_bm?: string | null
           updated_at?: string
         }
         Update: {
@@ -907,6 +950,7 @@ export type Database = {
           observacoes?: string | null
           operador?: string
           operador_id?: string | null
+          tipo_bm?: string | null
           updated_at?: string
         }
         Relationships: [
