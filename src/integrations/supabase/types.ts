@@ -916,6 +916,86 @@ export type Database = {
           },
         ]
       }
+      reposicoes: {
+        Row: {
+          atualizado_por: string | null
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          data_reposicao: string
+          empresa_id: string
+          id: string
+          modalidade_id: string
+          motivo: string | null
+          observacoes: string | null
+          quantidade: number
+          status: string
+          updated_at: string
+          venda_id: string | null
+        }
+        Insert: {
+          atualizado_por?: string | null
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_reposicao?: string
+          empresa_id: string
+          id?: string
+          modalidade_id: string
+          motivo?: string | null
+          observacoes?: string | null
+          quantidade?: number
+          status?: string
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Update: {
+          atualizado_por?: string | null
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_reposicao?: string
+          empresa_id?: string
+          id?: string
+          modalidade_id?: string
+          motivo?: string | null
+          observacoes?: string | null
+          quantidade?: number
+          status?: string
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicoes_modalidade_id_fkey"
+            columns: ["modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "modalidades_bm"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios_papeis: {
         Row: {
           created_at: string
