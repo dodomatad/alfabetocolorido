@@ -189,7 +189,8 @@ function PaginaAcessos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("logs_acesso")
-        .select("*")
+        .select("id, usuario_nome, usuario_email, dispositivo, ip, status, created_at")
+        .eq("empresa_id", empresa?.id)
         .order("created_at", { ascending: false })
         .limit(5);
       if (error) throw error;
