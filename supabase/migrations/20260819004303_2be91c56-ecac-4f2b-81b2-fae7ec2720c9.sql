@@ -1,0 +1,1 @@
+ALTER TABLE public.lancamentos_financeiros ADD COLUMN IF NOT EXISTS subcategoria TEXT; ALTER TABLE public.lancamentos_financeiros ADD COLUMN IF NOT EXISTS quantidade_unidades INTEGER DEFAULT 0;
