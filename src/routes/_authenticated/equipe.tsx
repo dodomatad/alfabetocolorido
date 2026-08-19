@@ -200,6 +200,16 @@ function PaginaAcessos() {
     },
   });
 
+  const consultaPendentes = useQuery({
+    queryKey: ["acessos-pendentes", empresa?.id],
+    enabled: Boolean(empresa?.id) && temPapel("administrador", "gestor"),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("listar_acessos_pendentes");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   const logsRecentes = consultaLogs.data ?? [];
 
   return (
