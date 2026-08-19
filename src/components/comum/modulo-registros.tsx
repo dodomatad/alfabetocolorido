@@ -66,7 +66,7 @@ export type ColunaModulo = {
 type Props = {
   titulo: string;
   descricao: string;
-  tabela: "ordens_producao" | "itens_estoque" | "entregas" | "lancamentos_financeiros";
+  tabela: "ordens_producao" | "itens_estoque" | "entregas" | "lancamentos_financeiros" | "estoque";
   chaveConsulta: string;
   campos: CampoModulo[];
   colunas: ColunaModulo[];
