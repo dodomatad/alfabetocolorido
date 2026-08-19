@@ -56,7 +56,7 @@ function Pagina() {
           nome: "custo_reposicao",
           rotulo: "Custo da Reposição (R$)",
           tipo: "moeda",
-          visivel: (v) => v.status === "reposicao",
+          visivel: (v) => v['status'] === "reposicao",
         },
         { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
       ]}
