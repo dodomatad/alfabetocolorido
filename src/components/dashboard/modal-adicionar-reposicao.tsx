@@ -60,7 +60,7 @@ export function ModalAdicionarReposicao({
         tipo_perfil: valores.tipo_perfil,
         motivo_reposicao: valores.motivo_reposicao,
         custo_reposicao: Number(valores.custo_reposicao.replace(",", ".")) || 0,
-        responsavel_id: session?.user.id,
+        responsavel_id: session?.user.id || null,
         status: valores.status,
       });
 
