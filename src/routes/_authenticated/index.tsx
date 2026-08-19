@@ -274,42 +274,84 @@ function PaginaDashboard() {
     percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
   }));
 
-  const dadosGraficoVendas = DIAS.map((dia, indice) => {
-    const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
-    const reposicoesDia = reposicoes.filter((r: LinhaReposicao) => new Date(r.created_at).getUTCDay() === indice);
-    const entregasReposicaoDia = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao' && new Date(e.created_at).getUTCDay() === indice);
-    
-    const totalVendasDia = vendasDia.length;
-    
-    // Status considerados como venda efetivada
-    const statusEfetivados = ["confirmada", "em_producao", "pronta", "parcialmente_entregue", "entregue"];
-    // Status considerados como reembolso
-    const statusReembolso = ["reembolsada", "estornada", "cancelada"];
-
-    const efetivadas = vendasDia.filter((v) => statusEfetivados.includes(v.status));
-    const reembolsadas = vendasDia.filter((v) => statusReembolso.includes(v.status));
-
-    const valorEfetivado = efetivadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
-    const valorReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
-    const custoReposicoesPerfis = reposicoesDia.reduce((s: number, r: LinhaReposicao) => s + Number(r.custo_reposicao || 0), 0);
-    const custoReposicoesEntregas = entregasReposicaoDia.reduce((s: number, e: LinhaEntrega) => s + Number(e.custo_reposicao || 0), 0);
-    
-    const totalReembolsoReposicao = valorReembolsado + custoReposicoesPerfis + custoReposicoesEntregas;
-    const totalValorDia = valorEfetivado + totalReembolsoReposicao;
-    const taxaReembolsoDia = totalValorDia > 0 ? (totalReembolsoReposicao / totalValorDia) * 100 : 0;
-
-    return {
-      dia,
-      positivo: totalVendasDia > 0 ? (efetivadas.length / totalVendasDia) * 100 : 0,
-      negativo: totalVendasDia > 0 ? ((reembolsadas.length + reposicoesDia.length + entregasReposicaoDia.length) / totalVendasDia) * 100 : 0,
-      vendasValor: formatarMoeda(valorEfetivado),
-      vendasQtd: efetivadas.length,
-      reembolsosValor: formatarMoeda(totalReembolsoReposicao),
-      reembolsosQtd: reembolsadas.length + reposicoesDia.length + entregasReposicaoDia.length,
-      taxaReembolso: `${taxaReembolsoDia.toFixed(1)}%`,
+  const dadosGraficoVendas = useMemo(() => {
+    // 1. Inicializar estrutura dos 7 dias da semana
+    const diasSemanaMap: Record<number, { 
+      dia: string; 
+      vendasValor: number; 
+      vendasQtd: number; 
+      reembolsosValor: number; 
+      reembolsosQtd: number;
+    }> = {
+      0: { dia: 'Dom', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
+      1: { dia: 'Seg', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
+      2: { dia: 'Ter', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
+      3: { dia: 'Qua', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
+      4: { dia: 'Qui', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
+      5: { dia: 'Sex', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
+      6: { dia: 'Sáb', vendasValor: 0, vendasQtd: 0, reembolsosValor: 0, reembolsosQtd: 0 },
     };
-  });
-  const barrasVendasAgrupadas = [...dadosGraficoVendas.slice(1), dadosGraficoVendas[0]!];
+
+    // 2. Agrupar Vendas e Reembolsos da tabela `vendas`
+    vendas.forEach((venda) => {
+      const dataVenda = new Date(venda.data_venda || venda.created_at);
+      const diaIndex = dataVenda.getDay(); // 0 a 6
+      const valor = Number(venda.valor_total || 0);
+      const status = (venda.status || "").toLowerCase();
+
+      if (['reembolsada', 'reembolso', 'estornada', 'cancelada'].includes(status)) {
+        diasSemanaMap[diaIndex].reembolsosValor += valor;
+        diasSemanaMap[diaIndex].reembolsosQtd += 1;
+      } else {
+        diasSemanaMap[diaIndex].vendasValor += valor;
+        diasSemanaMap[diaIndex].vendasQtd += 1;
+      }
+    });
+
+    // 3. Somar custos de reposições registradas na semana (perfis)
+    reposicoes.forEach((rep: LinhaReposicao) => {
+      const dataRep = new Date(rep.created_at);
+      const diaIndex = dataRep.getDay();
+      const custo = Number(rep.custo_reposicao || 0);
+
+      diasSemanaMap[diaIndex].reembolsosValor += custo;
+      diasSemanaMap[diaIndex].reembolsosQtd += 1;
+    });
+
+    // 4. Somar custos de reposições em entregas
+    entregas.forEach((ent: LinhaEntrega) => {
+      if (ent.status === 'reposicao') {
+        const dataEnt = new Date(ent.created_at);
+        const diaIndex = dataEnt.getDay();
+        const custo = Number(ent.custo_reposicao || 0);
+
+        diasSemanaMap[diaIndex].reembolsosValor += custo;
+        diasSemanaMap[diaIndex].reembolsosQtd += 1;
+      }
+    });
+
+    // 5. Formatar array final e calcular percentuais para o gráfico
+    const ordem = [1, 2, 3, 4, 5, 6, 0]; // Seg -> Dom
+    return ordem.map(idx => {
+      const dia = diasSemanaMap[idx];
+      const totalValor = dia.vendasValor + dia.reembolsosValor;
+      const totalQtd = dia.vendasQtd + dia.reembolsosQtd;
+      const taxaReembolso = totalValor > 0 ? (dia.reembolsosValor / totalValor) * 100 : 0;
+
+      return {
+        dia: dia.dia,
+        positivo: totalQtd > 0 ? (dia.vendasQtd / totalQtd) * 100 : 0,
+        negativo: totalQtd > 0 ? (dia.reembolsosQtd / totalQtd) * 100 : 0,
+        vendasValor: formatarMoeda(dia.vendasValor),
+        vendasQtd: dia.vendasQtd,
+        reembolsosValor: formatarMoeda(dia.reembolsosValor),
+        reembolsosQtd: dia.reembolsosQtd,
+        taxaReembolso: `${taxaReembolso.toFixed(1)}%`,
+      };
+    });
+  }, [vendas, reposicoes, entregas]);
+
+  const barrasVendasAgrupadas = dadosGraficoVendas;
 
   const dadosGraficoProducao = DIAS.map((dia, indice) => {
     const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
