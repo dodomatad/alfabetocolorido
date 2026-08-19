@@ -347,6 +347,47 @@ export type Database = {
           },
         ]
       }
+      estoque: {
+        Row: {
+          custo_medio_unitario: number | null
+          empresa_id: string
+          id: string
+          quantidade_disponivel: number
+          quantidade_reservada: number
+          status: string
+          tipo_ativo: string
+          updated_at: string | null
+        }
+        Insert: {
+          custo_medio_unitario?: number | null
+          empresa_id: string
+          id?: string
+          quantidade_disponivel?: number
+          quantidade_reservada?: number
+          status?: string
+          tipo_ativo: string
+          updated_at?: string | null
+        }
+        Update: {
+          custo_medio_unitario?: number | null
+          empresa_id?: string
+          id?: string
+          quantidade_disponivel?: number
+          quantidade_reservada?: number
+          status?: string
+          tipo_ativo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
