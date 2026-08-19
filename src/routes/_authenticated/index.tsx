@@ -295,16 +295,18 @@ function PaginaDashboard() {
     // 2. Agrupar Vendas e Reembolsos da tabela `vendas`
     vendas.forEach((venda) => {
       const dataVenda = new Date(venda.data_venda || venda.created_at);
-      const diaIndex = dataVenda.getDay(); // 0 a 6
+      const diaIndex = dataVenda.getDay();
       const valor = Number(venda.valor_total || 0);
       const status = (venda.status || "").toLowerCase();
 
-      if (['reembolsada', 'reembolso', 'estornada', 'cancelada'].includes(status)) {
-        diasSemanaMap[diaIndex].reembolsosValor += valor;
-        diasSemanaMap[diaIndex].reembolsosQtd += 1;
-      } else {
-        diasSemanaMap[diaIndex].vendasValor += valor;
-        diasSemanaMap[diaIndex].vendasQtd += 1;
+      if (diasSemanaMap[diaIndex]) {
+        if (['reembolsada', 'reembolso', 'estornada', 'cancelada'].includes(status)) {
+          diasSemanaMap[diaIndex].reembolsosValor += valor;
+          diasSemanaMap[diaIndex].reembolsosQtd += 1;
+        } else {
+          diasSemanaMap[diaIndex].vendasValor += valor;
+          diasSemanaMap[diaIndex].vendasQtd += 1;
+        }
       }
     });
 
@@ -314,8 +316,10 @@ function PaginaDashboard() {
       const diaIndex = dataRep.getDay();
       const custo = Number(rep.custo_reposicao || 0);
 
-      diasSemanaMap[diaIndex].reembolsosValor += custo;
-      diasSemanaMap[diaIndex].reembolsosQtd += 1;
+      if (diasSemanaMap[diaIndex]) {
+        diasSemanaMap[diaIndex].reembolsosValor += custo;
+        diasSemanaMap[diaIndex].reembolsosQtd += 1;
+      }
     });
 
     // 4. Somar custos de reposições em entregas
@@ -325,15 +329,17 @@ function PaginaDashboard() {
         const diaIndex = dataEnt.getDay();
         const custo = Number(ent.custo_reposicao || 0);
 
-        diasSemanaMap[diaIndex].reembolsosValor += custo;
-        diasSemanaMap[diaIndex].reembolsosQtd += 1;
+        if (diasSemanaMap[diaIndex]) {
+          diasSemanaMap[diaIndex].reembolsosValor += custo;
+          diasSemanaMap[diaIndex].reembolsosQtd += 1;
+        }
       }
     });
 
     // 5. Formatar array final e calcular percentuais para o gráfico
     const ordem = [1, 2, 3, 4, 5, 6, 0]; // Seg -> Dom
     return ordem.map(idx => {
-      const dia = diasSemanaMap[idx];
+      const dia = diasSemanaMap[idx]!;
       const totalValor = dia.vendasValor + dia.reembolsosValor;
       const totalQtd = dia.vendasQtd + dia.reembolsosQtd;
       const taxaReembolso = totalValor > 0 ? (dia.reembolsosValor / totalValor) * 100 : 0;
