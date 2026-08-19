@@ -91,6 +91,7 @@ type LinhaVenda = {
 type LinhaItem = {
   quantidade: number | string;
   modalidades_bm: { custo_producao_padrao: number | string } | null;
+  vendas?: { data_venda: string };
 };
 
 type LinhaReposicao = {
@@ -180,8 +181,8 @@ function PaginaDashboard() {
   ) || 0;
   const lucro = liquido - custos;
   
-  const totalEntregue = itens.reduce((s, i) => s + (Number(i.quantidade) || 0), 0);
-  const totalReposicoes = reposicoes.reduce((s, r) => s + (Number(r.quantidade) || 0), 0);
+  const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
+  const totalReposicoes = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.quantidade) || 0), 0);
   const taxaReposicao = totalEntregue > 0 ? (totalReposicoes / totalEntregue) * 100 : 0;
 
   const convertidas = vendas.filter(
@@ -698,21 +699,21 @@ function PaginaDashboard() {
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
                     <p className="text-[11px] text-muted-foreground uppercase font-bold">Total Reposições</p>
                     <p className="text-xl font-bold text-sky-400 mt-1">
-                      {reposicoes.filter(r => 
+                      {reposicoes.filter((r: LinhaReposicao) => 
                         (filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
-                      ).reduce((acc, r) => acc + (Number(r.quantidade) || 0), 0)}
+                      ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.quantidade) || 0), 0)}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
                     <p className="text-[11px] text-muted-foreground uppercase font-bold">Taxa de Reposição</p>
                     <p className="text-xl font-bold text-white mt-1">
                       {(() => {
-                        const vds = itens.filter(i => 
-                          filtroDiaModal === "todos" || DIAS[new Date(`${(i.vendas as any).data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal
-                        ).reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0);
-                        const rps = reposicoes.filter(r => 
+                        const vds = itens.filter((i: LinhaItem) => 
+                          i.vendas && (filtroDiaModal === "todos" || DIAS[new Date(`${i.vendas.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
+                        ).reduce((acc: number, i: LinhaItem) => acc + (Number(i.quantidade) || 0), 0);
+                        const rps = reposicoes.filter((r: LinhaReposicao) => 
                           filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal
-                        ).reduce((acc, r) => acc + (Number(r.quantidade) || 0), 0);
+                        ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.quantidade) || 0), 0);
                         return vds > 0 ? `${((rps / vds) * 100).toFixed(1)}%` : "0%";
                       })()}
                     </p>
@@ -733,8 +734,8 @@ function PaginaDashboard() {
                     </TableHeader>
                     <TableBody>
                       {reposicoes
-                        .filter(r => filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
-                        .map(r => (
+                        .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
+                        .map((r: LinhaReposicao) => (
                           <TableRow key={r.id} className="hover:bg-white/5 border-white/5">
                             <TableCell className="text-xs">{formatarData(r.data_reposicao)}</TableCell>
                             <TableCell className="text-xs">{r.clientes?.nome || "—"}</TableCell>
