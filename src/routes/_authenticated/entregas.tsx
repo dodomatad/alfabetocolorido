@@ -37,7 +37,7 @@ function Pagina() {
         { nome: "endereco", rotulo: "Endereço", tipo: "texto" },
         { nome: "data_prevista", rotulo: "Data prevista", tipo: "data" },
         { nome: "data_realizada", rotulo: "Data realizada", tipo: "data" },
-        { nome: "transportadora", rotulo: "Transportadora", tipo: "texto" },
+        
         {
           nome: "status",
           rotulo: "Status",
@@ -64,7 +64,6 @@ function Pagina() {
         { nome: "destinatario", rotulo: "Destinatário" },
         { nome: "endereco", rotulo: "Endereço" },
         { nome: "data_prevista", rotulo: "Prevista", formato: "data" },
-        { nome: "transportadora", rotulo: "Transportadora" },
         { nome: "status", rotulo: "Status" },
         { nome: "custo_reposicao", rotulo: "Custo Repos.", formato: "moeda" },
       ]}
