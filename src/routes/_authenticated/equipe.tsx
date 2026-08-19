@@ -276,56 +276,71 @@ function PaginaAcessos() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card shadow-panel">
-        <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou e-mail..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-9"
-              />
+      <Tabs value={abaPrincipal} onValueChange={setAbaPrincipal} className="space-y-6">
+        <TabsList className="bg-[#141417] border-[#27272A]/40 p-1">
+          <TabsTrigger value="membros" className="data-[state=active]:bg-[#27272A] data-[state=active]:text-white">
+            Equipe Ativa ({totalMembros})
+          </TabsTrigger>
+          {temPapel("administrador", "gestor") && (
+            <TabsTrigger value="pendentes" className="data-[state=active]:bg-[#27272A] data-[state=active]:text-white relative">
+              Aprovações Pendentes
+              {consultaPendentes.data && consultaPendentes.data.length > 0 && (
+                <Badge className="ml-2 bg-amber-500 text-black border-none animate-pulse">
+                  {consultaPendentes.data.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="membros" className="space-y-6">
+          <div className="rounded-xl border bg-card shadow-panel">
+            <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-1 flex-wrap items-center gap-3">
+                <div className="relative w-full max-w-xs">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou e-mail..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                <Select defaultValue="ativos">
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos Status</SelectItem>
+                    <SelectItem value="ativos">Ativos</SelectItem>
+                    <SelectItem value="pendentes">Pendentes</SelectItem>
+                    <SelectItem value="inativos">Inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <Select defaultValue="ativos">
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Status</SelectItem>
-                <SelectItem value="ativos">Ativos</SelectItem>
-                <SelectItem value="pendentes">Pendentes</SelectItem>
-                <SelectItem value="inativos">Inativos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex gap-2">
-          </div>
-        </div>
+            {consulta.isLoading ? (
+              <div className="p-8">
+                <CarregandoTabela colunas={5} />
+              </div>
+            ) : consulta.isError ? (
+              <div className="p-8">
+                <EstadoErro
+                  descricao={(consulta.error as Error).message}
+                  aoTentarNovamente={() => void consulta.refetch()}
+                />
+              </div>
+            ) : membros.length === 0 ? (
+              <div className="p-8">
+                <EstadoVazio
+                  titulo="Nenhum membro encontrado"
+                  descricao="Não encontramos membros da equipe com os critérios de busca informados."
+                />
+              </div>
+            ) : (
 
-
-        {consulta.isLoading ? (
-          <div className="p-8">
-            <CarregandoTabela colunas={5} />
-          </div>
-        ) : consulta.isError ? (
-          <div className="p-8">
-            <EstadoErro
-              descricao={(consulta.error as Error).message}
-              aoTentarNovamente={() => void consulta.refetch()}
-            />
-          </div>
-        ) : membros.length === 0 ? (
-          <div className="p-8">
-            <EstadoVazio
-              titulo="Nenhum membro encontrado"
-              descricao="Não encontramos membros da equipe com os critérios de busca informados."
-            />
-          </div>
-        ) : (
           <Table>
             <TableHeader>
               <TableRow>
