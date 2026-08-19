@@ -46,6 +46,7 @@ export type CampoModulo = {
   tipo: "texto" | "numero" | "moeda" | "data" | "selecao" | "texto_longo" | "relacao";
   subtipo?: "combobox";
   obrigatorio?: boolean;
+  visivel?: (valores: Record<string, any>) => boolean;
 
   padrao?: string;
   opcoes?: { valor: string; rotulo: string }[];
@@ -241,13 +242,16 @@ export function ModuloRegistros({
           </DialogHeader>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {campos.map((campo) => (
-              <div
-                key={campo.nome}
-                className={`space-y-1.5 ${campo.tipo === "texto_longo" ? "sm:col-span-2" : ""}`}
-              >
-                <Label htmlFor={campo.nome}>{campo.rotulo}</Label>
-                {campo.tipo === "selecao" || campo.tipo === "relacao" ? (
+            {campos.map((campo) => {
+              if (campo.visivel && !campo.visivel(valores)) return null;
+              
+              return (
+                <div
+                  key={campo.nome}
+                  className={`space-y-1.5 ${campo.tipo === "texto_longo" ? "sm:col-span-2" : ""}`}
+                >
+                  <Label htmlFor={campo.nome}>{campo.rotulo}</Label>
+                  {campo.tipo === "selecao" || campo.tipo === "relacao" ? (
                   campo.subtipo === "combobox" ? (
                     <Combobox
                       options={
@@ -304,7 +308,7 @@ export function ModuloRegistros({
                   />
                 )}
               </div>
-            ))}
+            );})}
           </div>
 
           <DialogFooter>

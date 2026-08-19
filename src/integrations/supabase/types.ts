@@ -221,6 +221,7 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           criado_por: string | null
+          custo_reposicao: number | null
           data_prevista: string | null
           data_realizada: string | null
           destinatario: string | null
@@ -238,6 +239,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
+          custo_reposicao?: number | null
           data_prevista?: string | null
           data_realizada?: string | null
           destinatario?: string | null
@@ -255,6 +257,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
+          custo_reposicao?: number | null
           data_prevista?: string | null
           data_realizada?: string | null
           destinatario?: string | null
