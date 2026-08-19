@@ -240,6 +240,7 @@ function Pagina() {
   const vazio = {
     operador: "",
     data_registro: iso(new Date()),
+    tipo_bm: "BM 250",
     bms_criadas: "",
     bms_aquecidas: "",
     contas_subidas: "",
