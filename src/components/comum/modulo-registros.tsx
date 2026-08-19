@@ -37,6 +37,7 @@ import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarData, formatarMoeda } from "@/lib/formatadores";
 import { Combobox } from "@/components/ui/combobox";
+import { SeloStatusVenda } from "./selo-status";
 
 export type Registro = Record<string, unknown>;
 
@@ -213,10 +214,11 @@ export function ModuloRegistros({
     onError: (erro: Error) => toast.error(erro.message),
   });
 
-  const formatar = (valor: unknown, formato?: ColunaModulo["formato"]) => {
+  const formatar = (valor: unknown, formato: ColunaModulo["formato"], c: ColunaModulo) => {
     if (valor === null || valor === undefined || valor === "") return "—";
     if (formato === "moeda") return formatarMoeda(valor as number);
     if (formato === "data") return formatarData(String(valor), fuso);
+    if (c.nome === "status") return <SeloStatusVenda status={String(valor)} />;
     return String(valor).replace(/_/g, " ");
   };
 
@@ -364,7 +366,7 @@ export function ModuloRegistros({
                         key={c.nome}
                         className={c.alinharDireita ? "num text-right" : undefined}
                       >
-                        {formatar(registro[c.nome], c.formato)}
+                        {formatar(registro[c.nome], c.formato, c)}
                       </TableCell>
                     ))}
                   </TableRow>
