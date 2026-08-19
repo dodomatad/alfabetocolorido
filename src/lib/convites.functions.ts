@@ -42,15 +42,16 @@ export const aceitarConvite = createServerFn({ method: "POST" })
 
     if (errConvite || !convite) throw new Error("Convite inválido ou expirado");
 
-    // 2. Criar usuário no Supabase Auth
-    const { data: authUser, error: errAuth } = await supabase.auth.signUp({
+    // 2. Criar usuário no Supabase Auth usando o admin para evitar trava de confirmação
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    
+    const { data: authUser, error: errAuth } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      options: {
-        data: {
-          nome: data.nome,
-          convite_token: data.token
-        }
+      email_confirm: true,
+      user_metadata: {
+        nome: data.nome,
+        convite_token: data.token
       }
     });
 
@@ -58,7 +59,7 @@ export const aceitarConvite = createServerFn({ method: "POST" })
     if (!authUser.user) throw new Error("Erro ao criar usuário");
 
     // 3. Processamento via admin
-    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    // supabaseAdmin já importado acima
 
     try {
         const empresaId = convite.empresa_id;

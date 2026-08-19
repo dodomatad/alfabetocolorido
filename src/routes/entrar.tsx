@@ -112,7 +112,9 @@ function PaginaEntrar() {
         const resp = await fetch("https://api.ipify.org?format=json");
         const data = await resp.json();
         ip = data.ip;
-      } catch (e) {}
+      } catch (e) {
+        console.warn("Não foi possível obter o IP do cliente para o log de falha", e);
+      }
 
       await registrarFalhaLogin({
         data: {
