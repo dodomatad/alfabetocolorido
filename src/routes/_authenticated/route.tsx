@@ -1,9 +1,10 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
+
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { registrarLogAcesso } from "@/lib/logs.functions";
@@ -28,9 +29,9 @@ export const Route = createFileRoute("/_authenticated")({
 
 function LayoutProtegido() {
   const { session, perfil, carregando, erro, recarregar, temPermissao } = useSessao();
-  const router = Route.useRouter();
-  const location = Route.useSearch(); // Na verdade, precisamos do pathname do context do router
+  const router = useRouter();
   const { pathname } = router.state.location;
+
 
   useEffect(() => {
     // Gate de Acesso em Análise: só redireciona se terminou de carregar e NÃO tem empresa
