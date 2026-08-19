@@ -140,7 +140,12 @@ export function GraficoBarrasAgrupadas({
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={dados} margin={{ top: 24, right: 8, left: 8, bottom: 8 }}>
+        <BarChart 
+          data={dados} 
+          margin={{ top: 24, right: 8, left: 8, bottom: 8 }}
+          barGap={4}
+          barCategoryGap="20%"
+        >
           <XAxis
             dataKey="dia"
             tickLine={false}
@@ -181,7 +186,8 @@ export function GraficoBarrasAgrupadas({
             fill={cores[0]}
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
-            barSize={20}
+            barSize={18}
+            minPointSize={4}
             {...(onBarClick ? { 
               onClick: (data: any) => onBarClick(data.payload),
               className: "cursor-pointer"
@@ -193,7 +199,8 @@ export function GraficoBarrasAgrupadas({
             fill={cores[1]}
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
-            barSize={20}
+            barSize={18}
+            minPointSize={4}
             {...(onBarClick ? { 
               onClick: (data: any) => onBarClick(data.payload),
               className: "cursor-pointer"
