@@ -16,6 +16,18 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/entrar" });
     }
 
+    // Verificar se o usuário possui perfil e empresa vinculada
+    const { data: perfil } = await supabase
+      .from("perfis")
+      .select("empresa_id")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (!perfil?.empresa_id && location.pathname !== "/aguardando-aprovacao") {
+      throw redirect({ to: "/aguardando-aprovacao" });
+    }
+
+
     // Verificação de permissão de módulo
     const path = location.pathname.split('/')[1] || 'dashboard';
     const modulosMapeados: Record<string, string> = {

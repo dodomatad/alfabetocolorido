@@ -44,7 +44,7 @@ function PaginaEntrar() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [nome, setNome] = useState("");
+  // const [nome, setNome] = useState(""); // Removido
   const [enviando, setEnviando] = useState(false);
   const [lembrar, setLembrar] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState("entrar");
@@ -179,73 +179,8 @@ function PaginaEntrar() {
     }
   }
 
-  async function criarConta(evento: React.FormEvent) {
-    evento.preventDefault();
-    if (!nome.trim()) {
-      toast.error("Informe seu nome completo");
-      return;
-    }
-    if (!emailValido(email)) {
-      toast.error("Informe um e-mail válido");
-      return;
-    }
-    if (senha.length < 8) {
-      toast.error("A senha deve ter pelo menos 8 caracteres");
-      return;
-    }
-    setEnviando(true);
-    const emailSanitizado = email.trim().toLowerCase();
-    
-    // 1. Criar usuário no Auth
-    const { data, error } = await supabase.auth.signUp({
-      email: emailSanitizado,
-      password: senha,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { nome: nome.trim() },
-      },
-    });
+  // Lógica de criar conta removida conforme solicitado
 
-    if (error) {
-      setEnviando(false);
-      if (error.message.toLowerCase().includes("already registered")) {
-        toast.info("Este e-mail já possui cadastro. Redirecionando para a tela de login...");
-        setAbaAtiva("entrar");
-        return;
-      }
-      toast.error("Não foi possível criar a conta", { description: error.message });
-      return;
-    }
-
-    if (data.user) {
-      // 2. Executar Onboarding (Cria empresa, perfil e papel padrão)
-      // O RPC agora retorna um JSONB com o status da operação
-      const { data: onboardingRes, error: errorOnboarding } = await supabase.rpc('onboarding_novo_usuario', {
-        _nome_usuario: nome.trim()
-      });
-
-      if (errorOnboarding || (onboardingRes as any)?.success === false) {
-        console.error("Erro no onboarding:", errorOnboarding || (onboardingRes as any)?.error);
-        toast.error("Erro ao configurar sua empresa", { 
-          description: "Sua conta foi criada, mas houve um problema na configuração inicial. Tente atualizar a página." 
-        });
-      }
-
-      void registrarLog(data.user);
-      
-      if (!errorOnboarding && (onboardingRes as any)?.success !== false) {
-        toast.success("Conta criada com sucesso!", {
-          description: "Bem-vindo ao Gestão BMs. Sua empresa foi configurada.",
-        });
-      }
-      
-      setEnviando(false);
-      // Forçar recarregamento para garantir que a sessão e empresa_id sejam injetados corretamente
-      window.location.href = "/";
-    } else {
-      setEnviando(false);
-    }
-  }
 
   async function entrarComGoogle() {
     const resultado = await lovable.auth.signInWithOAuth("google", {
@@ -283,11 +218,9 @@ function PaginaEntrar() {
             <CardDescription>Use as credenciais fornecidas pela sua empresa.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="entrar">Entrar</TabsTrigger>
-                <TabsTrigger value="criar">Criar conta</TabsTrigger>
-              </TabsList>
+            <Tabs value="entrar">
+              {/* Abas removidas para restringir o autocadastro */}
+
 
               <TabsContent value="entrar" className="mt-4">
                 <form className="grid gap-4" onSubmit={entrar} noValidate>
@@ -339,43 +272,8 @@ function PaginaEntrar() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="criar" className="mt-4">
-                <form className="grid gap-4" onSubmit={criarConta} noValidate>
-                  <div className="grid gap-2">
-                    <Label htmlFor="nome-criar">Nome completo</Label>
-                    <Input
-                      id="nome-criar"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      autoComplete="name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email-criar">E-mail</Label>
-                    <Input
-                      id="email-criar"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="senha-criar">Senha</Label>
-                    <Input
-                      id="senha-criar"
-                      type="password"
-                      autoComplete="new-password"
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
-                  </div>
-                  <Button type="submit" disabled={enviando}>
-                    {enviando ? "Criando conta…" : "Criar conta"}
-                  </Button>
-                </form>
-              </TabsContent>
+              {/* TabsContent value="criar" removido */}
+
             </Tabs>
 
             <div className="my-5 flex items-center gap-3">

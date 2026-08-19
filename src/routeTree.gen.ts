@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
+import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -34,6 +35,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AceitarConviteRoute = AceitarConviteRouteImport.update({
   id: '/aceitar-convite',
   path: '/aceitar-convite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
+  id: '/aguardando-aprovacao',
+  path: '/aguardando-aprovacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EntrarRoute = EntrarRouteImport.update({
@@ -117,6 +123,7 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/aceitar-convite': typeof AceitarConviteRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/aceitar-convite': typeof AceitarConviteRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/aceitar-convite'
+    | '/aguardando-aprovacao'
     | '/entrar'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/aceitar-convite'
+    | '/aguardando-aprovacao'
     | '/entrar'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/aceitar-convite'
+    | '/aguardando-aprovacao'
     | '/entrar'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -231,6 +243,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AceitarConviteRoute: typeof AceitarConviteRoute
+  AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   EntrarRoute: typeof EntrarRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       path: '/aceitar-convite'
       fullPath: '/aceitar-convite'
       preLoaderRoute: typeof AceitarConviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aguardando-aprovacao': {
+      id: '/aguardando-aprovacao'
+      path: '/aguardando-aprovacao'
+      fullPath: '/aguardando-aprovacao'
+      preLoaderRoute: typeof AguardandoAprovacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/entrar': {
@@ -396,6 +416,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AceitarConviteRoute: AceitarConviteRoute,
+  AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   EntrarRoute: EntrarRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
