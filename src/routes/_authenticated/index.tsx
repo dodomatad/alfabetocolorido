@@ -781,29 +781,65 @@ function PaginaDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reposicoes
-                        .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
-                        .map((r: LinhaReposicao) => (
-                          <TableRow key={r.id} className="hover:bg-white/5 border-white/5">
-                            <TableCell className="text-xs">{formatarData(r.created_at)}</TableCell>
-                            <TableCell className="text-xs">{r.cliente_nome || (r.venda_id ? `Venda #${r.venda_id.slice(0, 8)}` : "—")}</TableCell>
-                            <TableCell className="text-xs">{r.tipo_perfil || "—"}</TableCell>
-                            <TableCell className="text-xs">{r.motivo_reposicao || "—"}</TableCell>
-                            <TableCell className="text-xs text-rose-400 font-medium">{formatarMoeda(Number(r.custo_reposicao))}</TableCell>
+                      {(() => {
+                        const listaReposicoes = reposicoes
+                          .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                          .map((r: LinhaReposicao) => ({
+                            id: r.id,
+                            data: r.created_at,
+                            info: r.cliente_nome || (r.venda_id ? `Venda #${r.venda_id.slice(0, 8)}` : "—"),
+                            tipo: r.tipo_perfil || "—",
+                            motivo: r.motivo_reposicao || "—",
+                            custo: Number(r.custo_reposicao),
+                            status: r.status,
+                            origem: "Perfis"
+                          }));
+                        
+                        const listaEntregas = entregas
+                          .filter((e: LinhaEntrega) => e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal))
+                          .map((e: LinhaEntrega) => ({
+                            id: e.id,
+                            data: e.created_at,
+                            info: `Entrega #${e.id.slice(0, 8)}`,
+                            tipo: "BM (Entrega)",
+                            motivo: "Garantia Operacional",
+                            custo: Number(e.custo_reposicao),
+                            status: e.status,
+                            origem: "Entregas"
+                          }));
+
+                        const combinada = [...listaReposicoes, ...listaEntregas].sort((a, b) => 
+                          new Date(b.data).getTime() - new Date(a.data).getTime()
+                        );
+
+                        if (combinada.length === 0) {
+                          return (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                Nenhuma reposição encontrada.
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+
+                        return combinada.map((item) => (
+                          <TableRow key={item.id} className="hover:bg-white/5 border-white/5">
+                            <TableCell className="text-xs">{formatarData(item.data)}</TableCell>
+                            <TableCell className="text-xs">{item.info}</TableCell>
+                            <TableCell className="text-xs">{item.tipo}</TableCell>
+                            <TableCell className="text-xs">{item.motivo}</TableCell>
+                            <TableCell className="text-xs text-rose-400 font-medium">{formatarMoeda(item.custo)}</TableCell>
                             <TableCell>
-                              <Badge variant={r.status === "cancelada" ? "destructive" : "default"} className="text-[10px] py-0">
-                                {r.status}
+                              <Badge variant={item.status === "cancelada" ? "destructive" : "default"} className="text-[10px] py-0">
+                                {item.status}
                               </Badge>
+                              {item.origem === "Entregas" && (
+                                <span className="ml-2 text-[8px] text-muted-foreground uppercase opacity-50">Entregas</span>
+                              )}
                             </TableCell>
                           </TableRow>
-                        ))}
-                      {reposicoes.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            Nenhuma reposição encontrada.
-                          </TableCell>
-                        </TableRow>
-                      )}
+                        ));
+                      })()}
                     </TableBody>
                   </Table>
                 </ScrollArea>
