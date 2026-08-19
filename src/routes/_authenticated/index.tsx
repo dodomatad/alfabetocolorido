@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { LayoutDashboard, Search, Menu, History } from "lucide-react";
+import { LayoutDashboard, Search, Menu, History, Plus } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 
@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ModalAdicionarReposicao } from "@/components/dashboard/modal-adicionar-reposicao";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -96,14 +97,13 @@ type LinhaItem = {
 
 type LinhaReposicao = {
   id: string;
-  quantidade: number;
-  data_reposicao: string;
-  motivo: string;
+  cliente_nome: string;
+  tipo_perfil: string;
+  motivo_reposicao: string;
+  custo_reposicao: number | string;
   status: string;
-  cliente_id: string;
-  clientes: { nome: string } | null;
-  modalidade_id: string;
-  modalidades_bm: { nome: string } | null;
+  created_at: string;
+  venda_id: string | null;
 };
 
 function PaginaDashboard() {
@@ -114,6 +114,7 @@ function PaginaDashboard() {
   const [modalVendasAberto, setModalVendasAberto] = useState(false);
   const [modalProducaoAberto, setModalProducaoAberto] = useState(false);
   const [modalReposicoesAberto, setModalReposicoesAberto] = useState(false);
+  const [modalNovaReposicaoAberto, setModalNovaReposicaoAberto] = useState(false);
   const [filtroDiaModal, setFiltroDiaModal] = useState<string>("todos");
 
   const { inicioIso, hojeIso } = useMemo(() => {
@@ -143,9 +144,9 @@ function PaginaDashboard() {
           .select("quantidade, vendas!inner(data_venda), modalidades_bm(custo_producao_padrao)")
           .gte("vendas.data_venda", inicioIso),
         supabase
-          .from("reposicoes")
-          .select("id, quantidade, data_reposicao, motivo, status, cliente_id, clientes(nome), modalidade_id, modalidades_bm(nome)")
-          .gte("data_reposicao", inicioIso)
+          .from("reposicoes_perfis")
+          .select("*")
+          .gte("created_at", inicioIso)
       ]);
 
       const erro = vendas.error ?? itens.error ?? (reposicoes.error as any);
@@ -175,14 +176,17 @@ function PaginaDashboard() {
   const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
   const bruto = liquido + totalReembolsado + descontos;
-  const custos = itens.reduce(
+  const custosProducao = itens.reduce(
     (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
     0,
   ) || 0;
-  const lucro = liquido - custos;
+
+  const totalCustoReposicoes = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
+  const custosTotais = custosProducao + totalCustoReposicoes;
+  const lucro = liquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
-  const totalReposicoes = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.quantidade) || 0), 0);
+  const totalReposicoes = reposicoes.length;
   const taxaReposicao = totalEntregue > 0 ? (totalReposicoes / totalEntregue) * 100 : 0;
 
   const convertidas = vendas.filter(
@@ -203,7 +207,7 @@ function PaginaDashboard() {
     };
   };
 
-  const dadosROI = calcularDadosROI(lucro, custos);
+  const dadosROI = calcularDadosROI(lucro, custosTotais);
 
   const getCorTaxaReposicao = (taxa: number) => {
     if (taxa > 20) return "text-rose-400";
@@ -398,7 +402,7 @@ function PaginaDashboard() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <CartaoMetrica
               rotulo="Custo com Perfil"
-              valor={fmtValor(custos)}
+              valor={fmtValor(custosTotais)}
             />
             <CartaoMetrica
               rotulo="Lucro"
@@ -678,8 +682,16 @@ function PaginaDashboard() {
           {/* Modal Histórico de Reposições */}
           <Dialog open={modalReposicoesAberto} onOpenChange={setModalReposicoesAberto}>
             <DialogContent className="max-w-4xl bg-[#141417] border-[#27272A]/50 text-white max-h-[90vh] flex flex-col">
-              <DialogHeader>
+              <DialogHeader className="flex flex-row items-center justify-between">
                 <DialogTitle>Histórico de Reposições (Garantia)</DialogTitle>
+                <Button 
+                  size="sm" 
+                  className="bg-primary hover:bg-primary/90 text-xs mr-8"
+                  onClick={() => setModalNovaReposicaoAberto(true)}
+                >
+                  <Plus className="size-3.5 mr-1.5" />
+                  Nova Reposição
+                </Button>
               </DialogHeader>
               
               <div className="flex flex-col gap-4 mt-2">
@@ -700,20 +712,28 @@ function PaginaDashboard() {
                     <p className="text-[11px] text-muted-foreground uppercase font-bold">Total Reposições</p>
                     <p className="text-xl font-bold text-sky-400 mt-1">
                       {reposicoes.filter((r: LinhaReposicao) => 
-                        (filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
-                      ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.quantidade) || 0), 0)}
+                        (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                      ).length}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Taxa de Reposição</p>
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Custo Garantia</p>
+                    <p className="text-xl font-bold text-rose-400 mt-1">
+                      {formatarMoeda(reposicoes.filter((r: LinhaReposicao) => 
+                        (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                      ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.custo_reposicao) || 0), 0))}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Taxa no Período</p>
                     <p className="text-xl font-bold text-white mt-1">
                       {(() => {
                         const vds = itens.filter((i: LinhaItem) => 
                           i.vendas && (filtroDiaModal === "todos" || DIAS[new Date(`${i.vendas.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
                         ).reduce((acc: number, i: LinhaItem) => acc + (Number(i.quantidade) || 0), 0);
                         const rps = reposicoes.filter((r: LinhaReposicao) => 
-                          filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal
-                        ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.quantidade) || 0), 0);
+                          filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal
+                        ).length;
                         return vds > 0 ? `${((rps / vds) * 100).toFixed(1)}%` : "0%";
                       })()}
                     </p>
@@ -725,23 +745,23 @@ function PaginaDashboard() {
                     <TableHeader className="bg-white/5">
                       <TableRow>
                         <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
+                        <TableHead>Cliente/Venda</TableHead>
                         <TableHead>Perfil/BM</TableHead>
                         <TableHead>Motivo</TableHead>
-                        <TableHead>Qtd</TableHead>
+                        <TableHead>Custo</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {reposicoes
-                        .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.data_reposicao}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
+                        .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
                         .map((r: LinhaReposicao) => (
                           <TableRow key={r.id} className="hover:bg-white/5 border-white/5">
-                            <TableCell className="text-xs">{formatarData(r.data_reposicao)}</TableCell>
-                            <TableCell className="text-xs">{r.clientes?.nome || "—"}</TableCell>
-                            <TableCell className="text-xs">{r.modalidades_bm?.nome || "—"}</TableCell>
-                            <TableCell className="text-xs">{r.motivo || "—"}</TableCell>
-                            <TableCell className="text-xs">{r.quantidade}</TableCell>
+                            <TableCell className="text-xs">{formatarData(r.created_at)}</TableCell>
+                            <TableCell className="text-xs">{r.cliente_nome || (r.venda_id ? `Venda #${r.venda_id.slice(0, 8)}` : "—")}</TableCell>
+                            <TableCell className="text-xs">{r.tipo_perfil || "—"}</TableCell>
+                            <TableCell className="text-xs">{r.motivo_reposicao || "—"}</TableCell>
+                            <TableCell className="text-xs text-rose-400 font-medium">{formatarMoeda(Number(r.custo_reposicao))}</TableCell>
                             <TableCell>
                               <Badge variant={r.status === "cancelada" ? "destructive" : "default"} className="text-[10px] py-0">
                                 {r.status}
@@ -763,6 +783,11 @@ function PaginaDashboard() {
             </DialogContent>
           </Dialog>
 
+          <ModalAdicionarReposicao 
+            aberto={modalNovaReposicaoAberto} 
+            aoFechar={() => setModalNovaReposicaoAberto(false)} 
+            vendasDisponiveis={vendas}
+          />
         </>
       )}
     </div>
