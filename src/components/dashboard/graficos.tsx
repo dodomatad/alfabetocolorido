@@ -194,7 +194,8 @@ export function GraficoBarrasAgrupadas({
             fill={cores[1]}
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
-            barSize={20}
+            barSize={18}
+            minPointSize={4}
             {...(onBarClick ? { 
               onClick: (data: any) => onBarClick(data.payload),
               className: "cursor-pointer"
