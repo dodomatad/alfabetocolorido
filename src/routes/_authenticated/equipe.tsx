@@ -114,6 +114,7 @@ function PaginaAcessos() {
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Membro | null>(null);
   const [aba, setAba] = useState("perfil");
+  const [abaPrincipal, setAbaPrincipal] = useState("membros");
 
   // Estados para os novos modais
   const [modalLogsAberto, setModalLogsAberto] = useState(false);
