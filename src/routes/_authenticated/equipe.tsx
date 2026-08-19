@@ -340,140 +340,147 @@ function PaginaAcessos() {
                 />
               </div>
             ) : (
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Membro</TableHead>
-                <TableHead>Cargo / Função</TableHead>
-                <TableHead>Último Login</TableHead>
-                <TableHead>Status Senha</TableHead>
-                <TableHead>Dados Fin.</TableHead>
-                <TableHead className="text-right">Ações de Acesso</TableHead>
-
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {membros.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                        {m.nome.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium">{m.nome}</p>
-                        <p className="text-xs text-muted-foreground">{m.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {m.papeis.length > 0 ? (
-                        m.papeis.map((p: Papel) => (
-                          <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
-                            {ROTULO_PAPEL[p]}
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Membro</TableHead>
+                      <TableHead>Cargo / Função</TableHead>
+                      <TableHead>Último Login</TableHead>
+                      <TableHead>Status Senha</TableHead>
+                      <TableHead>Dados Fin.</TableHead>
+                      <TableHead className="text-right">Ações de Acesso</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {membros.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                              {m.nome.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium">{m.nome}</p>
+                              <p className="text-xs text-muted-foreground">{m.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {m.papeis.length > 0 ? (
+                              m.papeis.map((p: Papel) => (
+                                <Badge key={p} variant="secondary" className="bg-primary/5 text-primary border-primary/20">
+                                  {ROTULO_PAPEL[p]}
+                                </Badge>
+                              ))
+                            ) : (
+                              <Badge variant="outline">Sem Papel</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                              {m.ativo && <div className="absolute inset-0 size-2 animate-ping rounded-full bg-emerald-500 opacity-75" />}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-normal">
+                            Senha Ativa
                           </Badge>
-                        ))
-                      ) : (
-                        <Badge variant="outline">Sem Papel</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <div className={`size-2 rounded-full ${m.ativo ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                        {m.ativo && <div className="absolute inset-0 size-2 animate-ping rounded-full bg-emerald-500 opacity-75" />}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {m.ultima_atividade ? formatarData(m.ultima_atividade, "America/Sao_Paulo") : '—'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-normal">
-                      Senha Ativa
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <Eye className="size-4 text-emerald-500" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Alterar Senha"
-                        onClick={() => { setEditando(m); setAba("seguranca"); setAberto(true); }}
-                        className="size-8 text-muted-foreground hover:text-primary"
-                      >
-                        <Key className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Gerar Link de Redefinição"
-                        onClick={() => {
-                          navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
-                          toast.success("Link de redefinição copiado!");
-                        }}
-                        className="size-8 text-muted-foreground hover:text-primary"
-                      >
-                        <RefreshCcw className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Desconectar Sessão"
-                        onClick={() => toast.success("Sessão desconectada com sucesso!")}
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <LogOut className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Remover Integrante"
-                        onClick={async () => {
-                          if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
-                            const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
-                            const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
-                            const { error: errMembro } = await supabase.from("equipe_membros").delete().eq("id", m.id);
-                            const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
-                            
-                            if (errPerfil || errPapeis || errPerms || errMembro) {
-                              toast.error("Erro ao remover membro");
-                            } else {
-                              toast.success("Membro removido com sucesso!");
-                              queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
-                            }
-                          }
-                        }}
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setEditando(m); setAba("perfil"); setAberto(true); }}
-                        className="ml-2"
-                      >
-                        Editar
-                        <ArrowRight className="ml-2 size-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Eye className="size-4 text-emerald-500" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Alterar Senha"
+                              onClick={() => { setEditando(m); setAba("seguranca"); setAberto(true); }}
+                              className="size-8 text-muted-foreground hover:text-primary"
+                            >
+                              <Key className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Gerar Link de Redefinição"
+                              onClick={() => {
+                                navigator.clipboard.writeText("https://gestao-bm-central.lovable.app/redefinir-senha?token=mock");
+                                toast.success("Link de redefinição copiado!");
+                              }}
+                              className="size-8 text-muted-foreground hover:text-primary"
+                            >
+                              <RefreshCcw className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Desconectar Sessão"
+                              onClick={() => toast.success("Sessão desconectada com sucesso!")}
+                              className="size-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <LogOut className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Remover Integrante"
+                              onClick={async () => {
+                                if (confirm(`Deseja realmente remover ${m.nome} da equipe? Esta ação não pode ser desfeita.`)) {
+                                  const { error: errPapeis } = await supabase.from("usuarios_papeis").delete().eq("usuario_id", m.id);
+                                  const { error: errPerms } = await supabase.from("permissoes_acesso").delete().eq("usuario_id", m.id);
+                                  const { error: errMembro } = await supabase.from("equipe_membros").delete().eq("id", m.id);
+                                  const { error: errPerfil } = await supabase.from("perfis").delete().eq("id", m.id);
+                                  
+                                  if (errPerfil || errPapeis || errPerms || errMembro) {
+                                    toast.error("Erro ao remover membro");
+                                  } else {
+                                    toast.success("Membro removido com sucesso!");
+                                    queryClient.invalidateQueries({ queryKey: ["equipe-acessos"] });
+                                  }
+                                }
+                              }}
+                              className="size-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setEditando(m); setAba("perfil"); setAberto(true); }}
+                              className="ml-2"
+                            >
+                              Editar
+                              <ArrowRight className="ml-2 size-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+          </div>
+        </TabsContent>
 
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        {temPapel("administrador", "gestor") && (
+          <TabsContent value="pendentes" className="space-y-6">
+            <SecaoAprovacoesPendentes />
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
 
       <ModalMembro
         aberto={aberto}
@@ -498,6 +505,7 @@ function PaginaAcessos() {
         aberto={modalConviteAberto}
         aoFechar={() => setModalConviteAberto(false)}
       />
+
 
       <section className="rounded-xl border bg-card p-6 shadow-panel">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
