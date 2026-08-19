@@ -33,8 +33,6 @@ function Pagina() {
           subtipo: "combobox",
           relacao: { tabela: "clientes", rotulo: "nome" } 
         },
-        { nome: "destinatario", rotulo: "Destinatário", tipo: "texto" },
-        { nome: "endereco", rotulo: "Endereço", tipo: "texto" },
         { nome: "data_prevista", rotulo: "Data prevista", tipo: "data" },
         { nome: "data_realizada", rotulo: "Data realizada", tipo: "data" },
         
@@ -61,9 +59,12 @@ function Pagina() {
         { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
       ]}
       colunas={[
-        { nome: "destinatario", rotulo: "Destinatário" },
-        { nome: "endereco", rotulo: "Endereço" },
-        { nome: "data_prevista", rotulo: "Prevista", formato: "data" },
+        { 
+          nome: "cliente_id", 
+          rotulo: "Cliente",
+          relacao: { tabela: "clientes", rotulo: "nome" }
+        },
+        { nome: "data_prevista", rotulo: "Data Prevista", formato: "data" },
         { nome: "status", rotulo: "Status" },
         { nome: "custo_reposicao", rotulo: "Custo Repos.", formato: "moeda" },
       ]}
