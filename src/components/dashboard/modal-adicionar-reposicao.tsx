@@ -88,8 +88,8 @@ export function ModalAdicionarReposicao({
     const venda = vendasDisponiveis.find((v) => v.id === vendaId);
     setValores((prev) => ({
       ...prev,
-      venda_id: vendaId,
-      cliente_nome: venda ? `Venda #${venda.id.slice(0, 8)}` : prev.cliente_nome,
+      venda_id: vendaId === "nenhuma" ? "" : vendaId,
+      cliente_nome: venda?.cliente || prev.cliente_nome,
     }));
   };
 
@@ -114,7 +114,8 @@ export function ModalAdicionarReposicao({
                 <SelectItem value="nenhuma">Nenhuma</SelectItem>
                 {vendasDisponiveis.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
-                    Venda #{v.id.slice(0, 8)} - {new Date(v.data_venda).toLocaleDateString()}
+                    {v.cliente ? `${v.cliente} — ` : ""}
+                    Venda #{v.numero_venda || v.id.slice(0, 8)} ({new Date(v.created_at || v.data_venda).toLocaleDateString("pt-BR")})
                   </SelectItem>
                 ))}
               </SelectContent>

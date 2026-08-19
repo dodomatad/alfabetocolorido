@@ -86,10 +86,13 @@ const ETAPAS_FUNIL: Array<{ chave: string; rotulo: string }> = [
 
 type LinhaVenda = {
   id: string;
+  numero_venda?: number;
+  cliente?: string;
   status: string;
   valor_total: number | string;
   desconto: number | string;
   data_venda: string;
+  created_at: string;
 };
 
 type LinhaItem = {
@@ -143,7 +146,7 @@ function PaginaDashboard() {
     queryFn: async () => {
       let vendasQuery = supabase
         .from("vendas")
-        .select("id, status, valor_total, desconto, data_venda")
+        .select("id, numero_venda, cliente, status, valor_total, desconto, data_venda, created_at")
         .gte("data_venda", inicioIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
