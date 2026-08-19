@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { LayoutDashboard, Search, Menu, History } from "lucide-react";
+import { LayoutDashboard, Search, Menu, History, Plus } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 
