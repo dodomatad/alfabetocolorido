@@ -1,49 +1,68 @@
 import { createFileRoute } from "@tanstack/react-router";
-
 import { ModuloRegistros } from "@/components/comum/modulo-registros";
+import { Package } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
     meta: [
       { title: "Estoque | Gestão BMs" },
-      { name: "description", content: "Controle de itens, quantidades mínimas e custo unitário do estoque." },
+      { name: "description", content: "Controle de saldo e ativos disponíveis (BMs, Perfis e Contas)." },
       { property: "og:title", content: "Estoque | Gestão BMs" },
-      { property: "og:description", content: "Controle de itens, quantidades mínimas e custo unitário do estoque." },
+      { property: "og:description", content: "Controle de saldo e ativos disponíveis." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Pagina,
+  component: PaginaEstoque,
 });
 
-function Pagina() {
+function PaginaEstoque() {
   return (
     <ModuloRegistros
       titulo="Estoque"
-      descricao="Itens em estoque, quantidades, mínimos e custo unitário."
-      tabela="itens_estoque"
-      chaveConsulta="itens_estoque"
-      rotuloBotao="Adicionar item"
-      ordenarPor={{ coluna: "created_at" }}
+      descricao="Controle de saldo e disponibilidade de ativos digitais."
+      tabela="estoque"
+      chaveConsulta="estoque"
+      ordenarPor={{ coluna: "quantidade_disponivel", ordem: "desc" }}
       campos={[
-        { nome: "nome", rotulo: "Item", tipo: "texto", obrigatorio: true },
-        { nome: "codigo", rotulo: "Código", tipo: "texto" },
-        { nome: "unidade", rotulo: "Unidade", tipo: "texto", padrao: "un" },
-        { nome: "quantidade_atual", rotulo: "Quantidade atual", tipo: "numero", padrao: "0" },
-        { nome: "quantidade_minima", rotulo: "Quantidade mínima", tipo: "numero", padrao: "0" },
-        { nome: "custo_unitario", rotulo: "Custo unitário (R$)", tipo: "moeda", padrao: "0" },
-        { nome: "localizacao", rotulo: "Localização", tipo: "texto" },
-        { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
+        {
+          nome: "tipo_ativo",
+          rotulo: "Tipo de Ativo",
+          tipo: "selecao",
+          opcoes: [
+            { valor: "BM 250", rotulo: "BM 250" },
+            { valor: "BM 2K", rotulo: "BM 2K" },
+            { valor: "BM 10K", rotulo: "BM 10K" },
+            { valor: "BM 100K", rotulo: "BM 100K" },
+            { valor: "BM Ilimitada", rotulo: "BM Ilimitada" },
+            { valor: "Perfil Farmado", rotulo: "Perfil Farmado" },
+          ],
+        },
+        { nome: "quantidade_disponivel", rotulo: "Qtd. Disponível", tipo: "numero" },
+        { nome: "quantidade_reservada", rotulo: "Qtd. Reservada", tipo: "numero" },
+        { nome: "custo_medio_unitario", rotulo: "Custo Médio Unitário (R$)", tipo: "moeda" },
+        {
+          nome: "status",
+          rotulo: "Status",
+          tipo: "selecao",
+          padrao: "em_estoque",
+          opcoes: [
+            { valor: "em_estoque", rotulo: "Em Estoque" },
+            { valor: "baixo_estoque", rotulo: "Baixo Estoque" },
+            { valor: "esgotado", rotulo: "Esgotado" },
+          ],
+        },
       ]}
       colunas={[
-        { nome: "nome", rotulo: "Item" },
-        { nome: "unidade", rotulo: "Un." },
-        { nome: "quantidade_atual", rotulo: "Atual", alinharDireita: true },
-        { nome: "quantidade_minima", rotulo: "Mínimo", alinharDireita: true },
-        { nome: "custo_unitario", rotulo: "Custo", formato: "moeda", alinharDireita: true },
+        { nome: "tipo_ativo", rotulo: "Tipo de Ativo" },
+        { nome: "quantidade_disponivel", rotulo: "Disponível" },
+        { nome: "quantidade_reservada", rotulo: "Reservado" },
+        { nome: "custo_medio_unitario", rotulo: "Custo Médio", formato: "moeda" },
+        { nome: "status", rotulo: "Status" },
       ]}
-      vazioTitulo="Nenhum item em estoque"
-      vazioDescricao="Cadastre os insumos e produtos que precisam de controle de quantidade."
+      vazioTitulo="Seu estoque está vazio"
+      vazioDescricao="Registre manualmente ou aguarde a sincronização automática da produção diária."
+      vazioIcone={<Package className="size-10" />}
     />
   );
 }
