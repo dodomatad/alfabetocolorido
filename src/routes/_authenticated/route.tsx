@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
@@ -16,66 +16,54 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/entrar" });
     }
 
-    // Verificar se o usuário possui perfil e empresa vinculada
-    const { data: perfil } = await supabase
-      .from("perfis")
-      .select("empresa_id")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    if (!perfil?.empresa_id && location.pathname !== "/aguardando-aprovacao") {
-      throw redirect({ to: "/aguardando-aprovacao" });
-    }
-
-
-    // Verificação de permissão de módulo
-    const path = location.pathname.split('/')[1] || 'dashboard';
-    const modulosMapeados: Record<string, string> = {
-      '': 'dashboard',
-      'vendas': 'vendas',
-      'producao': 'producao',
-      'estoque': 'estoque',
-      'entregas': 'entregas',
-      'financeiro': 'financeiro',
-      'clientes': 'clientes',
-      'fornecedores': 'fornecedores',
-      'equipe': 'equipe',
-      'relatorios': 'relatorios',
-      'configuracoes': 'configuracoes',
-    };
-
-    const moduloAlvo = modulosMapeados[path];
+    // A lógica de verificação de perfil/empresa agora é feita dentro do componente LayoutProtegido
+    // para evitar redirecionamentos falsos durante o carregamento da sessão no hook useSessao.
+    // beforeLoad aqui serve apenas como um gate primário de autenticação.
     
-    // Como beforeLoad roda antes do hook useSessao estar disponível no contexto da rota filha,
-    // precisamos buscar as permissões diretamente via Supabase para o gate de segurança.
-    if (moduloAlvo) {
-      const { data: permissaoValida } = await supabase.rpc('check_permission', {
-        _user_id: data.user.id,
-        _modulo: moduloAlvo as any,
-        _acao: 'visualizar'
-      });
-
-      if (permissaoValida === false) {
-        throw redirect({ 
-          to: "/",
-          search: { 
-            error: 'Acesso não autorizado' 
-          }
-        });
-      }
-    }
-
     return { user: data.user };
   },
   component: LayoutProtegido,
 });
 
 function LayoutProtegido() {
-  const { session, perfil, carregando, erro, recarregar } = useSessao();
+  const { session, perfil, carregando, erro, recarregar, temPermissao } = useSessao();
+  const router = useRouter();
+  const { pathname } = router.state.location;
+
+  useEffect(() => {
+    // Gate de Acesso em Análise: só redireciona se terminou de carregar e NÃO tem empresa
+    if (!carregando && session?.user && !perfil?.empresa_id && pathname !== "/aguardando-aprovacao") {
+      router.navigate({ to: "/aguardando-aprovacao" });
+    }
+
+    // Gate de Permissões de Módulo
+    if (!carregando && session?.user && perfil?.empresa_id && pathname !== "/aguardando-aprovacao") {
+      const path = pathname.split('/')[1] || 'dashboard';
+      const modulosMapeados: Record<string, string> = {
+        '': 'dashboard',
+        'vendas': 'vendas',
+        'producao': 'producao',
+        'estoque': 'estoque',
+        'entregas': 'entregas',
+        'financeiro': 'financeiro',
+        'clientes': 'clientes',
+        'fornecedores': 'fornecedores',
+        'equipe': 'equipe',
+        'relatorios': 'relatorios',
+        'configuracoes': 'configuracoes',
+      };
+
+      const moduloAlvo = modulosMapeados[path];
+      if (moduloAlvo && !temPermissao(moduloAlvo, 'visualizar')) {
+        toast.error("Você não tem permissão para acessar este módulo");
+        router.navigate({ to: "/" });
+      }
+    }
+  }, [carregando, session, perfil, pathname, router, temPermissao]);
 
   useEffect(() => {
     // Registra log apenas quando a sessão é carregada pela primeira vez neste layout
-    if (session?.user && !carregando && !erro) {
+    if (session?.user && !carregando && !erro && perfil?.empresa_id) {
       const chave = `log-acesso-registrado-${session.user.id}-${new Date().toISOString().split('T')[0]}`;
       const jaRegistrouHoje = sessionStorage.getItem(chave);
       
@@ -116,16 +104,28 @@ function LayoutProtegido() {
     }
   }, [session, perfil, carregando, erro]);
 
+  if (carregando) {
+    return <CarregandoCartoes />;
+  }
+
+  if (erro) {
+    return <EstadoErro descricao={erro.message} aoTentarNovamente={recarregar} />;
+  }
+
+  // Se não tem empresa e não está na página de aguardando, o useEffect vai navegar.
+  // Enquanto isso, retornamos um loading para evitar flash do dashboard.
+  if (!perfil?.empresa_id && pathname !== "/aguardando-aprovacao") {
+    return <CarregandoCartoes />;
+  }
+
+  // Se estiver na página de aguardando aprovação, não renderizamos o AppLayout (sidebar)
+  if (pathname === "/aguardando-aprovacao") {
+    return <Outlet />;
+  }
+
   return (
     <AppLayout>
-      {carregando ? (
-        <CarregandoCartoes />
-      ) : erro ? (
-        <EstadoErro descricao={erro.message} aoTentarNovamente={recarregar} />
-      ) : (
-        <Outlet />
-      )}
+      <Outlet />
     </AppLayout>
   );
 }
-
