@@ -23,7 +23,7 @@ function PaginaEstoque() {
       descricao="Controle de saldo e disponibilidade de ativos digitais."
       tabela="estoque"
       chaveConsulta="estoque"
-      ordenarPor={{ coluna: "quantidade_disponivel", ordem: "desc" }}
+      ordenarPor={{ coluna: "quantidade_disponivel", ascendente: false }}
       campos={[
         {
           nome: "tipo_ativo",
