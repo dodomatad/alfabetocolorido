@@ -4,7 +4,6 @@ import { useEffect } from "react";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
-
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { registrarLogAcesso } from "@/lib/logs.functions";
@@ -26,12 +25,10 @@ export const Route = createFileRoute("/_authenticated")({
   component: LayoutProtegido,
 });
 
-
 function LayoutProtegido() {
   const { session, perfil, carregando, erro, recarregar, temPermissao } = useSessao();
   const router = useRouter();
   const { pathname } = router.state.location;
-
 
   useEffect(() => {
     // Gate de Acesso em Análise: só redireciona se terminou de carregar e NÃO tem empresa
@@ -40,7 +37,7 @@ function LayoutProtegido() {
     }
 
     // Gate de Permissões de Módulo
-    if (!carregando && session?.user && perfil?.empresa_id) {
+    if (!carregando && session?.user && perfil?.empresa_id && pathname !== "/aguardando-aprovacao") {
       const path = pathname.split('/')[1] || 'dashboard';
       const modulosMapeados: Record<string, string> = {
         '': 'dashboard',
@@ -108,29 +105,22 @@ function LayoutProtegido() {
   }, [session, perfil, carregando, erro]);
 
   if (carregando) {
-    return (
-      <AppLayout>
-        <CarregandoCartoes />
-      </AppLayout>
-    );
+    return <CarregandoCartoes />;
   }
 
   if (erro) {
-    return (
-      <AppLayout>
-        <EstadoErro descricao={erro.message} aoTentarNovamente={recarregar} />
-      </AppLayout>
-    );
+    return <EstadoErro descricao={erro.message} aoTentarNovamente={recarregar} />;
   }
 
   // Se não tem empresa e não está na página de aguardando, o useEffect vai navegar.
-  // Enquanto isso, retornamos null ou um loading para evitar flash do dashboard.
+  // Enquanto isso, retornamos um loading para evitar flash do dashboard.
   if (!perfil?.empresa_id && pathname !== "/aguardando-aprovacao") {
-    return (
-      <AppLayout>
-        <CarregandoCartoes />
-      </AppLayout>
-    );
+    return <CarregandoCartoes />;
+  }
+
+  // Se estiver na página de aguardando aprovação, não renderizamos o AppLayout (sidebar)
+  if (pathname === "/aguardando-aprovacao") {
+    return <Outlet />;
   }
 
   return (
@@ -139,5 +129,3 @@ function LayoutProtegido() {
     </AppLayout>
   );
 }
-
-
