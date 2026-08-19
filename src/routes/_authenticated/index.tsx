@@ -207,7 +207,7 @@ function PaginaDashboard() {
     };
   };
 
-  const dadosROI = calcularDadosROI(lucro, custos);
+  const dadosROI = calcularDadosROI(lucro, custosTotais);
 
   const getCorTaxaReposicao = (taxa: number) => {
     if (taxa > 20) return "text-rose-400";
@@ -402,7 +402,7 @@ function PaginaDashboard() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <CartaoMetrica
               rotulo="Custo com Perfil"
-              valor={fmtValor(custos)}
+              valor={fmtValor(custosTotais)}
             />
             <CartaoMetrica
               rotulo="Lucro"
