@@ -96,6 +96,7 @@ export function ModuloRegistros({
   rotuloBotao,
   vazioTitulo,
   vazioDescricao,
+  selectCustom,
 }: Props) {
   const { empresa, session, fuso, temPermissao } = useSessao();
   const queryClient = useQueryClient();
