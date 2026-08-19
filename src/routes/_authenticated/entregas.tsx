@@ -49,7 +49,14 @@ function Pagina() {
             { valor: "entregue", rotulo: "Entregue" },
             { valor: "falhou", rotulo: "Falhou" },
             { valor: "cancelada", rotulo: "Cancelada" },
+            { valor: "reposicao", rotulo: "Reposição" },
           ],
+        },
+        {
+          nome: "custo_reposicao",
+          rotulo: "Custo da Reposição (R$)",
+          tipo: "moeda",
+          visivel: (v) => v['status'] === "reposicao",
         },
         { nome: "observacoes", rotulo: "Observações", tipo: "texto_longo" },
       ]}
@@ -59,6 +66,7 @@ function Pagina() {
         { nome: "data_prevista", rotulo: "Prevista", formato: "data" },
         { nome: "transportadora", rotulo: "Transportadora" },
         { nome: "status", rotulo: "Status" },
+        { nome: "custo_reposicao", rotulo: "Custo Repos.", formato: "moeda" },
       ]}
       vazioTitulo="Nenhuma entrega programada"
       vazioDescricao="Programe a primeira entrega para acompanhar prazos e status."

@@ -37,6 +37,7 @@ import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarData, formatarMoeda } from "@/lib/formatadores";
 import { Combobox } from "@/components/ui/combobox";
+import { SeloStatusVenda } from "./selo-status";
 
 export type Registro = Record<string, unknown>;
 
@@ -46,6 +47,7 @@ export type CampoModulo = {
   tipo: "texto" | "numero" | "moeda" | "data" | "selecao" | "texto_longo" | "relacao";
   subtipo?: "combobox";
   obrigatorio?: boolean;
+  visivel?: (valores: Record<string, any>) => boolean;
 
   padrao?: string;
   opcoes?: { valor: string; rotulo: string }[];
@@ -212,10 +214,11 @@ export function ModuloRegistros({
     onError: (erro: Error) => toast.error(erro.message),
   });
 
-  const formatar = (valor: unknown, formato?: ColunaModulo["formato"]) => {
+  const formatar = (valor: unknown, formato: ColunaModulo["formato"], c: ColunaModulo) => {
     if (valor === null || valor === undefined || valor === "") return "—";
     if (formato === "moeda") return formatarMoeda(valor as number);
     if (formato === "data") return formatarData(String(valor), fuso);
+    if (c.nome === "status") return <SeloStatusVenda status={String(valor)} />;
     return String(valor).replace(/_/g, " ");
   };
 
@@ -241,13 +244,16 @@ export function ModuloRegistros({
           </DialogHeader>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {campos.map((campo) => (
-              <div
-                key={campo.nome}
-                className={`space-y-1.5 ${campo.tipo === "texto_longo" ? "sm:col-span-2" : ""}`}
-              >
-                <Label htmlFor={campo.nome}>{campo.rotulo}</Label>
-                {campo.tipo === "selecao" || campo.tipo === "relacao" ? (
+            {campos.map((campo) => {
+              if (campo.visivel && !campo.visivel(valores)) return null;
+              
+              return (
+                <div
+                  key={campo.nome}
+                  className={`space-y-1.5 ${campo.tipo === "texto_longo" ? "sm:col-span-2" : ""}`}
+                >
+                  <Label htmlFor={campo.nome}>{campo.rotulo}</Label>
+                  {campo.tipo === "selecao" || campo.tipo === "relacao" ? (
                   campo.subtipo === "combobox" ? (
                     <Combobox
                       options={
@@ -304,7 +310,7 @@ export function ModuloRegistros({
                   />
                 )}
               </div>
-            ))}
+            );})}
           </div>
 
           <DialogFooter>
@@ -360,7 +366,7 @@ export function ModuloRegistros({
                         key={c.nome}
                         className={c.alinharDireita ? "num text-right" : undefined}
                       >
-                        {formatar(registro[c.nome], c.formato)}
+                        {formatar(registro[c.nome], c.formato, c)}
                       </TableCell>
                     ))}
                   </TableRow>

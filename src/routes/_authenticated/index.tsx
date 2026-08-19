@@ -70,6 +70,9 @@ const ROTULO_STATUS: Record<string, string> = {
   entregue: "Entregue",
   cancelada: "Cancelada",
   reembolsada: "Reembolsada",
+  reposicao: "Reposição",
+  pendente: "Pendente",
+  em_rota: "Em rota",
 };
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -106,6 +109,13 @@ type LinhaReposicao = {
   venda_id: string | null;
 };
 
+type LinhaEntrega = {
+  id: string;
+  status: string;
+  custo_reposicao: number | string;
+  created_at: string;
+};
+
 function PaginaDashboard() {
   const { empresa, fuso, permissoes } = useSessao();
   const [dias, setDias] = useState<string>("30");
@@ -137,7 +147,7 @@ function PaginaDashboard() {
         .gte("data_venda", inicioIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
-      const [vendas, itens, reposicoes] = await Promise.all([
+      const [vendas, itens, reposicoes, entregas] = await Promise.all([
         vendasQuery,
         supabase
           .from("venda_itens")
@@ -146,16 +156,21 @@ function PaginaDashboard() {
         supabase
           .from("reposicoes_perfis")
           .select("*")
+          .gte("created_at", inicioIso),
+        supabase
+          .from("entregas")
+          .select("id, status, custo_reposicao, created_at")
           .gte("created_at", inicioIso)
       ]);
 
-      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any);
+      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error;
       if (erro) throw erro;
 
       return {
         vendas: (vendas.data ?? []) as unknown as LinhaVenda[],
         itens: (itens.data ?? []) as unknown as LinhaItem[],
         reposicoes: (reposicoes.data ?? []) as unknown as LinhaReposicao[],
+        entregas: (entregas.data ?? []) as unknown as LinhaEntrega[],
       };
     },
   });
@@ -163,6 +178,7 @@ function PaginaDashboard() {
   const vendas = consulta.data?.vendas ?? [];
   const itens = consulta.data?.itens ?? [];
   const reposicoes = (consulta.data as any)?.reposicoes ?? [];
+  const entregas = (consulta.data as any)?.entregas ?? [];
 
   const ocultarValores = useMemo(() => {
     return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
@@ -181,13 +197,15 @@ function PaginaDashboard() {
     0,
   ) || 0;
 
-  const totalCustoReposicoes = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
-  const custosTotais = custosProducao + totalCustoReposicoes;
+  const totalCustoReposicoesPerfis = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
+  const totalCustoReposicoesEntregas = entregas.reduce((s: number, e: LinhaEntrega) => e.status === 'reposicao' ? s + (Number(e.custo_reposicao) || 0) : s, 0);
+  const custosTotais = custosProducao + totalCustoReposicoesPerfis + totalCustoReposicoesEntregas;
   const lucro = liquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
-  const totalReposicoes = reposicoes.length;
-  const taxaReposicao = totalEntregue > 0 ? (totalReposicoes / totalEntregue) * 100 : 0;
+  const totalReposicoesPerfis = reposicoes.length;
+  const totalReposicoesEntregas = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao').length;
+  const taxaReposicao = totalEntregue > 0 ? ((totalReposicoesPerfis + totalReposicoesEntregas) / totalEntregue) * 100 : 0;
 
   const convertidas = vendas.filter(
     (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
@@ -417,7 +435,7 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Taxa de Reposição"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaReposicao)}%`}
-              subvalor={ocultarValores ? "" : `${totalReposicoes} de ${totalEntregue} perfis entregues`}
+              subvalor={ocultarValores ? "" : `${totalReposicoesPerfis + totalReposicoesEntregas} de ${totalEntregue} perfis entregues`}
               corValor={ocultarValores ? "text-white" : getCorTaxaReposicao(taxaReposicao)}
               className="cursor-pointer hover:bg-white/5 transition-colors"
               onClick={() => setModalReposicoesAberto(true)}
@@ -713,15 +731,22 @@ function PaginaDashboard() {
                     <p className="text-xl font-bold text-sky-400 mt-1">
                       {reposicoes.filter((r: LinhaReposicao) => 
                         (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                      ).length + entregas.filter((e: LinhaEntrega) => 
+                        e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal)
                       ).length}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
                     <p className="text-[11px] text-muted-foreground uppercase font-bold">Custo Garantia</p>
                     <p className="text-xl font-bold text-rose-400 mt-1">
-                      {formatarMoeda(reposicoes.filter((r: LinhaReposicao) => 
-                        (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
-                      ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.custo_reposicao) || 0), 0))}
+                      {formatarMoeda(
+                        reposicoes.filter((r: LinhaReposicao) => 
+                          (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                        ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.custo_reposicao) || 0), 0) +
+                        entregas.filter((e: LinhaEntrega) => 
+                          e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal)
+                        ).reduce((acc: number, e: LinhaEntrega) => acc + (Number(e.custo_reposicao) || 0), 0)
+                      )}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
@@ -731,10 +756,13 @@ function PaginaDashboard() {
                         const vds = itens.filter((i: LinhaItem) => 
                           i.vendas && (filtroDiaModal === "todos" || DIAS[new Date(`${i.vendas.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
                         ).reduce((acc: number, i: LinhaItem) => acc + (Number(i.quantidade) || 0), 0);
-                        const rps = reposicoes.filter((r: LinhaReposicao) => 
+                        const rpsPerfis = reposicoes.filter((r: LinhaReposicao) => 
                           filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal
                         ).length;
-                        return vds > 0 ? `${((rps / vds) * 100).toFixed(1)}%` : "0%";
+                        const rpsEntregas = entregas.filter((e: LinhaEntrega) => 
+                          e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal)
+                        ).length;
+                        return vds > 0 ? `${(((rpsPerfis + rpsEntregas) / vds) * 100).toFixed(1)}%` : "0%";
                       })()}
                     </p>
                   </div>
@@ -753,29 +781,65 @@ function PaginaDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reposicoes
-                        .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
-                        .map((r: LinhaReposicao) => (
-                          <TableRow key={r.id} className="hover:bg-white/5 border-white/5">
-                            <TableCell className="text-xs">{formatarData(r.created_at)}</TableCell>
-                            <TableCell className="text-xs">{r.cliente_nome || (r.venda_id ? `Venda #${r.venda_id.slice(0, 8)}` : "—")}</TableCell>
-                            <TableCell className="text-xs">{r.tipo_perfil || "—"}</TableCell>
-                            <TableCell className="text-xs">{r.motivo_reposicao || "—"}</TableCell>
-                            <TableCell className="text-xs text-rose-400 font-medium">{formatarMoeda(Number(r.custo_reposicao))}</TableCell>
+                      {(() => {
+                        const listaReposicoes = reposicoes
+                          .filter((r: LinhaReposicao) => filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                          .map((r: LinhaReposicao) => ({
+                            id: r.id,
+                            data: r.created_at,
+                            info: r.cliente_nome || (r.venda_id ? `Venda #${r.venda_id.slice(0, 8)}` : "—"),
+                            tipo: r.tipo_perfil || "—",
+                            motivo: r.motivo_reposicao || "—",
+                            custo: Number(r.custo_reposicao),
+                            status: r.status,
+                            origem: "Perfis"
+                          }));
+                        
+                        const listaEntregas = entregas
+                          .filter((e: LinhaEntrega) => e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal))
+                          .map((e: LinhaEntrega) => ({
+                            id: e.id,
+                            data: e.created_at,
+                            info: `Entrega #${e.id.slice(0, 8)}`,
+                            tipo: "BM (Entrega)",
+                            motivo: "Garantia Operacional",
+                            custo: Number(e.custo_reposicao),
+                            status: e.status,
+                            origem: "Entregas"
+                          }));
+
+                        const combinada = [...listaReposicoes, ...listaEntregas].sort((a, b) => 
+                          new Date(b.data).getTime() - new Date(a.data).getTime()
+                        );
+
+                        if (combinada.length === 0) {
+                          return (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                Nenhuma reposição encontrada.
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+
+                        return combinada.map((item) => (
+                          <TableRow key={item.id} className="hover:bg-white/5 border-white/5">
+                            <TableCell className="text-xs">{formatarData(item.data)}</TableCell>
+                            <TableCell className="text-xs">{item.info}</TableCell>
+                            <TableCell className="text-xs">{item.tipo}</TableCell>
+                            <TableCell className="text-xs">{item.motivo}</TableCell>
+                            <TableCell className="text-xs text-rose-400 font-medium">{formatarMoeda(item.custo)}</TableCell>
                             <TableCell>
-                              <Badge variant={r.status === "cancelada" ? "destructive" : "default"} className="text-[10px] py-0">
-                                {r.status}
+                              <Badge variant={item.status === "cancelada" ? "destructive" : "default"} className="text-[10px] py-0">
+                                {item.status}
                               </Badge>
+                              {item.origem === "Entregas" && (
+                                <span className="ml-2 text-[8px] text-muted-foreground uppercase opacity-50">Entregas</span>
+                              )}
                             </TableCell>
                           </TableRow>
-                        ))}
-                      {reposicoes.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            Nenhuma reposição encontrada.
-                          </TableCell>
-                        </TableRow>
-                      )}
+                        ));
+                      })()}
                     </TableBody>
                   </Table>
                 </ScrollArea>

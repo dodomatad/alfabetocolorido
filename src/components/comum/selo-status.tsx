@@ -47,6 +47,9 @@ const STATUS_VENDA: Record<string, { rotulo: string; tom: TomSelo; icone: Lucide
   entregue: { rotulo: "Entregue", tom: "positivo", icone: CheckCircle2 },
   cancelada: { rotulo: "Cancelada", tom: "negativo", icone: Ban },
   reembolsada: { rotulo: "Reembolsada", tom: "negativo", icone: AlertTriangle },
+  pendente: { rotulo: "Pendente", tom: "neutro", icone: Clock },
+  em_rota: { rotulo: "Em rota", tom: "alerta", icone: Truck },
+  reposicao: { rotulo: "Reposição", tom: "alerta", icone: AlertTriangle },
 };
 
 export function SeloStatusVenda({ status }: { status: string }) {
