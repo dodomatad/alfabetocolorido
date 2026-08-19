@@ -317,7 +317,7 @@ function PaginaEntrar() {
                         size="sm" 
                         className="h-auto p-0 text-xs text-muted-foreground"
                         type="button"
-                        onClick={() => toast.info("Funcionalidade de recuperação de senha em desenvolvimento.")}
+                        onClick={() => router.navigate({ to: "/recuperar-senha" })}
                       >
                         Esqueceu sua senha?
                       </Button>
