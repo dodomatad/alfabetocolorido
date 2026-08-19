@@ -277,22 +277,30 @@ function PaginaDashboard() {
   const dadosGraficoVendas = DIAS.map((dia, indice) => {
     const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
     const totalDia = vendasDia.length;
-    const efetivadasDia = vendasDia.filter((v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)).length;
-    const reembolsadasDia = vendasDia.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status)).length;
+    
+    // Status considerados como venda efetivada
+    const statusEfetivados = ["confirmada", "em_producao", "pronta", "parcialmente_entregue", "entregue"];
+    // Status considerados como reembolso
+    const statusReembolso = ["reembolsada", "estornada", "cancelada"];
 
-    const valorEfetivado = vendasDia
-      .filter((v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status))
-      .reduce((s, v) => s + Number(v.valor_total || 0), 0);
-    const valorReembolsado = vendasDia
-      .filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status))
-      .reduce((s, v) => s + Number(v.valor_total || 0), 0);
+    const efetivadas = vendasDia.filter((v) => statusEfetivados.includes(v.status));
+    const reembolsadas = vendasDia.filter((v) => statusReembolso.includes(v.status));
+
+    const valorEfetivado = efetivadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
+    const valorReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
+
+    const totalValorDia = valorEfetivado + valorReembolsado;
+    const taxaReembolsoDia = totalValorDia > 0 ? (valorReembolsado / totalValorDia) * 100 : 0;
 
     return {
       dia,
-      positivo: totalDia > 0 ? (efetivadasDia / totalDia) * 100 : 0,
-      negativo: totalDia > 0 ? (reembolsadasDia / totalDia) * 100 : 0,
-      infoPositivo: formatarMoeda(valorEfetivado),
-      infoNegativo: formatarMoeda(valorReembolsado),
+      positivo: totalDia > 0 ? (efetivadas.length / totalDia) * 100 : 0,
+      negativo: totalDia > 0 ? (reembolsadas.length / totalDia) * 100 : 0,
+      vendasValor: formatarMoeda(valorEfetivado),
+      vendasQtd: efetivadas.length,
+      reembolsosValor: formatarMoeda(valorReembolsado),
+      reembolsosQtd: reembolsadas.length,
+      taxaReembolso: `${taxaReembolsoDia.toFixed(1)}%`,
     };
   });
   const barrasVendasAgrupadas = [...dadosGraficoVendas.slice(1), dadosGraficoVendas[0]!];
