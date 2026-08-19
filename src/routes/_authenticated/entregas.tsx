@@ -37,7 +37,7 @@ function Pagina() {
         { nome: "endereco", rotulo: "Endereço", tipo: "texto" },
         { nome: "data_prevista", rotulo: "Data prevista", tipo: "data" },
         { nome: "data_realizada", rotulo: "Data realizada", tipo: "data" },
-        { nome: "transportadora", rotulo: "Transportadora", tipo: "texto" },
+        
         {
           nome: "status",
           rotulo: "Status",
