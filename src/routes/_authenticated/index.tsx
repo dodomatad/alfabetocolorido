@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ModalAdicionarReposicao } from "@/components/dashboard/modal-adicionar-reposicao";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
