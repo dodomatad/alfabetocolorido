@@ -6,6 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import React from "react";
 
 /** Cartão de KPI do painel: rótulo e valor destacado. */
 export function CartaoMetrica({
@@ -19,6 +20,7 @@ export function CartaoMetrica({
   explicacao,
   icone: Icone,
   subvalor,
+  onClick,
 }: {
   rotulo: string;
   valor: string;
@@ -30,11 +32,14 @@ export function CartaoMetrica({
   explicacao?: string;
   icone?: React.ElementType;
   subvalor?: string;
+  onClick?: () => void;
 }) {
   const content = (
     <div
+      onClick={onClick}
       className={cn(
-        "relative rounded-xl border bg-card p-3.5 sm:p-4 shadow-panel transition-all duration-300 hover:border-primary/60 hover:shadow-[0_15px_40px_-12px_rgba(0,102,255,0.4)] hover:-translate-y-1",
+        "relative rounded-xl border bg-card p-3.5 sm:p-4 shadow-panel transition-all duration-300 hover:border-primary/60 hover:shadow-[0_15px_40px_-12px_rgba(0,102,255,0.4)] hover:-translate-y-1 text-left",
+        onClick && "cursor-pointer",
         className,
       )}
     >
