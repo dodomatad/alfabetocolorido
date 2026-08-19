@@ -187,9 +187,11 @@ function PaginaAcessos() {
     queryKey: ["logs-acesso", empresa?.id],
     enabled: Boolean(empresa?.id),
     queryFn: async () => {
+      if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from("logs_acesso")
-        .select("*")
+        .select("id, usuario_nome, usuario_email, dispositivo, ip, status, created_at")
+        .eq("empresa_id", empresa.id)
         .order("created_at", { ascending: false })
         .limit(5);
       if (error) throw error;
@@ -1209,7 +1211,12 @@ function ModalLogsAcesso({
     queryKey: ["logs-acesso-detalhado", empresa?.id, filtroMembro, filtroStatus, filtroPeriodo],
     enabled: aberto && !!empresa?.id,
     queryFn: async () => {
-      let query = supabase.from("logs_acesso").select("*").order("created_at", { ascending: false });
+      if (!empresa?.id) return [];
+      let query = supabase
+        .from("logs_acesso")
+        .select("id, usuario_nome, usuario_email, dispositivo, ip, status, created_at")
+        .eq("empresa_id", empresa.id)
+        .order("created_at", { ascending: false });
 
       if (filtroMembro !== "todos") query = query.eq("usuario_id", filtroMembro);
       if (filtroStatus !== "todos") query = query.eq("status", filtroStatus);
