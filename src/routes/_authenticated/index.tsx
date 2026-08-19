@@ -464,9 +464,9 @@ function PaginaDashboard() {
           <section className="rounded-xl border bg-card p-6 shadow-panel">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-sm font-semibold">Vendas e Reembolsos por dia da semana</h2>
+                <h2 className="text-sm font-semibold">Vendas e Reembolsos/Reposições por dia da semana</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Comparativo entre vendas concluídas e taxa de reembolso por dia.
+                  Comparativo diário entre vendas concluídas e taxas de reembolso/reposição de garantia.
                 </p>
               </div>
               <Button 
