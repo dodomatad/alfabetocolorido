@@ -88,6 +88,7 @@ type LinhaVenda = {
   id: string;
   numero_venda?: number;
   cliente?: string;
+  clientes?: { nome: string };
   status: string;
   valor_total: number | string;
   desconto: number | string;
