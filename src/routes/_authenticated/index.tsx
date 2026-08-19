@@ -106,6 +106,13 @@ type LinhaReposicao = {
   venda_id: string | null;
 };
 
+type LinhaEntrega = {
+  id: string;
+  status: string;
+  custo_reposicao: number | string;
+  created_at: string;
+};
+
 function PaginaDashboard() {
   const { empresa, fuso, permissoes } = useSessao();
   const [dias, setDias] = useState<string>("30");
@@ -137,7 +144,7 @@ function PaginaDashboard() {
         .gte("data_venda", inicioIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
-      const [vendas, itens, reposicoes] = await Promise.all([
+      const [vendas, itens, reposicoes, entregas] = await Promise.all([
         vendasQuery,
         supabase
           .from("venda_itens")
@@ -146,16 +153,21 @@ function PaginaDashboard() {
         supabase
           .from("reposicoes_perfis")
           .select("*")
+          .gte("created_at", inicioIso),
+        supabase
+          .from("entregas")
+          .select("id, status, custo_reposicao, created_at")
           .gte("created_at", inicioIso)
       ]);
 
-      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any);
+      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error;
       if (erro) throw erro;
 
       return {
         vendas: (vendas.data ?? []) as unknown as LinhaVenda[],
         itens: (itens.data ?? []) as unknown as LinhaItem[],
         reposicoes: (reposicoes.data ?? []) as unknown as LinhaReposicao[],
+        entregas: (entregas.data ?? []) as unknown as LinhaEntrega[],
       };
     },
   });
@@ -163,6 +175,7 @@ function PaginaDashboard() {
   const vendas = consulta.data?.vendas ?? [];
   const itens = consulta.data?.itens ?? [];
   const reposicoes = (consulta.data as any)?.reposicoes ?? [];
+  const entregas = (consulta.data as any)?.entregas ?? [];
 
   const ocultarValores = useMemo(() => {
     return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
@@ -181,13 +194,15 @@ function PaginaDashboard() {
     0,
   ) || 0;
 
-  const totalCustoReposicoes = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
-  const custosTotais = custosProducao + totalCustoReposicoes;
+  const totalCustoReposicoesPerfis = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
+  const totalCustoReposicoesEntregas = entregas.reduce((s: number, e: LinhaEntrega) => e.status === 'reposicao' ? s + (Number(e.custo_reposicao) || 0) : s, 0);
+  const custosTotais = custosProducao + totalCustoReposicoesPerfis + totalCustoReposicoesEntregas;
   const lucro = liquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
-  const totalReposicoes = reposicoes.length;
-  const taxaReposicao = totalEntregue > 0 ? (totalReposicoes / totalEntregue) * 100 : 0;
+  const totalReposicoesPerfis = reposicoes.length;
+  const totalReposicoesEntregas = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao').length;
+  const taxaReposicao = totalEntregue > 0 ? ((totalReposicoesPerfis + totalReposicoesEntregas) / totalEntregue) * 100 : 0;
 
   const convertidas = vendas.filter(
     (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
@@ -417,7 +432,7 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Taxa de Reposição"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaReposicao)}%`}
-              subvalor={ocultarValores ? "" : `${totalReposicoes} de ${totalEntregue} perfis entregues`}
+              subvalor={ocultarValores ? "" : `${totalReposicoesPerfis + totalReposicoesEntregas} de ${totalEntregue} perfis entregues`}
               corValor={ocultarValores ? "text-white" : getCorTaxaReposicao(taxaReposicao)}
               className="cursor-pointer hover:bg-white/5 transition-colors"
               onClick={() => setModalReposicoesAberto(true)}
