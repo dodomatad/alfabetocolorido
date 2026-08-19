@@ -119,6 +119,11 @@ export type BarraAgrupada = {
   negativo: number;
   infoPositivo?: string;
   infoNegativo?: string;
+  vendasValor?: string;
+  vendasQtd?: number;
+  reembolsosValor?: string;
+  reembolsosQtd?: number;
+  taxaReembolso?: string;
 };
 
 export function GraficoBarrasAgrupadas({
@@ -152,8 +157,15 @@ export function GraficoBarrasAgrupadas({
             itemStyle={{ fontSize: "12px", padding: "2px 0" }}
             cursor={{ fill: "rgba(255,255,255,0.05)" }}
             formatter={(value: number, name: string, props: any) => {
+              const p = props.payload;
+              if (p.vendasValor || p.reembolsosValor) {
+                if (name === legendas[0]) {
+                  return [`${p.vendasValor} (${p.vendasQtd} pedidos)`, name];
+                }
+                return [`${p.reembolsosValor} (${p.reembolsosQtd} pedidos)`, name];
+              }
               const isPos = name === legendas[0];
-              const info = isPos ? props.payload.infoPositivo : props.payload.infoNegativo;
+              const info = isPos ? p.infoPositivo : p.infoNegativo;
               return [`${value.toFixed(1)}%${info ? ` | ${info}` : ""}`, name];
             }}
           />
