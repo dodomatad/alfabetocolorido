@@ -88,6 +88,7 @@ type LinhaVenda = {
   id: string;
   numero_venda?: number;
   cliente?: string;
+  clientes?: { nome: string };
   status: string;
   valor_total: number | string;
   desconto: number | string;
@@ -146,7 +147,7 @@ function PaginaDashboard() {
     queryFn: async () => {
       let vendasQuery = supabase
         .from("vendas")
-        .select("id, numero_venda, cliente, status, valor_total, desconto, data_venda, created_at")
+        .select("id, numero_venda, cliente, status, valor_total, desconto, data_venda, created_at, clientes(nome)")
         .gte("data_venda", inicioIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
