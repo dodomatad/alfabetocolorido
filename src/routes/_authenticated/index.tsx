@@ -731,15 +731,22 @@ function PaginaDashboard() {
                     <p className="text-xl font-bold text-sky-400 mt-1">
                       {reposicoes.filter((r: LinhaReposicao) => 
                         (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                      ).length + entregas.filter((e: LinhaEntrega) => 
+                        e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal)
                       ).length}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
                     <p className="text-[11px] text-muted-foreground uppercase font-bold">Custo Garantia</p>
                     <p className="text-xl font-bold text-rose-400 mt-1">
-                      {formatarMoeda(reposicoes.filter((r: LinhaReposicao) => 
-                        (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
-                      ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.custo_reposicao) || 0), 0))}
+                      {formatarMoeda(
+                        reposicoes.filter((r: LinhaReposicao) => 
+                          (filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal)
+                        ).reduce((acc: number, r: LinhaReposicao) => acc + (Number(r.custo_reposicao) || 0), 0) +
+                        entregas.filter((e: LinhaEntrega) => 
+                          e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal)
+                        ).reduce((acc: number, e: LinhaEntrega) => acc + (Number(e.custo_reposicao) || 0), 0)
+                      )}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5 border border-white/10">
@@ -749,10 +756,13 @@ function PaginaDashboard() {
                         const vds = itens.filter((i: LinhaItem) => 
                           i.vendas && (filtroDiaModal === "todos" || DIAS[new Date(`${i.vendas.data_venda}T12:00:00Z`).getUTCDay()] === filtroDiaModal)
                         ).reduce((acc: number, i: LinhaItem) => acc + (Number(i.quantidade) || 0), 0);
-                        const rps = reposicoes.filter((r: LinhaReposicao) => 
+                        const rpsPerfis = reposicoes.filter((r: LinhaReposicao) => 
                           filtroDiaModal === "todos" || DIAS[new Date(`${r.created_at}`).getUTCDay()] === filtroDiaModal
                         ).length;
-                        return vds > 0 ? `${((rps / vds) * 100).toFixed(1)}%` : "0%";
+                        const rpsEntregas = entregas.filter((e: LinhaEntrega) => 
+                          e.status === 'reposicao' && (filtroDiaModal === "todos" || DIAS[new Date(`${e.created_at}`).getUTCDay()] === filtroDiaModal)
+                        ).length;
+                        return vds > 0 ? `${(((rpsPerfis + rpsEntregas) / vds) * 100).toFixed(1)}%` : "0%";
                       })()}
                     </p>
                   </div>
