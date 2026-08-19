@@ -64,7 +64,6 @@ function Pagina() {
         { nome: "destinatario", rotulo: "Destinatário" },
         { nome: "endereco", rotulo: "Endereço" },
         { nome: "data_prevista", rotulo: "Prevista", formato: "data" },
-        { nome: "transportadora", rotulo: "Transportadora" },
         { nome: "status", rotulo: "Status" },
         { nome: "custo_reposicao", rotulo: "Custo Repos.", formato: "moeda" },
       ]}
