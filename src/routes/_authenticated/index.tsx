@@ -276,7 +276,10 @@ function PaginaDashboard() {
 
   const dadosGraficoVendas = DIAS.map((dia, indice) => {
     const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
-    const totalDia = vendasDia.length;
+    const reposicoesDia = reposicoes.filter((r: LinhaReposicao) => new Date(r.created_at).getUTCDay() === indice);
+    const entregasReposicaoDia = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao' && new Date(e.created_at).getUTCDay() === indice);
+    
+    const totalVendasDia = vendasDia.length;
     
     // Status considerados como venda efetivada
     const statusEfetivados = ["confirmada", "em_producao", "pronta", "parcialmente_entregue", "entregue"];
@@ -288,18 +291,21 @@ function PaginaDashboard() {
 
     const valorEfetivado = efetivadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
     const valorReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total || 0), 0);
-
-    const totalValorDia = valorEfetivado + valorReembolsado;
-    const taxaReembolsoDia = totalValorDia > 0 ? (valorReembolsado / totalValorDia) * 100 : 0;
+    const custoReposicoesPerfis = reposicoesDia.reduce((s: number, r: LinhaReposicao) => s + Number(r.custo_reposicao || 0), 0);
+    const custoReposicoesEntregas = entregasReposicaoDia.reduce((s: number, e: LinhaEntrega) => s + Number(e.custo_reposicao || 0), 0);
+    
+    const totalReembolsoReposicao = valorReembolsado + custoReposicoesPerfis + custoReposicoesEntregas;
+    const totalValorDia = valorEfetivado + totalReembolsoReposicao;
+    const taxaReembolsoDia = totalValorDia > 0 ? (totalReembolsoReposicao / totalValorDia) * 100 : 0;
 
     return {
       dia,
-      positivo: totalDia > 0 ? (efetivadas.length / totalDia) * 100 : 0,
-      negativo: totalDia > 0 ? (reembolsadas.length / totalDia) * 100 : 0,
+      positivo: totalVendasDia > 0 ? (efetivadas.length / totalVendasDia) * 100 : 0,
+      negativo: totalVendasDia > 0 ? ((reembolsadas.length + reposicoesDia.length + entregasReposicaoDia.length) / totalVendasDia) * 100 : 0,
       vendasValor: formatarMoeda(valorEfetivado),
       vendasQtd: efetivadas.length,
-      reembolsosValor: formatarMoeda(valorReembolsado),
-      reembolsosQtd: reembolsadas.length,
+      reembolsosValor: formatarMoeda(totalReembolsoReposicao),
+      reembolsosQtd: reembolsadas.length + reposicoesDia.length + entregasReposicaoDia.length,
       taxaReembolso: `${taxaReembolsoDia.toFixed(1)}%`,
     };
   });
@@ -458,9 +464,9 @@ function PaginaDashboard() {
           <section className="rounded-xl border bg-card p-6 shadow-panel">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-sm font-semibold">Vendas e Reembolsos por dia da semana</h2>
+                <h2 className="text-sm font-semibold">Vendas e Reembolsos/Reposições por dia da semana</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Comparativo entre vendas concluídas e taxa de reembolso por dia.
+                  Comparativo diário entre vendas concluídas e taxas de reembolso/reposição de garantia.
                 </p>
               </div>
               <Button 
@@ -481,7 +487,7 @@ function PaginaDashboard() {
               <GraficoBarrasAgrupadas 
                 dados={barrasVendasAgrupadas} 
                 cores={["#0066ff", "#EF4444"]}
-                legendas={["Vendas Efetivadas", "Reembolsos"]}
+                legendas={["Vendas Efetivadas", "Reembolsos/Reposição"]}
                 onBarClick={(data) => {
                   setFiltroDiaModal(data.dia);
                   setModalVendasAberto(true);
