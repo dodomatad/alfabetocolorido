@@ -90,7 +90,7 @@ function PaginaVendas() {
     queryFn: async () => {
       let q = supabase
         .from("vendas")
-        .select("id, numero, status, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
+        .select("id, numero, status, status_entrega, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
         .order("numero", { ascending: false })
         .limit(50);
       if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
