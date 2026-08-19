@@ -52,7 +52,7 @@ export type CampoModulo = {
   padrao?: string;
   opcoes?: { valor: string; rotulo: string }[];
   /** Para tipo "relacao": tabela de origem e coluna exibida. */
-  relacao?: { tabela: "clientes" | "fornecedores" | "modalidades_bm" | "vendas"; rotulo: string };
+  relacao?: { tabela: "clientes" | "fornecedores" | "modalidades_bm" | "vendas" | "estoque"; rotulo: string };
 };
 
 export type ColunaModulo = {
