@@ -996,6 +996,53 @@ export type Database = {
           },
         ]
       }
+      reposicoes_perfis: {
+        Row: {
+          cliente_nome: string
+          created_at: string | null
+          custo_reposicao: number
+          empresa_id: string
+          id: string
+          motivo_reposicao: string
+          responsavel_id: string | null
+          status: string
+          tipo_perfil: string
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_nome: string
+          created_at?: string | null
+          custo_reposicao?: number
+          empresa_id?: string
+          id?: string
+          motivo_reposicao: string
+          responsavel_id?: string | null
+          status?: string
+          tipo_perfil: string
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string | null
+          custo_reposicao?: number
+          empresa_id?: string
+          id?: string
+          motivo_reposicao?: string
+          responsavel_id?: string | null
+          status?: string
+          tipo_perfil?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicoes_perfis_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios_papeis: {
         Row: {
           created_at: string
