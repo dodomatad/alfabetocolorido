@@ -140,7 +140,12 @@ export function GraficoBarrasAgrupadas({
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={dados} margin={{ top: 24, right: 8, left: 8, bottom: 8 }}>
+        <BarChart 
+          data={dados} 
+          margin={{ top: 24, right: 8, left: 8, bottom: 8 }}
+          barGap={4}
+          barCategoryGap="20%"
+        >
           <XAxis
             dataKey="dia"
             tickLine={false}
