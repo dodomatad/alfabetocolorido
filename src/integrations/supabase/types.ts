@@ -910,6 +910,7 @@ export type Database = {
           observacoes: string | null
           operador: string
           operador_id: string | null
+          tipo_bm: string | null
           updated_at: string
         }
         Insert: {
@@ -929,6 +930,7 @@ export type Database = {
           observacoes?: string | null
           operador: string
           operador_id?: string | null
+          tipo_bm?: string | null
           updated_at?: string
         }
         Update: {
@@ -948,6 +950,7 @@ export type Database = {
           observacoes?: string | null
           operador?: string
           operador_id?: string | null
+          tipo_bm?: string | null
           updated_at?: string
         }
         Relationships: [

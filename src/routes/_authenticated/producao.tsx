@@ -270,6 +270,7 @@ function Pagina() {
     setForm({
       operador: r.operador,
       data_registro: r.data_registro,
+      tipo_bm: (r as any).tipo_bm || "BM 250",
       bms_criadas: String(r.bms_criadas),
       bms_aquecidas: String(r.bms_aquecidas),
       contas_subidas: String(r.contas_subidas),
@@ -292,6 +293,7 @@ function Pagina() {
         empresa_id: empresa.id,
         data_registro: form["data_registro"] || iso(new Date()),
         operador: form["operador"],
+        tipo_bm: form["tipo_bm"] || "BM 250",
         bms_criadas: n("bms_criadas"),
         bms_aquecidas: n("bms_aquecidas"),
         contas_subidas: n("contas_subidas"),
@@ -732,6 +734,25 @@ function Pagina() {
                 </Select>
               </div>
               <Campo id="data_registro" rotulo="Data do registro" tipo="date" form={form} setForm={setForm} />
+              <div className="space-y-1.5">
+                <Label htmlFor="tipo_bm">Tipo de Ativo (BM / Perfil)</Label>
+                <Select
+                  value={form['tipo_bm'] ?? "BM 250"}
+                  onValueChange={(v) => setForm((a) => ({ ...a, tipo_bm: v }))}
+                >
+                  <SelectTrigger id="tipo_bm">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BM 250">BM 250</SelectItem>
+                    <SelectItem value="BM 2K">BM 2K</SelectItem>
+                    <SelectItem value="BM 10K">BM 10K</SelectItem>
+                    <SelectItem value="BM 100K">BM 100K</SelectItem>
+                    <SelectItem value="BM Ilimitada">BM Ilimitada</SelectItem>
+                    <SelectItem value="Perfil Farmado">Perfil Farmado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Campo id="bms_criadas" rotulo="BMs criadas" form={form} setForm={setForm} />
               <Campo id="bms_aquecidas" rotulo="BMs aquecidas" form={form} setForm={setForm} />
               <Campo id="contas_subidas" rotulo="Contas subidas" form={form} setForm={setForm} />
