@@ -171,13 +171,18 @@ export const aprovarAcessoPendente = createServerFn({ method: "POST" })
     // e pelo uso do supabaseAdmin para operações críticas após validação de contexto.
 
     try {
+      // 0. Buscar nome do usuário no Auth se possível ou no convite
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+      const nomeUsuario = authUser.user?.user_metadata?.nome || authUser.user?.email?.split('@')[0] || 'Usuário';
+
       // 1. Criar/Atualizar perfil
       const { error: perfilError } = await supabaseAdmin.from("perfis").upsert({
         id: data.userId,
         empresa_id: data.empresaId,
+        nome: nomeUsuario, // Adicionado campo obrigatório nome
         cargo: data.cargo,
         ativo: true,
-      }, { onConflict: 'id' });
+      } as any, { onConflict: 'id' });
 
       if (perfilError) throw perfilError;
 
