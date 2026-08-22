@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Search, Menu, History, Plus } from "lucide-react";
@@ -122,6 +122,7 @@ type LinhaEntrega = {
 
 function PaginaDashboard() {
   const { empresa, fuso, permissoes } = useSessao();
+  const queryClient = useQueryClient();
   const [dias, setDias] = useState<string>("30");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   
@@ -486,7 +487,7 @@ function PaginaDashboard() {
             />
             <CartaoMetrica
               rotulo="Faturamento líquido"
-              valor={fmtValor(liquido)}
+              valor={fmtValor(faturamentoLiquido)}
             />
             <CartaoMetrica
               rotulo="ROI"

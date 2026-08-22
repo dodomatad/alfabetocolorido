@@ -191,10 +191,13 @@ function PaginaFinanceiro() {
     const lista = consulta.data || [];
     const hoje = new Date().toISOString().slice(0, 10);
     
-    const aReceber = lista.filter(i => i.tipo === "receber" && i.situacao === "aberto");
-    const aPagar = lista.filter(i => i.tipo === "pagar" && i.situacao === "aberto");
+    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "pendente" || i.situacao === "a_vencer" as any));
+    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "pendente" || i.situacao === "a_vencer" as any));
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
-    const producaoBM = lista.filter(i => i.categoria === "Produção de BM / Insumos");
+    const producaoBM = lista.filter(i => 
+      i.tipo === "pagar" && 
+      ['Operacional', 'Produção BM', 'Insumos', 'Produção de BM / Insumos'].includes(i.categoria || "")
+    );
 
     const totalReceber = aReceber.reduce((acc, i) => acc + i.valor, 0);
     const totalPagar = aPagar.reduce((acc, i) => acc + i.valor, 0);
@@ -245,6 +248,7 @@ function PaginaFinanceiro() {
     onSuccess: () => {
       toast.success("Lançamento registrado com sucesso.");
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setAberto(false);
       setValores({
         tipo: "receber",
