@@ -50,6 +50,8 @@ export function FormularioVenda({
   const queryClient = useQueryClient();
 
   const [clienteId, setClienteId] = useState("");
+  const [funcionarioId, setFuncionarioId] = useState("");
+  const [percentualComissao, setPercentualComissao] = useState("0");
   const [status, setStatus] = useState<string>("rascunho");
   const [dataVenda, setDataVenda] = useState(() => new Date().toISOString().slice(0, 10));
   const [dataEntrega, setDataEntrega] = useState("");
@@ -65,6 +67,21 @@ export function FormularioVenda({
       const { data, error } = await supabase
         .from("clientes")
         .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const funcionarios = useQuery({
+    queryKey: ["equipe-selecao", empresa?.id],
+    enabled: Boolean(empresa?.id) && aberto,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("perfis")
+        .select("id, nome, cargo")
+        .eq("empresa_id", empresa!.id)
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
@@ -99,6 +116,8 @@ export function FormularioVenda({
 
   const limpar = () => {
     setClienteId("");
+    setFuncionarioId("");
+    setPercentualComissao("0");
     setStatus("rascunho");
     setDataVenda(new Date().toISOString().slice(0, 10));
     setDataEntrega("");
@@ -124,11 +143,13 @@ export function FormularioVenda({
         .insert({
           empresa_id: empresa.id,
           cliente_id: clienteId || null,
+          responsavel_producao_id: funcionarioId || null,
+          comissao_percentual: numero(percentualComissao),
           numero: Number(proximo) || 1,
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
-          status: status as "rascunho" | "em_andamento" | "efetuada" | "falta_pagamento" | "confirmada" | "reembolsada",
-          status_entrega: status === "confirmada" ? "pendente" : "pendente", // O trigger cuida da sincronização
+          status: status as any,
+          status_entrega: "pendente",
           subtotal,
           desconto: numero(desconto),
           acrescimo: numero(acrescimo),
@@ -152,6 +173,26 @@ export function FormularioVenda({
         })),
       );
       if (erroItens) throw erroItens;
+
+      // Gerar lançamento financeiro de comissão se houver responsável e comissão
+      const valorComissao = (subtotal * numero(percentualComissao)) / 100;
+      if (funcionarioId && valorComissao > 0) {
+        const { error: erroFinanceiro } = await supabase.from("lancamentos_financeiros").insert({
+          empresa_id: empresa.id,
+          tipo: "pagar",
+          categoria: "Comissão / Repasse",
+          descricao: `Comissão Venda #${proximo} - ${funcionarios.data?.find(f => f.id === funcionarioId)?.nome || 'Funcionária'}`,
+          valor: valorComissao,
+          data_vencimento: dataVenda,
+          situacao: "aberto",
+          observacoes: `Comissão de ${percentualComissao}% sobre subtotal de ${formatarMoeda(subtotal)} da venda #${proximo}.`,
+          criado_por: session?.user.id ?? null,
+        });
+        if (erroFinanceiro) {
+          console.error("Erro ao gerar lançamento de comissão:", erroFinanceiro);
+          toast.error("Venda salva, mas erro ao gerar comissão no financeiro.");
+        }
+      }
     },
     onSuccess: () => {
       toast.success("Venda registrada com sucesso.");
@@ -336,6 +377,50 @@ export function FormularioVenda({
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 bg-zinc-900/40 border border-zinc-800/80 rounded-xl my-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-zinc-300 mb-1.5">
+              Funcionária (Produção das Contas)
+            </Label>
+            <Select value={funcionarioId} onValueChange={setFuncionarioId}>
+              <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                <SelectValue placeholder={funcionarios.isLoading ? "Carregando..." : "Selecione a funcionária"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(funcionarios.data ?? []).map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.nome} {f.cargo ? `(${f.cargo})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-zinc-300 mb-1.5">
+              % Comissão / Repasse (%)
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                placeholder="Ex: 10"
+                value={percentualComissao}
+                onChange={(e) => setPercentualComissao(e.target.value)}
+                className="bg-zinc-950 border-zinc-800 pr-8"
+              />
+              <span className="absolute right-3 top-2.5 text-xs text-zinc-500 font-bold">%</span>
+            </div>
+            {subtotal > 0 && numero(percentualComissao) > 0 && (
+              <span className="text-[11px] text-blue-400 mt-1 block">
+                Comissão devida: {formatarMoeda((subtotal * numero(percentualComissao)) / 100)}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
