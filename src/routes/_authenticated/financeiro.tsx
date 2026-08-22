@@ -194,10 +194,16 @@ function PaginaFinanceiro() {
     const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "parcial" || i.situacao === "pendente" as any || i.situacao === "a_vencer" as any));
     const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial" || i.situacao === "pendente" as any || i.situacao === "a_vencer" as any));
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
-    const producaoBM = lista.filter(i => 
-      i.tipo === "pagar" && 
-      ['Operacional', 'Produção BM', 'Insumos', 'Produção de BM / Insumos'].includes(i.categoria || "")
-    );
+    const producaoBM = lista.filter(i => {
+      const categoria = (i.categoria || "").trim().toLowerCase();
+      const tipo = (i.tipo || "").trim().toLowerCase();
+      
+      const categoriasProducaoBM = ['operacional', 'produção bm', 'producao bm', 'insumos', 'ferramentas', 'saldo bot', 'saldo do bot', 'produção de bm / insumos'];
+      const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
+      const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
+
+      return ehCategoriaBM && ehSaida;
+    });
 
     const totalReceber = aReceber.reduce((acc, i) => acc + i.valor, 0);
     const totalPagar = aPagar.reduce((acc, i) => acc + i.valor, 0);
