@@ -210,7 +210,18 @@ function PaginaDashboard() {
   // 1. Buscar despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
   const lancamentosFinanceiros = (consulta.data as any)?.lancamentosFinanceiros ?? [];
   const despesasOperacionaisFinanceiro = lancamentosFinanceiros
-    .filter((l: any) => l.tipo === 'pagar' && l.situacao === 'pago' && ['Produção de BM / Insumos', 'Operacional', 'Produção BM', 'Insumos'].includes(l.categoria))
+    .filter((l: any) => {
+      const categoria = (l.categoria || "").trim().toLowerCase();
+      const tipo = (l.tipo || "").trim().toLowerCase();
+      const situacao = (l.situacao || "").trim().toLowerCase();
+      
+      const categoriasProducaoBM = ['operacional', 'produção bm', 'producao bm', 'insumos', 'ferramentas', 'saldo bot', 'saldo do bot', 'produção de bm / insumos'];
+      const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
+      const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
+      const ehPago = situacao === 'pago';
+
+      return ehCategoriaBM && ehSaida && ehPago;
+    })
     .reduce((acc: number, l: any) => acc + Number(l.valor), 0);
 
   const totalCustoReposicoesPerfis = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
