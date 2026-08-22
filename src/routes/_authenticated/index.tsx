@@ -514,7 +514,7 @@ function PaginaDashboard() {
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <CartaoMetrica
-              rotulo="Custo com Perfil"
+              rotulo="Custo de Produção"
               valor={fmtValor(custosTotais)}
             />
             <CartaoMetrica
