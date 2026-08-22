@@ -78,14 +78,19 @@ export function FormularioVenda({
     queryKey: ["equipe-selecao", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("perfis")
-        .select("id, nome, cargo")
-        .eq("empresa_id", empresa!.id)
-        .eq("ativo", true)
-        .order("nome");
-      if (error) throw error;
-      return data ?? [];
+      const [perfis, membrosExtras] = await Promise.all([
+        supabase.from("perfis").select("id, nome, cargo").eq("empresa_id", empresa!.id).eq("ativo", true).order("nome"),
+        supabase.from("equipe_membros").select("id, nome, cargo").eq("empresa_id", empresa!.id).eq("status", "ativo").order("nome"),
+      ]);
+      
+      const listaUnificada = [...(perfis.data ?? [])];
+      (membrosExtras.data ?? []).forEach((m: any) => {
+        if (!listaUnificada.find(p => p.id === m.id)) {
+          listaUnificada.push(m);
+        }
+      });
+      
+      return listaUnificada;
     },
   });
 
