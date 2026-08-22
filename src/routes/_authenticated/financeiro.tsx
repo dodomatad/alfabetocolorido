@@ -68,7 +68,7 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
 });
 
 type TipoLancamento = "receber" | "pagar";
-type SituacaoLancamento = "aberto" | "pago" | "atrasado" | "cancelado" | "pendente" | "a_vencer";
+type SituacaoLancamento = "aberto" | "pago" | "atrasado" | "cancelado" | "parcial";
 
 interface Lancamento {
   id: string;
@@ -191,8 +191,8 @@ function PaginaFinanceiro() {
     const lista = consulta.data || [];
     const hoje = new Date().toISOString().slice(0, 10);
     
-    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "pendente" || i.situacao === "a_vencer" as any));
-    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "pendente" || i.situacao === "a_vencer" as any));
+    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "parcial"));
+    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial"));
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
     const producaoBM = lista.filter(i => 
       i.tipo === "pagar" && 
