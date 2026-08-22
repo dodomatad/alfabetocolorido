@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Search, Menu, History, Plus } from "lucide-react";
@@ -122,6 +122,7 @@ type LinhaEntrega = {
 
 function PaginaDashboard() {
   const { empresa, fuso, permissoes } = useSessao();
+  const queryClient = useQueryClient();
   const [dias, setDias] = useState<string>("30");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   
@@ -151,7 +152,7 @@ function PaginaDashboard() {
         .gte("data_venda", inicioIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
-      const [vendas, itens, reposicoes, entregas] = await Promise.all([
+      const [vendas, itens, reposicoes, entregas, lancamentos] = await Promise.all([
         vendasQuery,
         supabase
           .from("venda_itens")
@@ -164,10 +165,14 @@ function PaginaDashboard() {
         supabase
           .from("entregas")
           .select("id, status, custo_reposicao, created_at")
-          .gte("created_at", inicioIso)
+          .gte("created_at", inicioIso),
+        supabase
+          .from("lancamentos_financeiros")
+          .select("*")
+          .gte("data_vencimento", inicioIso)
       ]);
 
-      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error;
+      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error ?? lancamentos.error;
       if (erro) throw erro;
 
       return {
@@ -175,6 +180,7 @@ function PaginaDashboard() {
         itens: (itens.data ?? []) as unknown as LinhaItem[],
         reposicoes: (reposicoes.data ?? []) as unknown as LinhaReposicao[],
         entregas: (entregas.data ?? []) as unknown as LinhaEntrega[],
+        lancamentosFinanceiros: lancamentos.data ?? [],
       };
     },
   });
@@ -193,18 +199,26 @@ function PaginaDashboard() {
   const totalReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const taxaReembolso = vendas.length > 0 ? (reembolsadas.length / vendas.length) * 100 : 0;
 
-  const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
+  const faturamentoLiquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
-  const bruto = liquido + totalReembolsado + descontos;
-  const custosProducao = itens.reduce(
+  const bruto = faturamentoLiquido + totalReembolsado + descontos;
+  const custosProducaoPadrao = itens.reduce(
     (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
     0,
   ) || 0;
 
+  // 1. Buscar despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
+  const lancamentosFinanceiros = (consulta.data as any)?.lancamentosFinanceiros ?? [];
+  const despesasOperacionaisFinanceiro = lancamentosFinanceiros
+    .filter((l: any) => l.tipo === 'pagar' && l.situacao === 'pago' && ['Produção de BM / Insumos', 'Operacional', 'Produção BM', 'Insumos'].includes(l.categoria))
+    .reduce((acc: number, l: any) => acc + Number(l.valor), 0);
+
   const totalCustoReposicoesPerfis = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
   const totalCustoReposicoesEntregas = entregas.reduce((s: number, e: LinhaEntrega) => e.status === 'reposicao' ? s + (Number(e.custo_reposicao) || 0) : s, 0);
-  const custosTotais = custosProducao + totalCustoReposicoesPerfis + totalCustoReposicoesEntregas;
-  const lucro = liquido - custosTotais;
+  
+  // O Custo Total agora soma: Custos de Produção (itens) + Reposições + Despesas Operacionais Pagas no Financeiro
+  const custosTotais = custosProducaoPadrao + totalCustoReposicoesPerfis + totalCustoReposicoesEntregas + despesasOperacionaisFinanceiro;
+  const lucro = faturamentoLiquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
   const totalReposicoesPerfis = reposicoes.length;
@@ -473,7 +487,7 @@ function PaginaDashboard() {
             />
             <CartaoMetrica
               rotulo="Faturamento líquido"
-              valor={fmtValor(liquido)}
+              valor={fmtValor(faturamentoLiquido)}
             />
             <CartaoMetrica
               rotulo="ROI"
