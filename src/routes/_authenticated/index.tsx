@@ -199,9 +199,9 @@ function PaginaDashboard() {
   const totalReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const taxaReembolso = vendas.length > 0 ? (reembolsadas.length / vendas.length) * 100 : 0;
 
-  const liquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
+  const faturamentoLiquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
-  const bruto = liquido + totalReembolsado + descontos;
+  const bruto = faturamentoLiquido + totalReembolsado + descontos;
   const custosProducaoPadrao = itens.reduce(
     (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
     0,
@@ -218,7 +218,7 @@ function PaginaDashboard() {
   
   // O Custo Total agora soma: Custos de Produção (itens) + Reposições + Despesas Operacionais Pagas no Financeiro
   const custosTotais = custosProducaoPadrao + totalCustoReposicoesPerfis + totalCustoReposicoesEntregas + despesasOperacionaisFinanceiro;
-  const lucro = liquido - custosTotais;
+  const lucro = faturamentoLiquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
   const totalReposicoesPerfis = reposicoes.length;

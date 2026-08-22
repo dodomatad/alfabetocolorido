@@ -68,7 +68,7 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
 });
 
 type TipoLancamento = "receber" | "pagar";
-type SituacaoLancamento = "aberto" | "pago" | "atrasado" | "cancelado";
+type SituacaoLancamento = "aberto" | "pago" | "atrasado" | "cancelado" | "pendente" | "a_vencer";
 
 interface Lancamento {
   id: string;
