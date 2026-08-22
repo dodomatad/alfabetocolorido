@@ -13,6 +13,8 @@ import {
   Layers,
   MoreHorizontal, 
   Plus, 
+  UserCheck,
+  Users,
   Wallet,
   Wrench
 } from "lucide-react";
@@ -141,6 +143,7 @@ function PaginaFinanceiro() {
 
   
   const [aberto, setAberto] = useState(false);
+  const [modalFuncionariosAberto, setModalFuncionariosAberto] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   
@@ -171,6 +174,57 @@ function PaginaFinanceiro() {
       return (data || []) as unknown as Lancamento[];
     },
   });
+  
+  const consultaVendas = useQuery({
+    queryKey: ["vendas-comissoes", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendas")
+        .select(`
+          id, 
+          numero_venda, 
+          valor_total, 
+          criado_por,
+          data_venda,
+          equipe_membros:criado_por (nome, email, cargo)
+        `)
+        .eq("status", "confirmada");
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const funcionariosComissoes = useMemo(() => {
+    const vendas = (consultaVendas.data || []) as any[];
+    const mapa = new Map<string, { nome: string; email: string; vendas: number; totalVendas: number; comissao: number }>();
+    
+    vendas.forEach(v => {
+      const userId = v.criado_por;
+      const membro = v.equipe_membros;
+      if (!userId || !membro) return;
+      
+      const atual = mapa.get(userId) || { 
+        nome: membro.nome, 
+        email: membro.email, 
+        vendas: 0, 
+        totalVendas: 0, 
+        comissao: 0 
+      };
+      
+      atual.vendas += 1;
+      atual.totalVendas += Number(v.valor_total || 0);
+      // Regra: 2% de comissão fixa para funcionários sobre vendas confirmadas
+      atual.comissao = atual.totalVendas * 0.02;
+      
+      mapa.set(userId, atual);
+    });
+    
+    return Array.from(mapa.values());
+  }, [consultaVendas.data]);
+
+  const totalComissoesDevidas = funcionariosComissoes.reduce((acc, f) => acc + f.comissao, 0);
+  const qtdVendasComComissao = (consultaVendas.data || []).length;
 
   const dados = useMemo(() => {
     let lista = consulta.data || [];
@@ -340,6 +394,33 @@ function PaginaFinanceiro() {
             icone={Clock}
             corIcone="text-rose-500"
           />
+
+          <div 
+            onClick={() => setModalFuncionariosAberto(true)}
+            className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-[#141417] p-5 shadow-lg shadow-black/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-purple-500/10 border border-[#27272A]/40 cursor-pointer"
+          >
+            <div className="flex items-start justify-between">
+              <span className="text-base font-bold text-white uppercase tracking-tight">
+                CUSTOS DE FUNCIONÁRIOS
+              </span>
+              <div className="flex size-10 items-center justify-center rounded-full bg-black/40 shadow-inner">
+                <Users className="size-5 text-purple-400 group-hover:scale-110 transition-transform" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col">
+              <span className="num text-3xl font-bold tracking-tighter text-purple-400">
+                {ocultarValores ? "R$ ***" : formatarMoeda(totalComissoesDevidas)}
+              </span>
+              <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#9CA3AF]">
+                <div className="flex items-center gap-1.5">
+                  <UserCheck className="size-3 opacity-60" />
+                  {qtdVendasComComissao} comissões geradas
+                </div>
+                <span className="text-purple-400 underline decoration-purple-400/30 underline-offset-2 group-hover:decoration-purple-400">Ver detalhes</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -598,6 +679,76 @@ function PaginaFinanceiro() {
             <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               {salvar.isPending ? "Salvando..." : "Salvar Lançamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={modalFuncionariosAberto} onOpenChange={setModalFuncionariosAberto}>
+        <DialogContent className="sm:max-w-2xl bg-[#0A0A0A] border-[#27272A] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white">Detalhamento de Comissões</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Cálculo de 2% sobre o faturamento de vendas confirmadas por funcionário.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 overflow-hidden rounded-xl border border-[#27272A] bg-black/20">
+            <Table>
+              <TableHeader className="bg-zinc-900/50">
+                <TableRow className="border-[#27272A] hover:bg-transparent">
+                  <TableHead className="text-zinc-300">Funcionário</TableHead>
+                  <TableHead className="text-zinc-300 text-center">Vendas</TableHead>
+                  <TableHead className="text-zinc-300 text-right">Faturamento</TableHead>
+                  <TableHead className="text-zinc-300 text-right">Comissão (2%)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {funcionariosComissoes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center text-zinc-500">
+                      Nenhuma venda confirmada encontrada para cálculo.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  funcionariosComissoes.map((f, i) => (
+                    <TableRow key={i} className="border-[#27272A] hover:bg-white/5">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-white">{f.nome}</p>
+                          <p className="text-[10px] text-zinc-500">{f.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-zinc-300 num">{f.vendas}</TableCell>
+                      <TableCell className="text-right text-zinc-300 num">{formatarMoeda(f.totalVendas)}</TableCell>
+                      <TableCell className="text-right text-purple-400 font-bold num">{formatarMoeda(f.comissao)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between rounded-xl bg-purple-500/10 p-4 border border-purple-500/20">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-full bg-purple-500/20">
+                <Users className="size-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-purple-300 font-medium">TOTAL CONSOLIDADO</p>
+                <p className="text-lg font-bold text-white">Total de Comissões Devidas</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-black text-purple-400 num">
+                {ocultarValores ? "R$ ***" : formatarMoeda(totalComissoesDevidas)}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setModalFuncionariosAberto(false)} className="bg-transparent border-[#27272A] text-zinc-400 hover:bg-zinc-900 hover:text-white">
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
