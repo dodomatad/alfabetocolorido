@@ -191,8 +191,8 @@ function PaginaFinanceiro() {
     const lista = consulta.data || [];
     const hoje = new Date().toISOString().slice(0, 10);
     
-    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "parcial"));
-    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial"));
+    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "parcial" || i.situacao === "pendente" as any || i.situacao === "a_vencer" as any));
+    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial" || i.situacao === "pendente" as any || i.situacao === "a_vencer" as any));
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
     const producaoBM = lista.filter(i => 
       i.tipo === "pagar" && 
