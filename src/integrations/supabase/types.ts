@@ -1176,6 +1176,7 @@ export type Database = {
           atualizado_por: string | null
           cliente: string | null
           cliente_id: string | null
+          comissao_percentual: number | null
           created_at: string
           criado_por: string | null
           data_entrega_prevista: string | null
@@ -1186,6 +1187,7 @@ export type Database = {
           numero: number
           numero_venda: number
           observacoes: string | null
+          responsavel_producao_id: string | null
           status: Database["public"]["Enums"]["venda_status"]
           status_entrega: string | null
           subtotal: number
@@ -1197,6 +1199,7 @@ export type Database = {
           atualizado_por?: string | null
           cliente?: string | null
           cliente_id?: string | null
+          comissao_percentual?: number | null
           created_at?: string
           criado_por?: string | null
           data_entrega_prevista?: string | null
@@ -1207,6 +1210,7 @@ export type Database = {
           numero: number
           numero_venda?: number
           observacoes?: string | null
+          responsavel_producao_id?: string | null
           status?: Database["public"]["Enums"]["venda_status"]
           status_entrega?: string | null
           subtotal?: number
@@ -1218,6 +1222,7 @@ export type Database = {
           atualizado_por?: string | null
           cliente?: string | null
           cliente_id?: string | null
+          comissao_percentual?: number | null
           created_at?: string
           criado_por?: string | null
           data_entrega_prevista?: string | null
@@ -1228,6 +1233,7 @@ export type Database = {
           numero?: number
           numero_venda?: number
           observacoes?: string | null
+          responsavel_producao_id?: string | null
           status?: Database["public"]["Enums"]["venda_status"]
           status_entrega?: string | null
           subtotal?: number
@@ -1247,6 +1253,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_responsavel_producao_id_fkey"
+            columns: ["responsavel_producao_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
             referencedColumns: ["id"]
           },
         ]
