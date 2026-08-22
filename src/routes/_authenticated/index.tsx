@@ -98,6 +98,7 @@ type LinhaVenda = {
 
 type LinhaItem = {
   quantidade: number | string;
+  custo_unitario: number | string | null;
   modalidades_bm: { custo_producao_padrao: number | string } | null;
   vendas?: { data_venda: string };
 };
@@ -156,7 +157,7 @@ function PaginaDashboard() {
         vendasQuery,
         supabase
           .from("venda_itens")
-          .select("quantidade, vendas!inner(data_venda), modalidades_bm(custo_producao_padrao)")
+          .select("quantidade, custo_unitario, vendas!inner(data_venda), modalidades_bm(custo_producao_padrao)")
           .gte("vendas.data_venda", inicioIso),
         supabase
           .from("reposicoes_perfis")
@@ -203,7 +204,10 @@ function PaginaDashboard() {
   const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
   const bruto = faturamentoLiquido + totalReembolsado + descontos;
   const custosProducaoPadrao = itens.reduce(
-    (s, i) => s + Number(i.quantidade ?? 0) * Number(i.modalidades_bm?.custo_producao_padrao ?? 0),
+    (s, i) => {
+      const custo = Number(i.custo_unitario ?? i.modalidades_bm?.custo_producao_padrao ?? 0);
+      return s + Number(i.quantidade ?? 0) * custo;
+    },
     0,
   ) || 0;
 
