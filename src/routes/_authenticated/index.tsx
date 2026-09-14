@@ -503,7 +503,7 @@ function PaginaDashboard() {
 
         <div className="flex items-center gap-2">
           {/* DESKTOP */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             {dias === "personalizado" && (
               <div className="flex items-center gap-2 mr-2">
                 <Input type="date" value={dataInicioPersonalizada} onChange={e => setDataInicioPersonalizada(e.target.value)} className="h-9 text-xs w-32" />
@@ -560,7 +560,7 @@ function PaginaDashboard() {
           </div>
           
           {/* MOBILE */}
-          <div className="sm:hidden">
+          <div className="md:hidden">
             <Sheet open={sheetFiltrosAberto} onOpenChange={setSheetFiltrosAberto}>
               <SheetTrigger asChild>
                 <Button variant="default" size="icon" className="h-9 w-9 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800" aria-label="Filtros">
