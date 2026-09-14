@@ -30,6 +30,10 @@ import { formatarData, formatarMoeda, formatarNumero, formatarDataHora } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Filter } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ModalAdicionarReposicao } from "@/components/dashboard/modal-adicionar-reposicao";
 
@@ -62,6 +66,7 @@ const PERIODOS = [
   { valor: "mes_passado", rotulo: "Mês Passado" },
   { valor: "ano_atual", rotulo: "Este Ano" },
   { valor: "tudo", rotulo: "Todo o período" },
+  { valor: "personalizado", rotulo: "Personalizado" },
 ] as const;
 
 const ROTULO_STATUS: Record<string, string> = {
@@ -128,6 +133,9 @@ function PaginaDashboard() {
   const queryClient = useQueryClient();
   const [dias, setDias] = useState<string>("30");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
+  const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [dataFimPersonalizada, setDataFimPersonalizada] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [sheetFiltrosAberto, setSheetFiltrosAberto] = useState(false);
   
   const [modalVendasAberto, setModalVendasAberto] = useState(false);
   const [modalProducaoAberto, setModalProducaoAberto] = useState(false);
@@ -164,6 +172,12 @@ function PaginaDashboard() {
       return { 
         inicioIso: primeiroDia.toISOString().slice(0, 10), 
         hojeIso: ultimoDia.toISOString().slice(0, 10) 
+      };
+    }
+    if (dias === "personalizado") {
+      return {
+        inicioIso: dataInicioPersonalizada || hoje,
+        hojeIso: dataFimPersonalizada || hoje,
       };
     }
     
