@@ -383,6 +383,7 @@ function Pagina() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os operadores</SelectItem>
+                  <SelectItem value="Fornecedor CIRO">🔧 Fornecedor CIRO</SelectItem>
                   {(equipe.data ?? []).map((p) => (
                     <SelectItem key={p.id} value={p.nome}>
                       {p.nome}
@@ -761,6 +762,7 @@ function Pagina() {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Fornecedor CIRO">🔧 Fornecedor CIRO</SelectItem>
                     {(equipe.data ?? []).map((p) => (
                       <SelectItem key={p.id} value={p.nome}>
                         {p.nome}
