@@ -39,15 +39,47 @@ const STATUS_INICIAIS = [
   { valor: "reembolsada", rotulo: "Reembolsada" },
 ] as const;
 
+import { useEffect } from "react";
 export function FormularioVenda({
   aberto,
   aoFechar,
+  vendaId,
 }: {
   aberto: boolean;
   aoFechar: () => void;
+  vendaId?: string;
 }) {
   const { empresa, session } = useSessao();
   const queryClient = useQueryClient();
+
+  const { data: ciroCriado, refetch: refetchCiro } = useQuery({
+    queryKey: ["garantir-ciro", empresa?.id],
+    enabled: Boolean(empresa?.id) && aberto,
+    queryFn: async () => {
+      const { data: perfis } = await supabase
+        .from("perfis")
+        .select("id, nome")
+        .eq("empresa_id", empresa!.id)
+        .ilike("nome", "%ciro%");
+      
+      if (!perfis || perfis.length === 0) {
+        // Criar o Ciro
+        const { data: novoCiro, error } = await supabase.from("perfis").insert({
+          nome: "Fornecedor CIRO",
+          cargo: "Fornecedor BM",
+          ativo: true,
+          empresa_id: empresa!.id
+        }).select().single();
+        
+        if (!error && novoCiro) {
+          queryClient.invalidateQueries({ queryKey: ["equipe-selecao"] });
+          return novoCiro;
+        }
+      }
+      return perfis?.[0] || null;
+    }
+  });
+
 
   const [clienteId, setClienteId] = useState("");
   const [funcionarioId, setFuncionarioId] = useState("");
@@ -59,6 +91,64 @@ export function FormularioVenda({
   const [acrescimo, setAcrescimo] = useState("0");
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<Item[]>([{ ...ITEM_VAZIO }]);
+
+  const consultaVenda = useQuery({
+    queryKey: ["venda-edicao", vendaId],
+    enabled: Boolean(vendaId) && aberto,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendas")
+        .select("*, venda_itens(*)")
+        .eq("id", vendaId)
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  useEffect(() => {
+    if (aberto && vendaId && consultaVenda.data) {
+      const v = consultaVenda.data;
+      setClienteId(v.cliente_id || "");
+      
+      let responsavelId = v.responsavel_producao_id || "";
+      let obs = v.observacoes || "";
+      if (obs.includes("[FORNECEDOR_CIRO]")) {
+         responsavelId = "ciro-fornecedor";
+         obs = obs.replace("[FORNECEDOR_CIRO]", "").trim();
+      }
+      
+      setFuncionarioId(responsavelId);
+      setPercentualComissao(v.comissao_percentual?.toString() || "0");
+      setStatus(v.status || "rascunho");
+      setDataVenda(v.data_venda ? v.data_venda.substring(0, 10) : new Date().toISOString().slice(0, 10));
+      setDataEntrega(v.data_entrega_prevista ? v.data_entrega_prevista.substring(0, 10) : "");
+      setDesconto(v.desconto?.toString() || "0");
+      setAcrescimo(v.acrescimo?.toString() || "0");
+      setObservacoes(obs);
+
+      if (v.venda_itens && v.venda_itens.length > 0) {
+        setItens(v.venda_itens.map((i: any) => ({
+          modalidade_id: i.modalidade_id || "",
+          quantidade: i.quantidade?.toString() || "1",
+          preco_unitario: i.preco_unitario?.toString() || "0",
+        })));
+      } else {
+        setItens([{ ...ITEM_VAZIO }]);
+      }
+    } else if (aberto && !vendaId) {
+      setClienteId("");
+      setFuncionarioId("");
+      setPercentualComissao("0");
+      setStatus("rascunho");
+      setDataVenda(new Date().toISOString().slice(0, 10));
+      setDataEntrega("");
+      setDesconto("0");
+      setAcrescimo("0");
+      setObservacoes("");
+      setItens([{ ...ITEM_VAZIO }]);
+    }
+  }, [aberto, vendaId, consultaVenda.data]);
 
   const clientes = useQuery({
     queryKey: ["clientes-selecao", empresa?.id],
@@ -138,38 +228,59 @@ export function FormularioVenda({
       const validos = itens.filter((i) => i.modalidade_id && numero(i.quantidade) > 0);
       if (validos.length === 0) throw new Error("Adicione ao menos um item com modalidade e quantidade.");
 
-      const { data: proximo, error: erroNumero } = await (supabase as any).rpc("proximo_numero_venda", {
-        _empresa: empresa.id,
-      });
-      if (erroNumero) throw erroNumero;
-
-      const { data: venda, error: erroVenda } = await supabase
-        .from("vendas")
-        .insert({
+      let vendaSalvaId = vendaId;
+      
+      const payloadVenda = {
           empresa_id: empresa.id,
           cliente_id: clienteId || null,
-          responsavel_producao_id: funcionarioId || null,
+          responsavel_producao_id: funcionarioId === 'ciro-fornecedor' ? null : (funcionarioId || null),
           comissao_percentual: numero(percentualComissao),
-          numero: Number(proximo) || 1,
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
           status: status as any,
-          status_entrega: "pendente",
           subtotal,
           desconto: numero(desconto),
           acrescimo: numero(acrescimo),
           valor_total: total,
-          observacoes: observacoes.trim() || null,
-          criado_por: session?.user.id ?? null,
+          observacoes: (funcionarioId === 'ciro-fornecedor' ? '[FORNECEDOR_CIRO] ' : '') + (observacoes.trim() || ''),
           atualizado_por: session?.user.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (erroVenda) throw erroVenda;
+      };
 
+      if (vendaId) {
+        // UPDATE
+        const { error: erroVenda } = await supabase
+          .from("vendas")
+          .update(payloadVenda)
+          .eq("id", vendaId);
+        if (erroVenda) throw erroVenda;
+        
+        // Remove itens antigos
+        await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+      } else {
+        // INSERT
+        const { data: proximo, error: erroNumero } = await (supabase as any).rpc("proximo_numero_venda", {
+          _empresa: empresa.id,
+        });
+        if (erroNumero) throw erroNumero;
+        
+        const { data: novaVenda, error: erroVenda } = await supabase
+          .from("vendas")
+          .insert({
+            ...payloadVenda,
+            numero: Number(proximo) || 1,
+            status_entrega: "pendente",
+            criado_por: session?.user.id ?? null,
+          })
+          .select("id")
+          .single();
+        if (erroVenda) throw erroVenda;
+        vendaSalvaId = novaVenda.id;
+      }
+
+      // Insere os novos itens
       const { error: erroItens } = await supabase.from("venda_itens").insert(
         validos.map((i) => ({
-          venda_id: venda.id,
+          venda_id: vendaSalvaId,
           modalidade_id: i.modalidade_id,
           quantidade: numero(i.quantidade),
           preco_unitario: numero(i.preco_unitario),
@@ -179,18 +290,20 @@ export function FormularioVenda({
       );
       if (erroItens) throw erroItens;
 
-      // Gerar lançamento financeiro de comissão se houver responsável e comissão
+      // Só gerar lançamento financeiro se for uma NOVA venda (para evitar duplicidade na edição)
       const valorComissao = (subtotal * numero(percentualComissao)) / 100;
-      if (funcionarioId && valorComissao > 0) {
+      if (!vendaId && funcionarioId && valorComissao > 0) {
+        // Obter número temporário para descrição, já que proximo não está no escopo
+        const numVenda = 0; // Só um placeholder, pois o real já foi inserido
         const { error: erroFinanceiro } = await supabase.from("lancamentos_financeiros").insert({
           empresa_id: empresa.id,
           tipo: "pagar",
           categoria: "Comissão / Repasse",
-          descricao: `Comissão Venda #${proximo} - ${funcionarios.data?.find(f => f.id === funcionarioId)?.nome || 'Funcionária'}`,
+          descricao: `Comissão Venda - ${funcionarios.data?.find(f => f.id === funcionarioId)?.nome || 'Funcionária'}`,
           valor: valorComissao,
           data_vencimento: dataVenda,
           situacao: "aberto",
-          observacoes: `Comissão de ${percentualComissao}% sobre subtotal de ${formatarMoeda(subtotal)} da venda #${proximo}.`,
+          observacoes: `Comissão de ${percentualComissao}% sobre subtotal de ${formatarMoeda(subtotal)}.`,
           criado_por: session?.user.id ?? null,
         });
         if (erroFinanceiro) {
@@ -225,6 +338,7 @@ export function FormularioVenda({
                 <SelectValue placeholder={clientes.isLoading ? "Carregando..." : "Selecione"} />
               </SelectTrigger>
               <SelectContent>
+
                 {(clientes.data ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.nome}
@@ -386,7 +500,7 @@ export function FormularioVenda({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 bg-zinc-900/40 border border-zinc-800/80 rounded-xl my-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-zinc-300 mb-1.5">
+<Label className="text-xs font-semibold text-zinc-300 mb-1.5">
               Funcionária (Produção das Contas)
             </Label>
             <Select value={funcionarioId} onValueChange={setFuncionarioId}>
@@ -394,6 +508,9 @@ export function FormularioVenda({
                 <SelectValue placeholder={funcionarios.isLoading ? "Carregando..." : "Selecione a funcionária"} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="ciro-fornecedor" className="font-semibold text-purple-400">
+                  FORNECEDOR CIRO
+                </SelectItem>
                 {(funcionarios.data ?? []).map((f) => (
                   <SelectItem key={f.id} value={f.id}>
                     {f.nome} {f.cargo ? `(${f.cargo})` : ""}

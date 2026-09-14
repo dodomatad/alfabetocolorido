@@ -76,6 +76,7 @@ type Props = {
   rotuloBotao?: string;
   vazioTitulo: string;
   vazioDescricao: string;
+  topComponent?: React.ReactNode;
 };
 
 // A tabela é escolhida por uma união fechada acima; o cast evita a explosão de
@@ -97,6 +98,7 @@ export function ModuloRegistros({
   vazioTitulo,
   vazioDescricao,
   selectCustom,
+  topComponent,
 }: Props) {
   const { empresa, session, fuso, temPermissao } = useSessao();
   const queryClient = useQueryClient();
@@ -242,6 +244,7 @@ export function ModuloRegistros({
           />
         }
       />
+      {topComponent}
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">

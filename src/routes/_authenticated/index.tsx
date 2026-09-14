@@ -58,7 +58,10 @@ const PERIODOS = [
   { valor: "7", rotulo: "Últimos 7 dias" },
   { valor: "30", rotulo: "Últimos 30 dias" },
   { valor: "90", rotulo: "Últimos 90 dias" },
-  { valor: "365", rotulo: "Últimos 12 meses" },
+  { valor: "mes_atual", rotulo: "Este Mês" },
+  { valor: "mes_passado", rotulo: "Mês Passado" },
+  { valor: "ano_atual", rotulo: "Este Ano" },
+  { valor: "tudo", rotulo: "Todo o período" },
 ] as const;
 
 const ROTULO_STATUS: Record<string, string> = {
@@ -134,10 +137,40 @@ function PaginaDashboard() {
 
   const { inicioIso, hojeIso } = useMemo(() => {
     const d = new Date();
+    const hoje = new Date().toISOString().slice(0, 10);
+    
+    if (dias === "tudo") {
+      return { inicioIso: "2000-01-01", hojeIso: "2099-12-31" };
+    }
+    if (dias === "mes_atual") {
+      const primeiroDia = new Date(d.getFullYear(), d.getMonth(), 1);
+      const ultimoDia = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      return { 
+        inicioIso: primeiroDia.toISOString().slice(0, 10), 
+        hojeIso: ultimoDia.toISOString().slice(0, 10) 
+      };
+    }
+    if (dias === "mes_passado") {
+      const primeiroDia = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      const ultimoDia = new Date(d.getFullYear(), d.getMonth(), 0);
+      return { 
+        inicioIso: primeiroDia.toISOString().slice(0, 10), 
+        hojeIso: ultimoDia.toISOString().slice(0, 10) 
+      };
+    }
+    if (dias === "ano_atual") {
+      const primeiroDia = new Date(d.getFullYear(), 0, 1);
+      const ultimoDia = new Date(d.getFullYear(), 11, 31);
+      return { 
+        inicioIso: primeiroDia.toISOString().slice(0, 10), 
+        hojeIso: ultimoDia.toISOString().slice(0, 10) 
+      };
+    }
+    
     d.setDate(d.getDate() - Number(dias));
     return {
       inicioIso: d.toISOString().slice(0, 10),
-      hojeIso: new Date().toISOString().slice(0, 10),
+      hojeIso: hoje,
     };
   }, [dias]);
 
@@ -149,30 +182,38 @@ function PaginaDashboard() {
       let vendasQuery = supabase
         .from("vendas")
         .select("id, numero_venda, cliente, status, valor_total, desconto, data_venda, created_at, clientes(nome)")
-        .gte("data_venda", inicioIso);
+        .gte("data_venda", inicioIso)
+        .lte("data_venda", hojeIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
-      const [vendas, itens, reposicoes, entregas, lancamentos] = await Promise.all([
+      const [vendas, itens, reposicoes, entregas, lancamentos, vendasTotais] = await Promise.all([
         vendasQuery,
         supabase
           .from("venda_itens")
           .select("quantidade, vendas!inner(data_venda), modalidades_bm(custo_producao_padrao)")
-          .gte("vendas.data_venda", inicioIso),
+          .gte("vendas.data_venda", inicioIso)
+          .lte("vendas.data_venda", hojeIso),
         supabase
           .from("reposicoes_perfis")
           .select("*")
-          .gte("created_at", inicioIso),
+          .gte("created_at", inicioIso)
+          .lte("created_at", hojeIso + "T23:59:59.999Z"),
         supabase
           .from("entregas")
           .select("id, status, custo_reposicao, created_at")
-          .gte("created_at", inicioIso),
+          .gte("created_at", inicioIso)
+          .lte("created_at", hojeIso + "T23:59:59.999Z"),
         supabase
           .from("lancamentos_financeiros")
           .select("*")
           .gte("data_vencimento", inicioIso)
+          .lte("data_vencimento", hojeIso),
+        supabase
+          .from("vendas")
+          .select("valor_total, desconto, status")
       ]);
 
-      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error ?? lancamentos.error;
+      const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error ?? lancamentos.error ?? vendasTotais.error;
       if (erro) throw erro;
 
       return {
@@ -181,6 +222,7 @@ function PaginaDashboard() {
         reposicoes: (reposicoes.data ?? []) as unknown as LinhaReposicao[],
         entregas: (entregas.data ?? []) as unknown as LinhaEntrega[],
         lancamentosFinanceiros: lancamentos.data ?? [],
+        vendasTotais: (vendasTotais.data ?? []) as any[],
       };
     },
   });
@@ -189,12 +231,21 @@ function PaginaDashboard() {
   const itens = consulta.data?.itens ?? [];
   const reposicoes = (consulta.data as any)?.reposicoes ?? [];
   const entregas = (consulta.data as any)?.entregas ?? [];
+  const vendasTotaisData = (consulta.data as any)?.vendasTotais ?? [];
+  
+  const validasTotais = vendasTotaisData.filter((v: any) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
+  const reembolsadasTotais = vendasTotaisData.filter((v: any) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
+  const totalReembolsadoGeral = reembolsadasTotais.reduce((s: number, v: any) => s + Number(v.valor_total ?? 0), 0) || 0;
+  const faturamentoLiquidoGeral = validasTotais.reduce((s: number, v: any) => s + Number(v.valor_total ?? 0), 0) || 0;
+  const descontosGeral = validasTotais.reduce((s: number, v: any) => s + Number(v.desconto ?? 0), 0) || 0;
+  const brutoGeral = faturamentoLiquidoGeral + totalReembolsadoGeral + descontosGeral;
+
 
   const ocultarValores = useMemo(() => {
     return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
   }, [permissoes]);
 
-  const validas = vendas.filter((v) => v.status !== "cancelada" && v.status !== "reembolsada");
+  const validas = vendas.filter((v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
   const reembolsadas = vendas.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
   const totalReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
   const taxaReembolso = vendas.length > 0 ? (reembolsadas.length / vendas.length) * 100 : 0;
@@ -218,7 +269,26 @@ function PaginaDashboard() {
       const tipo = (l.tipo || "").trim().toLowerCase();
       const situacao = (l.situacao || "").trim().toLowerCase();
       
-      const categoriasProducaoBM = ['operacional', 'produção bm', 'producao bm', 'insumos', 'ferramentas', 'saldo bot', 'saldo do bot', 'produção de bm / insumos'];
+      const categoriasProducaoBM = [
+        'operacional', 
+        'produção bm', 
+        'producao bm', 
+        'insumos', 
+        'ferramentas', 
+        'saldo bot', 
+        'saldo do bot', 
+        'produção de bm / insumos',
+        'comissoes',
+        'comissões',
+        'comissão',
+        'comissao',
+        'repasses',
+        'repasse',
+        'funcionarios',
+        'funcionários',
+        'fornecedores',
+        'fornecedor bm'
+      ];
       const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
       const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
       const ehPago = situacao === 'pago';
@@ -230,8 +300,8 @@ function PaginaDashboard() {
   const totalCustoReposicoesPerfis = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
   const totalCustoReposicoesEntregas = entregas.reduce((s: number, e: LinhaEntrega) => e.status === 'reposicao' ? s + (Number(e.custo_reposicao) || 0) : s, 0);
   
-  // O Custo Total agora soma: Custos de Produção (itens) + Reposições + Despesas Operacionais Pagas no Financeiro
-  const custosTotais = custosProducaoPadrao + totalCustoReposicoesPerfis + totalCustoReposicoesEntregas + despesasOperacionaisFinanceiro;
+  // O Custo Total e o Lucro baseiam-se AGORA ESTRITAMENTE nos lançamentos pagos no módulo Financeiro
+  const custosTotais = despesasOperacionaisFinanceiro;
   const lucro = faturamentoLiquido - custosTotais;
   
   const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
@@ -417,35 +487,34 @@ function PaginaDashboard() {
           <h1 className="text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl ml-1">Dashboard</h1>
         </div>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 rounded-full text-primary hover:bg-primary/10 transition-colors" aria-label="Buscar e filtrar dados">
-              <Search className="size-4" aria-hidden="true" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 space-y-4">
-            <div>
-              <h2 className="text-sm font-semibold">Filtros</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <Select value={dias} onValueChange={setDias}>
+            <SelectTrigger className="w-[180px] h-9 text-xs">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIODOS.map((p) => (
+                <SelectItem key={p.valor} value={p.valor}>
+                  {p.rotulo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <label className="block space-y-1.5 text-xs text-muted-foreground">
-              Período de visualização
-              <Select value={dias} onValueChange={setDias}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIODOS.map((p) => (
-                    <SelectItem key={p.valor} value={p.valor}>
-                      {p.rotulo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 px-3 text-xs gap-2" aria-label="Mais filtros">
+                <Search className="size-3.5" aria-hidden="true" />
+                Mais Filtros
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold">Filtros Avançados</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
+                </p>
+              </div>
 
             <label className="block space-y-1.5 text-xs text-muted-foreground">
               Status do pedido
@@ -475,6 +544,7 @@ function PaginaDashboard() {
           </PopoverContent>
         </Popover>
       </div>
+      </div>
 
 
       {consulta.isLoading ? (
@@ -486,22 +556,28 @@ function PaginaDashboard() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6 bg-primary/5 border border-primary/20 p-4 rounded-xl">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1 font-semibold uppercase tracking-wider flex items-center gap-2">
+                Faturamento Bruto <Badge variant="secondary" className="text-[9px] py-0">Geral da Empresa</Badge>
+              </div>
+              <p className="text-2xl md:text-3xl font-bold text-white">{fmtValor(brutoGeral)}</p>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1 font-semibold uppercase tracking-wider flex items-center gap-2">
+                Faturamento Líquido <Badge variant="secondary" className="text-[9px] py-0">Geral da Empresa</Badge>
+              </div>
+              <p className="text-2xl md:text-3xl font-bold text-emerald-400">{fmtValor(faturamentoLiquidoGeral)}</p>
+            </div>
+          </div>
+
+          <h2 className="text-sm font-semibold mb-3">Métricas do Período ({PERIODOS.find(p => p.valor === dias)?.rotulo || "Personalizado"})</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4 mb-6">
             <CartaoMetrica
-              rotulo="Faturamento bruto"
-              valor={fmtValor(bruto)}
+              rotulo="Lucro"
+              valor={fmtValor(lucro)}
+              positivo={lucro >= 0}
               destaque
-              className="lg:col-span-1"
-            />
-            <CartaoMetrica
-              rotulo="Taxa de Reembolso"
-              valor={ocultarValores ? "***%" : `${formatarNumero(taxaReembolso)}%`}
-              subvalor={fmtValor(totalReembolsado)}
-              corValor="text-rose-400"
-            />
-            <CartaoMetrica
-              rotulo="Faturamento líquido"
-              valor={fmtValor(faturamentoLiquido)}
             />
             <CartaoMetrica
               rotulo="ROI"
@@ -509,22 +585,20 @@ function PaginaDashboard() {
               corValor={ocultarValores ? "text-white" : dadosROI.cor}
               explicacao={ocultarValores ? "" : "ROI = (Lucro / Custos) * 100. Se custo for 0 e lucro > 0, considera-se 100% de margem."}
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <CartaoMetrica
               rotulo="Custo de Produção"
               valor={fmtValor(custosTotais)}
             />
             <CartaoMetrica
-              rotulo="Lucro"
-              valor={fmtValor(lucro)}
-              positivo={lucro >= 0}
-            />
-            <CartaoMetrica
               rotulo="Taxa de Acertos"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaConversao)}%`}
               positivo={taxaConversao >= 0}
+            />
+            <CartaoMetrica
+              rotulo="Taxa de Reembolso"
+              valor={ocultarValores ? "***%" : `${formatarNumero(taxaReembolso)}%`}
+              subvalor={fmtValor(totalReembolsado)}
+              corValor="text-rose-400"
             />
             <CartaoMetrica
               rotulo="Taxa de Reposição"

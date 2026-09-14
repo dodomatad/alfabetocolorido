@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { ShoppingCart, Trash2, Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -82,6 +82,7 @@ function PaginaVendas() {
   const { empresa, fuso, temPermissao } = useSessao();
   const [status, setStatus] = useState<string>("todos");
   const [formulario, setFormulario] = useState(false);
+  const [vendaEditandoId, setVendaEditandoId] = useState<string | undefined>();
   const queryClient = useQueryClient();
 
   const consulta = useQuery({
@@ -127,7 +128,7 @@ function PaginaVendas() {
         acoes={<BotaoAdicionar modulo="Vendas" rotulo="Adicionar venda" aoClicar={() => setFormulario(true)} />}
       />
 
-      <FormularioVenda aberto={formulario} aoFechar={() => setFormulario(false)} />
+      <FormularioVenda aberto={formulario} aoFechar={() => { setFormulario(false); setTimeout(() => setVendaEditandoId(undefined), 300); }} vendaId={vendaEditandoId} />
 
       <div className="flex justify-end">
         <Select value={status} onValueChange={setStatus}>
@@ -199,7 +200,18 @@ function PaginaVendas() {
                     <TableCell className="num text-right font-medium">
                       {formatarMoeda(venda.valor_total)}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center space-x-1">
+                      {temPermissao("vendas", "editar") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:bg-white/10 hover:text-white transition-colors"
+                          onClick={() => { setVendaEditandoId(venda.id); setFormulario(true); }}
+                          aria-label={`Editar venda nº ${venda.numero}`}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      )}
                       {temPermissao("vendas", "excluir") && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

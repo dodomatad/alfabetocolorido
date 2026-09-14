@@ -187,7 +187,10 @@ function PaginaFinanceiro() {
           valor_total, 
           criado_por,
           data_venda,
-          equipe_membros:criado_por (nome, email, cargo)
+          equipe_membros:criado_por (nome, email, cargo),
+          comissao_percentual,
+          observacoes,
+          responsavel:perfis!vendas_responsavel_producao_id_fkey (nome)
         `)
         .eq("status", "confirmada");
       if (error) throw error;
@@ -195,36 +198,94 @@ function PaginaFinanceiro() {
     }
   });
 
-  const funcionariosComissoes = useMemo(() => {
+  const comissoesPendentes = useMemo(() => {
+    const pagas = new Set(
+      (consulta.data || [])
+        .filter(l => l.observacoes)
+        .flatMap(l => {
+          const match = l.observacoes?.match(/\[COMISSAO_VENDA:([^\]]+)\]/g);
+          return match ? match.map(m => m.replace("[COMISSAO_VENDA:", "").replace("]", "")) : [];
+        })
+    );
+
     const vendas = (consultaVendas.data || []) as any[];
-    const mapa = new Map<string, { nome: string; email: string; vendas: number; totalVendas: number; comissao: number }>();
-    
+    const lista: any[] = [];
+
     vendas.forEach(v => {
-      const userId = v.criado_por;
-      const membro = v.equipe_membros;
-      if (!userId || !membro) return;
+      if (pagas.has(v.id)) return;
       
-      const atual = mapa.get(userId) || { 
-        nome: membro.nome, 
-        email: membro.email, 
-        vendas: 0, 
-        totalVendas: 0, 
-        comissao: 0 
-      };
+      const obs = v.observacoes || "";
+      const isCiro = obs.includes("[FORNECEDOR_CIRO]");
       
-      atual.vendas += 1;
-      atual.totalVendas += Number(v.valor_total || 0);
-      // Regra: 2% de comissão fixa para funcionários sobre vendas confirmadas
-      atual.comissao = atual.totalVendas * 0.02;
+      const nomeFuncionario = v.responsavel?.nome || (isCiro ? "FORNECEDOR CIRO" : v.equipe_membros?.nome);
+      if (!nomeFuncionario) return;
       
-      mapa.set(userId, atual);
+      const valorVenda = Number(v.valor_total || 0);
+      const perc = Number(v.comissao_percentual);
+      
+      // Só entra na lista de pendências se tiver um percentual maior que zero definido
+      if (!perc || perc <= 0) return;
+      
+      const comissao = valorVenda * (perc / 100);
+
+      lista.push({
+        vendaId: v.id,
+        numero: v.numero_venda,
+        data: v.data_venda,
+        nome: nomeFuncionario,
+        faturamento: valorVenda,
+        comissao,
+        perc
+      });
     });
-    
-    return Array.from(mapa.values());
+
+    return lista.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  }, [consultaVendas.data, consulta.data]);
+
+  const pagarComissao = useMutation({
+    mutationFn: async (item: any) => {
+      if (!empresa?.id) throw new Error("Empresa não identificada.");
+      
+      const payload = {
+        empresa_id: empresa.id,
+        tipo: "pagar",
+        descricao: `Comissão Venda #${item.numero} - ${item.nome}`,
+        categoria: "comissoes",
+        valor: item.comissao,
+        data_vencimento: new Date().toISOString().slice(0, 10),
+        data_pagamento: new Date().toISOString().slice(0, 10),
+        situacao: "pago",
+        observacoes: `[COMISSAO_VENDA:${item.vendaId}] Pago ao funcionário ${item.nome}.`,
+        criado_por: session?.user.id ?? null,
+      };
+
+      const { error } = await supabase.from("lancamentos_financeiros").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Comissão paga com sucesso!");
+      void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const totalComissoesDevidas = comissoesPendentes.reduce((acc, f) => acc + f.comissao, 0);
+
+  const fornecedorBmTotal = useMemo(() => {
+    const vendas = (consultaVendas.data || []) as any[];
+    return vendas.reduce((acc, v) => {
+      const nomeResponsavel = v.responsavel?.nome?.toLowerCase() || "";
+      const obs = v.observacoes || "";
+      if (nomeResponsavel.includes("ciro") || obs.includes("[FORNECEDOR_CIRO]")) {
+        const percentual = Number(v.comissao_percentual || 0);
+        const valorTotal = Number(v.valor_total || 0);
+        return acc + (valorTotal * (percentual / 100));
+      }
+      return acc;
+    }, 0);
   }, [consultaVendas.data]);
 
-  const totalComissoesDevidas = funcionariosComissoes.reduce((acc, f) => acc + f.comissao, 0);
-  const qtdVendasComComissao = (consultaVendas.data || []).length;
+  const qtdVendasComComissao = comissoesPendentes.length;
 
   const dados = useMemo(() => {
     let lista = consulta.data || [];
@@ -252,7 +313,26 @@ function PaginaFinanceiro() {
       const categoria = (i.categoria || "").trim().toLowerCase();
       const tipo = (i.tipo || "").trim().toLowerCase();
       
-      const categoriasProducaoBM = ['operacional', 'produção bm', 'producao bm', 'insumos', 'ferramentas', 'saldo bot', 'saldo do bot', 'produção de bm / insumos'];
+      const categoriasProducaoBM = [
+        'operacional', 
+        'produção bm', 
+        'producao bm', 
+        'insumos', 
+        'ferramentas', 
+        'saldo bot', 
+        'saldo do bot', 
+        'produção de bm / insumos',
+        'comissoes',
+        'comissões',
+        'comissão',
+        'comissao',
+        'repasses',
+        'repasse',
+        'funcionarios',
+        'funcionários',
+        'fornecedores',
+        'fornecedor bm'
+      ];
       const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
       const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
 
@@ -263,13 +343,21 @@ function PaginaFinanceiro() {
     const totalPagar = aPagar.reduce((acc, i) => acc + i.valor, 0);
     const totalAtrasado = atrasados.reduce((acc, i) => acc + i.valor, 0);
     const totalProducao = producaoBM.reduce((acc, i) => acc + i.valor, 0);
+    
+    // Calcula o Lucro / ROI baseado nas Vendas - Custos de Producao Pagos
+    const vendas = (consultaVendas.data || []) as any[];
+    const faturamentoTotal = vendas.reduce((acc, v) => acc + Number(v.valor_total || 0), 0);
+    const producaoBMPagos = producaoBM.filter(i => (i.situacao || "").trim().toLowerCase() === "pago");
+    const totalProducaoPago = producaoBMPagos.reduce((acc, i) => acc + i.valor, 0);
+    const lucroReal = faturamentoTotal - totalProducaoPago;
+
     const totalUnidadesBM = producaoBM.reduce((acc, i) => acc + (Number(i.quantidade_unidades) || 0), 0);
     const custoMedioBM = totalUnidadesBM > 0 ? totalProducao / totalUnidadesBM : 0;
 
     return {
       receber: { valor: totalReceber, qtd: aReceber.length },
       pagar: { valor: totalPagar, qtd: aPagar.length },
-      liquido: totalReceber - totalPagar,
+      liquido: lucroReal, // Agora reflete o Lucro (ROI)
       atrasado: { valor: totalAtrasado, qtd: atrasados.length },
       producao: { 
         valor: totalProducao, 
@@ -278,7 +366,7 @@ function PaginaFinanceiro() {
         custoMedio: custoMedioBM
       }
     };
-  }, [consulta.data]);
+  }, [consulta.data, consultaVendas.data]);
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -369,6 +457,15 @@ function PaginaFinanceiro() {
           />
           
           <CartaoFinanceiro
+            rotulo="FORNECEDOR BM (CIRO)"
+            valor={ocultarValores ? "R$ ***" : formatarMoeda(fornecedorBmTotal)}
+            detalhe="Comissões a pagar p/ Fornecedor"
+            corValor="text-purple-400 font-bold text-2xl"
+            icone={Cpu}
+            corIcone="text-purple-400"
+          />
+
+          <CartaoFinanceiro
             rotulo="CUSTO PRODUÇÃO BM"
             valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.producao.valor)}
             detalhe={resumo.producao.unidades > 0 ? `Custo médio: ${formatarMoeda(resumo.producao.custoMedio)} / BM` : `${resumo.producao.qtd} insumos/lançamentos`}
@@ -378,10 +475,10 @@ function PaginaFinanceiro() {
           />
 
           <CartaoFinanceiro
-            rotulo="Saldo Previsto (Líquido)"
+            rotulo="LUCRO LÍQUIDO (ROI)"
             valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
-            detalhe="Diferença total de caixa"
-            corValor="text-white"
+            detalhe="Faturamento de Vendas - Custos Pagos"
+            corValor={resumo.liquido >= 0 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}
             icone={Wallet}
             corIcone="text-blue-500"
           />
@@ -689,39 +786,53 @@ function PaginaFinanceiro() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">Detalhamento de Comissões</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Cálculo de 2% sobre o faturamento de vendas confirmadas por funcionário.
+              Cálculo de comissão sobre as vendas baseadas no percentual definido na hora da venda.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-[#27272A] bg-black/20">
+          <div className="mt-4 overflow-hidden rounded-xl border border-[#27272A] bg-black/20 max-h-[50vh] overflow-y-auto">
             <Table>
               <TableHeader className="bg-zinc-900/50">
                 <TableRow className="border-[#27272A] hover:bg-transparent">
                   <TableHead className="text-zinc-300">Funcionário</TableHead>
-                  <TableHead className="text-zinc-300 text-center">Vendas</TableHead>
+                  <TableHead className="text-zinc-300 text-center">Data</TableHead>
+                  <TableHead className="text-zinc-300 text-center">Venda</TableHead>
                   <TableHead className="text-zinc-300 text-right">Faturamento</TableHead>
-                  <TableHead className="text-zinc-300 text-right">Comissão (2%)</TableHead>
+                  <TableHead className="text-zinc-300 text-right">Comissão</TableHead>
+                  <TableHead className="text-zinc-300 text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {funcionariosComissoes.length === 0 ? (
+                {comissoesPendentes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-zinc-500">
-                      Nenhuma venda confirmada encontrada para cálculo.
+                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
+                      Nenhuma comissão pendente encontrada.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  funcionariosComissoes.map((f, i) => (
-                    <TableRow key={i} className="border-[#27272A] hover:bg-white/5">
+                  comissoesPendentes.map((f, i) => (
+                    <TableRow key={f.vendaId} className="border-[#27272A] hover:bg-white/5">
                       <TableCell>
                         <div>
                           <p className="font-medium text-white">{f.nome}</p>
-                          <p className="text-[10px] text-zinc-500">{f.email}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center text-zinc-300 num">{f.vendas}</TableCell>
-                      <TableCell className="text-right text-zinc-300 num">{formatarMoeda(f.totalVendas)}</TableCell>
-                      <TableCell className="text-right text-purple-400 font-bold num">{formatarMoeda(f.comissao)}</TableCell>
+                      <TableCell className="text-center text-zinc-300 num">{formatarData(f.data, fuso)}</TableCell>
+                      <TableCell className="text-center text-zinc-300 num">#{f.numero}</TableCell>
+                      <TableCell className="text-right text-zinc-300 num">{formatarMoeda(f.faturamento)}</TableCell>
+                      <TableCell className="text-right text-purple-400 font-bold num">
+                        {formatarMoeda(f.comissao)} <span className="text-[10px] text-zinc-500 font-normal">({f.perc}%)</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm" 
+                          className="h-7 text-[10px] bg-purple-600 hover:bg-purple-700 text-white"
+                          disabled={pagarComissao.isPending}
+                          onClick={() => pagarComissao.mutate(f)}
+                        >
+                          OK (Pagar)
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

@@ -201,6 +201,7 @@ function Pagina() {
   const subidas = soma("contas_subidas");
   const viradas = soma("contas_viradas");
   const bloqueios = soma("bloqueios");
+  const recebidasFornecedor = soma("recebidas_fornecedor" as keyof Registro);
   const aproveitamento = criadas > 0 ? (viradas / criadas) * 100 : 0;
   const perda = criadas > 0 ? (bloqueios / criadas) * 100 : 0;
   
@@ -248,6 +249,7 @@ function Pagina() {
     bloqueios: "",
     motivo_queda: "",
     meta_diaria: "10",
+    recebidas_fornecedor: "0",
     observacoes: "",
   };
   const [form, setForm] = useState<Record<string, string>>(vazio);
@@ -276,6 +278,7 @@ function Pagina() {
       contas_subidas: String(r.contas_subidas),
       contas_viradas: String(r.contas_viradas),
       bloqueios: String(r.bloqueios),
+      recebidas_fornecedor: String((r as any).recebidas_fornecedor || 0),
       motivo_queda: r.motivo_queda ?? "",
       meta_diaria: String(r.meta_diaria),
       observacoes: r.observacoes ?? "",
@@ -299,6 +302,7 @@ function Pagina() {
         contas_subidas: n("contas_subidas"),
         contas_viradas: n("contas_viradas"),
         bloqueios: n("bloqueios"),
+        recebidas_fornecedor: n("recebidas_fornecedor"),
         motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
         meta_diaria: n("meta_diaria") || 10,
         observacoes: form["observacoes"] || null,
@@ -308,12 +312,37 @@ function Pagina() {
       if (editando) {
         const { error } = await tabela().update(dados).eq("id", editando.id);
         if (error) throw error;
+        
+        // Atualiza estoque com a diferença (delta)
+        const diffViradas = dados.contas_viradas - Number(editando.contas_viradas || 0);
+        const diffRecebidas = (dados.recebidas_fornecedor || 0) - Number((editando as any).recebidas_fornecedor || 0);
+        const diffTotal = diffViradas + diffRecebidas;
+        
+        if (diffTotal !== 0) {
+          const { data: estoqueAtual } = await supabase.from("estoque").select("id, quantidade_disponivel").eq("tipo_ativo", dados.tipo_bm).maybeSingle();
+          if (estoqueAtual) {
+            await supabase.from("estoque").update({ quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + diffTotal }).eq("id", estoqueAtual.id);
+          } else if (diffTotal > 0) {
+            await supabase.from("estoque").insert({ empresa_id: empresa.id, tipo_ativo: dados.tipo_bm, quantidade_disponivel: diffTotal, status: "em_estoque" });
+          }
+        }
       } else {
         const { error } = await tabela().insert({
           ...dados,
           criado_por: session?.user.id ?? null,
         });
         if (error) throw error;
+        
+        // Adiciona ao estoque
+        const addTotal = dados.contas_viradas + (dados.recebidas_fornecedor || 0);
+        if (addTotal > 0) {
+          const { data: estoqueAtual } = await supabase.from("estoque").select("id, quantidade_disponivel").eq("tipo_ativo", dados.tipo_bm).maybeSingle();
+          if (estoqueAtual) {
+            await supabase.from("estoque").update({ quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + addTotal }).eq("id", estoqueAtual.id);
+          } else {
+            await supabase.from("estoque").insert({ empresa_id: empresa.id, tipo_ativo: dados.tipo_bm, quantidade_disponivel: addTotal, status: "em_estoque" });
+          }
+        }
       }
     },
     onSuccess: () => {
@@ -386,6 +415,13 @@ function Pagina() {
 
         <section className="grid grid-cols-2 gap-4">
           <div className="space-y-4">
+            <CartaoKpi
+              rotulo="Fornecedor (Recebidas)"
+              valor={fmtNumero(recebidasFornecedor)}
+              icone={Factory}
+              corIcone="text-purple-500"
+              detalhe={ocultarValores ? "" : "Enviadas pelo fornecedor"}
+            />
             <CartaoKpi
               rotulo="BMs Criadas"
               valor={fmtNumero(criadas)}
@@ -753,6 +789,7 @@ function Pagina() {
                   </SelectContent>
                 </Select>
               </div>
+              <Campo id="recebidas_fornecedor" rotulo="Recebidas do Fornecedor" form={form} setForm={setForm} />
               <Campo id="bms_criadas" rotulo="BMs criadas" form={form} setForm={setForm} />
               <Campo id="bms_aquecidas" rotulo="BMs aquecidas" form={form} setForm={setForm} />
               <Campo id="contas_subidas" rotulo="Contas subidas" form={form} setForm={setForm} />
