@@ -501,63 +501,138 @@ function PaginaDashboard() {
           <h1 className="text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl ml-1">Dashboard</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Select value={dias} onValueChange={setDias}>
-            <SelectTrigger className="w-[180px] h-9 text-xs">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              {PERIODOS.map((p) => (
-                <SelectItem key={p.valor} value={p.valor}>
-                  {p.rotulo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 px-3 text-xs gap-2" aria-label="Mais filtros">
-                <Search className="size-3.5" aria-hidden="true" />
-                Mais Filtros
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold">Filtros Avançados</h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
-                </p>
+        <div className="flex items-center gap-2">
+          {/* DESKTOP */}
+          <div className="hidden sm:flex items-center gap-3">
+            {dias === "personalizado" && (
+              <div className="flex items-center gap-2 mr-2">
+                <Input type="date" value={dataInicioPersonalizada} onChange={e => setDataInicioPersonalizada(e.target.value)} className="h-9 text-xs w-32" />
+                <span className="text-muted-foreground text-xs">até</span>
+                <Input type="date" value={dataFimPersonalizada} onChange={e => setDataFimPersonalizada(e.target.value)} className="h-9 text-xs w-32" />
               </div>
+            )}
+            <Select value={dias} onValueChange={setDias}>
+              <SelectTrigger className="w-[180px] h-9 text-xs">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODOS.map((p) => (
+                  <SelectItem key={p.valor} value={p.valor}>
+                    {p.rotulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <label className="block space-y-1.5 text-xs text-muted-foreground">
-              Status do pedido
-              <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os status</SelectItem>
-                  {Object.entries(ROTULO_STATUS).map(([valor, rotulo]) => (
-                    <SelectItem key={valor} value={valor}>
-                      {rotulo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 px-3 text-xs gap-2" aria-label="Mais filtros">
+                  <Search className="size-3.5" aria-hidden="true" />
+                  Mais Filtros
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 space-y-4">
+                <div>
+                  <h2 className="text-sm font-semibold">Filtros Avançados</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatarData(inicioIso, fuso)} 00:00 — {formatarData(hojeIso, fuso)} 23:59
+                  </p>
+                </div>
 
-            <div className="space-y-1.5 text-xs text-muted-foreground">
-              Empresa
-              <div className="flex h-9 items-center rounded-md border bg-secondary px-3 text-sm text-foreground">
-                <span className="truncate">
-                  {empresa?.nome_fantasia || empresa?.razao_social || "—"}
-                </span>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+                <label className="block space-y-1.5 text-xs text-muted-foreground">
+                  Status do pedido
+                  <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os status</SelectItem>
+                      {Object.entries(ROTULO_STATUS).map(([valor, rotulo]) => (
+                        <SelectItem key={valor} value={valor}>
+                          {rotulo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          {/* MOBILE */}
+          <div className="sm:hidden">
+            <Sheet open={sheetFiltrosAberto} onOpenChange={setSheetFiltrosAberto}>
+              <SheetTrigger asChild>
+                <Button variant="default" size="icon" className="h-9 w-9 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800" aria-label="Filtros">
+                  <Search className="size-4" aria-hidden="true" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-xl h-[85vh] sm:h-auto overflow-y-auto pb-8">
+                <SheetHeader className="mb-4 text-left">
+                  <SheetTitle>Filtros do Dashboard</SheetTitle>
+                </SheetHeader>
+                
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">Período</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PERIODOS.map((p) => (
+                        <Button 
+                          key={p.valor} 
+                          variant={dias === p.valor ? "default" : "outline"}
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={() => setDias(p.valor)}
+                        >
+                          {p.rotulo}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {dias === "personalizado" && (
+                    <div className="space-y-3 bg-muted/50 p-3 rounded-lg border border-border">
+                      <Label className="text-xs font-semibold text-muted-foreground">Intervalo Personalizado</Label>
+                      <div className="flex flex-col gap-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase">Data Inicial</Label>
+                          <Input type="date" value={dataInicioPersonalizada} onChange={e => setDataInicioPersonalizada(e.target.value)} className="h-9" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase">Data Final</Label>
+                          <Input type="date" value={dataFimPersonalizada} onChange={e => setDataFimPersonalizada(e.target.value)} className="h-9" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">Status do Pedido</Label>
+                    <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                      <SelectTrigger className="w-full h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos os status</SelectItem>
+                        {Object.entries(ROTULO_STATUS).map(([valor, rotulo]) => (
+                          <SelectItem key={valor} value={valor}>
+                            {rotulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <Button className="w-full h-11 text-sm font-semibold" onClick={() => setSheetFiltrosAberto(false)}>
+                    Aplicar Filtros
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
       </div>
 
 
