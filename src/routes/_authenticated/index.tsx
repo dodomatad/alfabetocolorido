@@ -186,11 +186,11 @@ function PaginaDashboard() {
       inicioIso: d.toISOString().slice(0, 10),
       hojeIso: hoje,
     };
-  }, [dias]);
+  }, [dias, dataInicioPersonalizada, dataFimPersonalizada]);
 
 
   const consulta = useQuery({
-    queryKey: ["dashboard", empresa?.id, dias, statusFiltro],
+    queryKey: ["dashboard", empresa?.id, inicioIso, hojeIso, statusFiltro],
     enabled: Boolean(empresa?.id),
     queryFn: async () => {
       let vendasQuery = supabase
@@ -225,6 +225,8 @@ function PaginaDashboard() {
         supabase
           .from("vendas")
           .select("valor_total, desconto, status")
+          .gte("data_venda", inicioIso)
+          .lte("data_venda", hojeIso)
       ]);
 
       const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error ?? lancamentos.error ?? vendasTotais.error;
