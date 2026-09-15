@@ -192,6 +192,7 @@ function PaginaDashboard() {
   const consulta = useQuery({
     queryKey: ["dashboard", empresa?.id, inicioIso, hojeIso, statusFiltro],
     enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 60,
     queryFn: async () => {
       let vendasQuery = supabase
         .from("vendas")
@@ -243,107 +244,144 @@ function PaginaDashboard() {
     },
   });
 
-  const vendas = consulta.data?.vendas ?? [];
-  const itens = consulta.data?.itens ?? [];
-  const reposicoes = (consulta.data as any)?.reposicoes ?? [];
-  const entregas = (consulta.data as any)?.entregas ?? [];
-  const vendasTotaisData = (consulta.data as any)?.vendasTotais ?? [];
+  const vendas = useMemo(() => consulta.data?.vendas ?? [], [consulta.data?.vendas]);
+  const itens = useMemo(() => consulta.data?.itens ?? [], [consulta.data?.itens]);
+  const reposicoes = useMemo(() => (consulta.data as any)?.reposicoes ?? [], [consulta.data]);
+  const entregas = useMemo(() => (consulta.data as any)?.entregas ?? [], [consulta.data]);
+  const vendasTotaisData = useMemo(() => (consulta.data as any)?.vendasTotais ?? [], [consulta.data]);
   
-  const validasTotais = vendasTotaisData.filter((v: any) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
-  const reembolsadasTotais = vendasTotaisData.filter((v: any) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
-  const totalReembolsadoGeral = reembolsadasTotais.reduce((s: number, v: any) => s + Number(v.valor_total ?? 0), 0) || 0;
-  const faturamentoLiquidoGeral = validasTotais.reduce((s: number, v: any) => s + Number(v.valor_total ?? 0), 0) || 0;
-  const descontosGeral = validasTotais.reduce((s: number, v: any) => s + Number(v.desconto ?? 0), 0) || 0;
-  const brutoGeral = faturamentoLiquidoGeral + totalReembolsadoGeral + descontosGeral;
-
+  const {
+    totalReembolsadoGeral,
+    faturamentoLiquidoGeral,
+    descontosGeral,
+    brutoGeral,
+  } = useMemo(() => {
+    const validasTotais = vendasTotaisData.filter((v: any) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
+    const reembolsadasTotais = vendasTotaisData.filter((v: any) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
+    const totalReemb = reembolsadasTotais.reduce((s: number, v: any) => s + Number(v.valor_total ?? 0), 0) || 0;
+    const fatLiq = validasTotais.reduce((s: number, v: any) => s + Number(v.valor_total ?? 0), 0) || 0;
+    const desc = validasTotais.reduce((s: number, v: any) => s + Number(v.desconto ?? 0), 0) || 0;
+    return {
+      totalReembolsadoGeral: totalReemb,
+      faturamentoLiquidoGeral: fatLiq,
+      descontosGeral: desc,
+      brutoGeral: fatLiq + totalReemb + desc,
+    };
+  }, [vendasTotaisData]);
 
   const ocultarValores = useMemo(() => {
     return permissoes.find(p => p.modulo === 'dashboard')?.ocultar_valores === true;
   }, [permissoes]);
 
-  const validas = vendas.filter((v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
-  const reembolsadas = vendas.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
-  const totalReembolsado = reembolsadas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
-  const taxaReembolso = vendas.length > 0 ? (reembolsadas.length / vendas.length) * 100 : 0;
+  const {
+    validas,
+    reembolsadas,
+    totalReembolsado,
+    taxaReembolso,
+    faturamentoLiquido,
+    descontos,
+    bruto,
+    custosProducaoPadrao,
+    custosTotais,
+    lucro,
+    taxaReposicao,
+    taxaConversao,
+    dadosROI,
+  } = useMemo(() => {
+    const val = vendas.filter((v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
+    const reemb = vendas.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
+    const totReemb = reemb.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
+    const txReemb = vendas.length > 0 ? (reemb.length / vendas.length) * 100 : 0;
 
-  const faturamentoLiquido = validas.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
-  const descontos = validas.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
-  const bruto = faturamentoLiquido + totalReembolsado + descontos;
-  const custosProducaoPadrao = itens.reduce(
-    (s, i) => {
-      const custo = Number(i.modalidades_bm?.custo_producao_padrao ?? 0);
-      return s + Number(i.quantidade ?? 0) * custo;
-    },
-    0,
-  ) || 0;
+    const fatLiq = val.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
+    const desc = val.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
+    const brt = fatLiq + totReemb + desc;
+    const custPadrao = itens.reduce(
+      (s, i) => {
+        const custo = Number(i.modalidades_bm?.custo_producao_padrao ?? 0);
+        return s + Number(i.quantidade ?? 0) * custo;
+      },
+      0,
+    ) || 0;
 
-  // 1. Buscar despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
-  const lancamentosFinanceiros = (consulta.data as any)?.lancamentosFinanceiros ?? [];
-  const despesasOperacionaisFinanceiro = lancamentosFinanceiros
-    .filter((l: any) => {
-      const categoria = (l.categoria || "").trim().toLowerCase();
-      const tipo = (l.tipo || "").trim().toLowerCase();
-      const situacao = (l.situacao || "").trim().toLowerCase();
-      
-      const categoriasProducaoBM = [
-        'operacional', 
-        'produção bm', 
-        'producao bm', 
-        'insumos', 
-        'ferramentas', 
-        'saldo bot', 
-        'saldo do bot', 
-        'produção de bm / insumos',
-        'comissoes',
-        'comissões',
-        'comissão',
-        'comissao',
-        'repasses',
-        'repasse',
-        'funcionarios',
-        'funcionários',
-        'fornecedores',
-        'fornecedor bm'
-      ];
-      const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
-      const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
-      const ehPago = situacao === 'pago';
+    // 1. Buscar despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
+    const lancamentosFinanceiros = (consulta.data as any)?.lancamentosFinanceiros ?? [];
+    const despesasOperacionaisFinanceiro = lancamentosFinanceiros
+      .filter((l: any) => {
+        const categoria = (l.categoria || "").trim().toLowerCase();
+        const tipo = (l.tipo || "").trim().toLowerCase();
+        const situacao = (l.situacao || "").trim().toLowerCase();
+        
+        const categoriasProducaoBM = [
+          'operacional', 
+          'produção bm', 
+          'producao bm', 
+          'insumos', 
+          'ferramentas', 
+          'saldo bot', 
+          'saldo do bot', 
+          'produção de bm / insumos',
+          'comissoes',
+          'comissões',
+          'comissão',
+          'comissao',
+          'repasses',
+          'repasse',
+          'funcionarios',
+          'funcionários',
+          'fornecedores',
+          'fornecedor bm'
+        ];
+        const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
+        const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
+        const ehPago = situacao === 'pago';
 
-      return ehCategoriaBM && ehSaida && ehPago;
-    })
-    .reduce((acc: number, l: any) => acc + Number(l.valor), 0);
+        return ehCategoriaBM && ehSaida && ehPago;
+      })
+      .reduce((acc: number, l: any) => acc + Number(l.valor || 0), 0);
 
-  const totalCustoReposicoesPerfis = reposicoes.reduce((s: number, r: LinhaReposicao) => s + (Number(r.custo_reposicao) || 0), 0);
-  const totalCustoReposicoesEntregas = entregas.reduce((s: number, e: LinhaEntrega) => e.status === 'reposicao' ? s + (Number(e.custo_reposicao) || 0) : s, 0);
-  
-  // O Custo Total e o Lucro baseiam-se AGORA ESTRITAMENTE nos lançamentos pagos no módulo Financeiro
-  const custosTotais = despesasOperacionaisFinanceiro;
-  const lucro = faturamentoLiquido - custosTotais;
-  
-  const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
-  const totalReposicoesPerfis = reposicoes.length;
-  const totalReposicoesEntregas = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao').length;
-  const taxaReposicao = totalEntregue > 0 ? ((totalReposicoesPerfis + totalReposicoesEntregas) / totalEntregue) * 100 : 0;
+    const cTotais = despesasOperacionaisFinanceiro;
+    const luc = fatLiq - cTotais;
 
-  const convertidas = vendas.filter(
-    (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
-  ).length;
-  const taxaConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
+    const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
+    const totalReposicoesPerfis = reposicoes.length;
+    const totalReposicoesEntregas = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao').length;
+    const txReposicao = totalEntregue > 0 ? ((totalReposicoesPerfis + totalReposicoesEntregas) / totalEntregue) * 100 : 0;
 
-  const calcularDadosROI = (lucroVal: number, custoVal: number) => {
-    if (custoVal === 0) {
-      if (lucroVal > 0) return { valor: "100%", cor: "text-emerald-400" };
-      if (lucroVal < 0) return { valor: "Prejuízo", cor: "text-rose-400" };
-      return { valor: "0%", cor: "text-white" };
+    const convertidas = vendas.filter(
+      (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
+    ).length;
+    const txConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
+
+    let dROI: { valor: string; cor: string };
+    if (cTotais === 0) {
+      if (luc > 0) dROI = { valor: "100%", cor: "text-emerald-400" };
+      else if (luc < 0) dROI = { valor: "Prejuízo", cor: "text-rose-400" };
+      else dROI = { valor: "0%", cor: "text-white" };
+    } else {
+      const roiVal = (luc / cTotais) * 100;
+      dROI = {
+        valor: `${formatarNumero(roiVal)}%`,
+        cor: roiVal > 0 ? "text-emerald-400" : roiVal < 0 ? "text-rose-400" : "text-white",
+      };
     }
-    const roiVal = (lucroVal / custoVal) * 100;
-    return {
-      valor: `${formatarNumero(roiVal)}%`,
-      cor: roiVal > 0 ? "text-emerald-400" : roiVal < 0 ? "text-rose-400" : "text-white",
-    };
-  };
 
-  const dadosROI = calcularDadosROI(lucro, custosTotais);
+    return {
+      validas: val,
+      reembolsadas: reemb,
+      totalReembolsado: totReemb,
+      taxaReembolso: txReemb,
+      faturamentoLiquido: fatLiq,
+      descontos: desc,
+      bruto: brt,
+      custosProducaoPadrao: custPadrao,
+      custosTotais: cTotais,
+      lucro: luc,
+      taxaReposicao: txReposicao,
+      taxaConversao: txConversao,
+      dadosROI: dROI,
+    };
+  }, [vendas, itens, reposicoes, entregas, consulta.data]);
 
   const getCorTaxaReposicao = (taxa: number) => {
     if (taxa > 20) return "text-rose-400";
@@ -354,39 +392,42 @@ function PaginaDashboard() {
   const fmtValor = (v: number) => (ocultarValores ? "R$ ***" : formatarMoeda(v));
   const fmtNumero = (v: number) => (ocultarValores ? "***" : formatarNumero(v));
 
+  const { porStatus, funil } = useMemo(() => {
+    const pStatus = Object.entries(
+      vendas.reduce<Record<string, number>>((acc, v) => {
+        acc[v.status] = (acc[v.status] ?? 0) + 1;
+        return acc;
+      }, {}),
+    ).map(([status, valor], i) => ({
+      nome: ROTULO_STATUS[status] ?? status,
+      valor,
+      cor: CORES_GRAFICO[i % CORES_GRAFICO.length] as string,
+    }));
 
-  const porStatus = Object.entries(
-    vendas.reduce<Record<string, number>>((acc, v) => {
-      acc[v.status] = (acc[v.status] ?? 0) + 1;
-      return acc;
-    }, {}),
-  ).map(([status, valor], i) => ({
-    nome: ROTULO_STATUS[status] ?? status,
-    valor,
-    cor: CORES_GRAFICO[i % CORES_GRAFICO.length] as string,
-  }));
+    const contarStatus = (...lista: string[]) =>
+      vendas.filter((v) => lista.includes(v.status)).length;
+    const totalPedidos = vendas.length;
+    const quantidades: Record<string, number> = {
+      total: totalPedidos,
+      confirmada: contarStatus(
+        "confirmada",
+        "em_producao",
+        "pronta",
+        "parcialmente_entregue",
+        "entregue",
+      ),
+      producao: contarStatus("em_producao", "pronta", "parcialmente_entregue", "entregue"),
+      pronta: contarStatus("pronta", "parcialmente_entregue", "entregue"),
+      entregue: contarStatus("entregue"),
+    };
+    const fnl = ETAPAS_FUNIL.map((e) => ({
+      etapa: e.rotulo,
+      quantidade: quantidades[e.chave] ?? 0,
+      percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
+    }));
 
-  const contarStatus = (...lista: string[]) =>
-    vendas.filter((v) => lista.includes(v.status)).length;
-  const totalPedidos = vendas.length;
-  const quantidades: Record<string, number> = {
-    total: totalPedidos,
-    confirmada: contarStatus(
-      "confirmada",
-      "em_producao",
-      "pronta",
-      "parcialmente_entregue",
-      "entregue",
-    ),
-    producao: contarStatus("em_producao", "pronta", "parcialmente_entregue", "entregue"),
-    pronta: contarStatus("pronta", "parcialmente_entregue", "entregue"),
-    entregue: contarStatus("entregue"),
-  };
-  const funil = ETAPAS_FUNIL.map((e) => ({
-    etapa: e.rotulo,
-    quantidade: quantidades[e.chave] ?? 0,
-    percentual: totalPedidos > 0 ? ((quantidades[e.chave] ?? 0) / totalPedidos) * 100 : 0,
-  }));
+    return { porStatus: pStatus, funil: fnl };
+  }, [vendas]);
 
   const dadosGraficoVendas = useMemo(() => {
     // 1. Inicializar estrutura dos 7 dias da semana
@@ -473,23 +514,33 @@ function PaginaDashboard() {
 
   const barrasVendasAgrupadas = dadosGraficoVendas;
 
-  const dadosGraficoProducao = DIAS.map((dia, indice) => {
-    const vendasDia = vendas.filter((v) => new Date(`${v.data_venda}T12:00:00Z`).getUTCDay() === indice);
-    const convertidasDia = vendasDia.filter(
-      (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)
-    ).length;
-    const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
-    
-    // Simulação de taxa de erro para o gráfico comparativo
-    const taxaErro = vendasDia.length > 0 ? (100 - taxa) * 0.3 : 0; 
+  const barrasAcertosAgrupadas = useMemo(() => {
+    const dadosGraficoProducao = DIAS.map((dia, indice) => {
+      const vendasDia = vendas.filter((v) => {
+        const dataStr = v.data_venda || v.created_at;
+        if (!dataStr) return false;
+        try {
+          return new Date(`${dataStr.slice(0, 10)}T12:00:00Z`).getUTCDay() === indice;
+        } catch {
+          return false;
+        }
+      });
+      const convertidasDia = vendasDia.filter(
+        (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)
+      ).length;
+      const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
+      
+      // Simulação de taxa de erro para o gráfico comparativo
+      const taxaErro = vendasDia.length > 0 ? (100 - taxa) * 0.3 : 0; 
 
-    return {
-      dia,
-      positivo: taxa,
-      negativo: taxaErro,
-    };
-  });
-  const barrasAcertosAgrupadas = [...dadosGraficoProducao.slice(1), dadosGraficoProducao[0]!];
+      return {
+        dia,
+        positivo: taxa,
+        negativo: taxaErro,
+      };
+    });
+    return [...dadosGraficoProducao.slice(1), dadosGraficoProducao[0] || { dia: "Dom", positivo: 0, negativo: 0 }];
+  }, [vendas]);
 
   return (
     <div className="space-y-6 pt-2">

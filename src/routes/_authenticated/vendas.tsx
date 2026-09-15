@@ -88,6 +88,7 @@ function PaginaVendas() {
   const consulta = useQuery({
     queryKey: ["vendas", empresa?.id, status],
     enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 60,
     queryFn: async () => {
       let q = supabase
         .from("vendas")
@@ -189,7 +190,7 @@ function PaginaVendas() {
                     <TableCell>{venda.clientes?.nome ?? "—"}</TableCell>
                     <TableCell className="num">{formatarData(venda.data_venda, fuso)}</TableCell>
                     <TableCell className="hidden md:table-cell num text-muted-foreground">
-                      {formatarData(venda.data_entrega_prevista, fuso)}
+                      {venda.data_entrega_prevista ? formatarData(venda.data_entrega_prevista, fuso) : "—"}
                     </TableCell>
                     <TableCell>
                       <SeloStatusVenda status={venda.status} />
@@ -198,7 +199,7 @@ function PaginaVendas() {
                       <SeloStatusVenda status={(venda as any).status_entrega || "pendente"} />
                     </TableCell>
                     <TableCell className="num text-right font-medium">
-                      {formatarMoeda(venda.valor_total)}
+                      {formatarMoeda(Number(venda.valor_total || 0))}
                     </TableCell>
                     <TableCell className="text-center space-x-1">
                       {temPermissao("vendas", "editar") && (

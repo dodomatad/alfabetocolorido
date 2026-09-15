@@ -77,9 +77,12 @@ function PaginaEntrar() {
 
       let ip = "127.0.0.1";
       try {
-        const resp = await fetch("https://api.ipify.org?format=json");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const resp = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await resp.json();
-        ip = data.ip;
+        ip = data.ip || "127.0.0.1";
       } catch (e) {
         console.warn("Não foi possível obter o IP do cliente", e);
       }
@@ -109,9 +112,12 @@ function PaginaEntrar() {
 
       let ip = "127.0.0.1";
       try {
-        const resp = await fetch("https://api.ipify.org?format=json");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const resp = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await resp.json();
-        ip = data.ip;
+        ip = data.ip || "127.0.0.1";
       } catch (e) {
         console.warn("Não foi possível obter o IP do cliente para o log de falha", e);
       }

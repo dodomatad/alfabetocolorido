@@ -152,6 +152,7 @@ function Pagina() {
   const consulta = useQuery({
     queryKey: ["producao_diaria", empresa?.id],
     enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 60,
     queryFn: async () => {
       const query = tabela().select("*");
       
@@ -172,6 +173,7 @@ function Pagina() {
   const equipe = useQuery({
     queryKey: ["perfis-producao", empresa?.id],
     enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await supabase.from("perfis").select("id, nome").limit(200);
       if (error) throw error;
@@ -226,19 +228,22 @@ function Pagina() {
     return [...base.slice(1), base[0]!];
   }, [registros]);
 
-  const etapas = [
-    { etapa: "Criadas", valor: criadas },
-    { etapa: "Aquecidas", valor: aquecidas },
-    { etapa: "Subidas", valor: subidas },
-    { etapa: "Viradas / Ativas", valor: viradas },
-  ].map((e, i, arr) => ({
-    ...e,
-    percentual: criadas > 0 ? (e.valor / criadas) * 100 : 0,
-    queda: i === 0 ? 0 : (arr[i - 1]!.valor || 0) - e.valor,
-  }));
-  const maiorQueda = Math.max(...etapas.map((e) => e.queda));
+  const { etapas, maiorQueda } = useMemo(() => {
+    const et = [
+      { etapa: "Criadas", valor: criadas },
+      { etapa: "Aquecidas", valor: aquecidas },
+      { etapa: "Subidas", valor: subidas },
+      { etapa: "Viradas / Ativas", valor: viradas },
+    ].map((e, i, arr) => ({
+      ...e,
+      percentual: criadas > 0 ? (e.valor / criadas) * 100 : 0,
+      queda: i === 0 ? 0 : (arr[i - 1]!.valor || 0) - e.valor,
+    }));
+    const mq = Math.max(0, ...et.map((e) => e.queda));
+    return { etapas: et, maiorQueda: mq };
+  }, [criadas, aquecidas, subidas, viradas]);
 
-  const vazio = {
+  const criarFormVazio = () => ({
     operador: "",
     data_registro: iso(new Date()),
     tipo_bm: "BM 250",
@@ -251,19 +256,18 @@ function Pagina() {
     meta_diaria: "10",
     recebidas_fornecedor: "0",
     observacoes: "",
-  };
-  const [form, setForm] = useState<Record<string, string>>(vazio);
+  });
+  const [form, setForm] = useState<Record<string, string>>(criarFormVazio);
 
   useEffect(() => {
     if (!aberto && !editando) {
-      setForm(vazio);
+      setForm(criarFormVazio());
     }
   }, [aberto, editando]);
 
-
   const abrirNovo = () => {
     setEditando(null);
-    setForm(vazio);
+    setForm(criarFormVazio());
     setAberto(true);
   };
 
@@ -310,7 +314,7 @@ function Pagina() {
       };
 
       if (editando) {
-        const { error } = await tabela().update(dados).eq("id", editando.id);
+        const { error } = await tabela().update(dados as any).eq("id", editando.id);
         if (error) throw error;
         
         // Atualiza estoque com a diferença (delta)
@@ -330,7 +334,7 @@ function Pagina() {
         const { error } = await tabela().insert({
           ...dados,
           criado_por: session?.user.id ?? null,
-        });
+        } as any);
         if (error) throw error;
         
         // Adiciona ao estoque
@@ -350,7 +354,7 @@ function Pagina() {
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       setAberto(false);
       setEditando(null);
-      setForm(vazio);
+      setForm(criarFormVazio());
     },
     onError: (e: Error) => toast.error(e.message),
   });

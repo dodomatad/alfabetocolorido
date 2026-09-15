@@ -164,6 +164,7 @@ function PaginaFinanceiro() {
   const consulta = useQuery({
     queryKey: ["financeiro-unificado", empresa?.id],
     enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 60,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lancamentos_financeiros")
@@ -178,6 +179,7 @@ function PaginaFinanceiro() {
   const consultaVendas = useQuery({
     queryKey: ["vendas-comissoes", empresa?.id],
     enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 60,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendas")
@@ -259,7 +261,7 @@ function PaginaFinanceiro() {
         criado_por: session?.user.id ?? null,
       };
 
-      const { error } = await supabase.from("lancamentos_financeiros").insert(payload);
+      const { error } = await supabase.from("lancamentos_financeiros").insert(payload as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -269,7 +271,9 @@ function PaginaFinanceiro() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const totalComissoesDevidas = comissoesPendentes.reduce((acc, f) => acc + f.comissao, 0);
+  const totalComissoesDevidas = useMemo(() => {
+    return comissoesPendentes.reduce((acc, f) => acc + (Number(f.comissao) || 0), 0);
+  }, [comissoesPendentes]);
 
   const fornecedorBmTotal = useMemo(() => {
     const vendas = (consultaVendas.data || []) as any[];
@@ -339,16 +343,16 @@ function PaginaFinanceiro() {
       return ehCategoriaBM && ehSaida;
     });
 
-    const totalReceber = aReceber.reduce((acc, i) => acc + i.valor, 0);
-    const totalPagar = aPagar.reduce((acc, i) => acc + i.valor, 0);
-    const totalAtrasado = atrasados.reduce((acc, i) => acc + i.valor, 0);
-    const totalProducao = producaoBM.reduce((acc, i) => acc + i.valor, 0);
+    const totalReceber = aReceber.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
+    const totalPagar = aPagar.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
+    const totalAtrasado = atrasados.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
+    const totalProducao = producaoBM.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
     
     // Calcula o Lucro / ROI baseado nas Vendas - Custos de Producao Pagos
     const vendas = (consultaVendas.data || []) as any[];
     const faturamentoTotal = vendas.reduce((acc, v) => acc + Number(v.valor_total || 0), 0);
     const producaoBMPagos = producaoBM.filter(i => (i.situacao || "").trim().toLowerCase() === "pago");
-    const totalProducaoPago = producaoBMPagos.reduce((acc, i) => acc + i.valor, 0);
+    const totalProducaoPago = producaoBMPagos.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
     const lucroReal = faturamentoTotal - totalProducaoPago;
 
     const totalUnidadesBM = producaoBM.reduce((acc, i) => acc + (Number(i.quantidade_unidades) || 0), 0);

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,6 @@ const STATUS_INICIAIS = [
   { valor: "reembolsada", rotulo: "Reembolsada" },
 ] as const;
 
-import { useEffect } from "react";
 export function FormularioVenda({
   aberto,
   aoFechar,
@@ -47,7 +46,7 @@ export function FormularioVenda({
 }: {
   aberto: boolean;
   aoFechar: () => void;
-  vendaId?: string;
+  vendaId?: string | undefined;
 }) {
   const { empresa, session } = useSessao();
   const queryClient = useQueryClient();
@@ -55,11 +54,12 @@ export function FormularioVenda({
   const { data: ciroCriado, refetch: refetchCiro } = useQuery({
     queryKey: ["garantir-ciro", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
+    staleTime: Infinity,
     queryFn: async () => {
       const { data: perfis } = await supabase
         .from("perfis")
         .select("id, nome")
-        .eq("empresa_id", empresa!.id)
+        .eq("empresa_id", empresa?.id ?? "")
         .ilike("nome", "%ciro%");
       
       if (!perfis || perfis.length === 0) {
@@ -68,8 +68,8 @@ export function FormularioVenda({
           nome: "Fornecedor CIRO",
           cargo: "Fornecedor BM",
           ativo: true,
-          empresa_id: empresa!.id
-        }).select().single();
+          empresa_id: empresa?.id ?? ""
+        } as any).select().single();
         
         if (!error && novoCiro) {
           queryClient.invalidateQueries({ queryKey: ["equipe-selecao"] });
@@ -91,15 +91,17 @@ export function FormularioVenda({
   const [acrescimo, setAcrescimo] = useState("0");
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<Item[]>([{ ...ITEM_VAZIO }]);
+  const jaInicializadoRef = useRef(false);
 
   const consultaVenda = useQuery({
     queryKey: ["venda-edicao", vendaId],
     enabled: Boolean(vendaId) && aberto,
+    staleTime: 1000 * 60 * 2,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendas")
         .select("*, venda_itens(*)")
-        .eq("id", vendaId)
+        .eq("id", vendaId!)
         .single();
       if (error) throw error;
       return data;
@@ -107,7 +109,12 @@ export function FormularioVenda({
   });
 
   useEffect(() => {
-    if (aberto && vendaId && consultaVenda.data) {
+    if (!aberto) {
+      jaInicializadoRef.current = false;
+      return;
+    }
+
+    if (vendaId && consultaVenda.data) {
       const v = consultaVenda.data;
       setClienteId(v.cliente_id || "");
       
@@ -136,7 +143,8 @@ export function FormularioVenda({
       } else {
         setItens([{ ...ITEM_VAZIO }]);
       }
-    } else if (aberto && !vendaId) {
+    } else if (!vendaId && !jaInicializadoRef.current) {
+      jaInicializadoRef.current = true;
       setClienteId("");
       setFuncionarioId("");
       setPercentualComissao("0");
@@ -153,6 +161,7 @@ export function FormularioVenda({
   const clientes = useQuery({
     queryKey: ["clientes-selecao", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
@@ -167,10 +176,11 @@ export function FormularioVenda({
   const funcionarios = useQuery({
     queryKey: ["equipe-selecao", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const [perfis, membrosExtras] = await Promise.all([
-        supabase.from("perfis").select("id, nome, cargo").eq("empresa_id", empresa!.id).eq("ativo", true).order("nome"),
-        supabase.from("equipe_membros").select("id, nome, cargo").eq("empresa_id", empresa!.id).eq("status", "ativo").order("nome"),
+        supabase.from("perfis").select("id, nome, cargo").eq("empresa_id", empresa?.id ?? "").eq("ativo", true).order("nome"),
+        supabase.from("equipe_membros").select("id, nome, cargo").eq("empresa_id", empresa?.id ?? "").eq("status", "ativo").order("nome"),
       ]);
       
       const listaUnificada = [...(perfis.data ?? [])];
@@ -187,6 +197,7 @@ export function FormularioVenda({
   const modalidades = useQuery({
     queryKey: ["modalidades-selecao", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("modalidades_bm")
@@ -203,11 +214,14 @@ export function FormularioVenda({
     return Number.isFinite(n) ? n : 0;
   };
 
-  const subtotal = itens.reduce(
-    (acc, i) => acc + numero(i.quantidade) * numero(i.preco_unitario),
-    0,
-  );
-  const total = subtotal - numero(desconto) + numero(acrescimo);
+  const { subtotal, total } = useMemo(() => {
+    const sub = itens.reduce(
+      (acc, i) => acc + numero(i.quantidade) * numero(i.preco_unitario),
+      0,
+    );
+    const tot = sub - numero(desconto) + numero(acrescimo);
+    return { subtotal: sub, total: tot };
+  }, [itens, desconto, acrescimo]);
 
   const limpar = () => {
     setClienteId("");
@@ -228,7 +242,7 @@ export function FormularioVenda({
       const validos = itens.filter((i) => i.modalidade_id && numero(i.quantidade) > 0);
       if (validos.length === 0) throw new Error("Adicione ao menos um item com modalidade e quantidade.");
 
-      let vendaSalvaId = vendaId;
+      let vendaSalvaId: string = vendaId || "";
       
       const payloadVenda = {
           empresa_id: empresa.id,

@@ -165,7 +165,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       fuso: consulta.data?.empresa?.fuso_horario ?? "America/Sao_Paulo",
     };
 
-  }, [consulta]);
+  }, [consulta.data, consulta.isLoading, consulta.error]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
