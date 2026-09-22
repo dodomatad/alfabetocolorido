@@ -48,6 +48,7 @@ const STATUS_VENDA: Record<string, { rotulo: string; tom: TomSelo; icone: Lucide
   cancelada: { rotulo: "Cancelada", tom: "negativo", icone: Ban },
   reembolsada: { rotulo: "Reembolsada", tom: "negativo", icone: AlertTriangle },
   pendente: { rotulo: "Pendente", tom: "neutro", icone: Clock },
+  nao_enviado: { rotulo: "Não enviado", tom: "alerta", icone: Clock },
   em_rota: { rotulo: "Em rota", tom: "alerta", icone: Truck },
   reposicao: { rotulo: "Reposição", tom: "alerta", icone: AlertTriangle },
 };

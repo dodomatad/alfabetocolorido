@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -90,6 +90,7 @@ export function FormularioVenda({
   const [desconto, setDesconto] = useState("0");
   const [acrescimo, setAcrescimo] = useState("0");
   const [observacoes, setObservacoes] = useState("");
+  const [deliveryStatus, setDeliveryStatus] = useState<"nao_enviado" | "entregue">("nao_enviado");
   const [itens, setItens] = useState<Item[]>([{ ...ITEM_VAZIO }]);
   const jaInicializadoRef = useRef(false);
 
@@ -133,6 +134,8 @@ export function FormularioVenda({
       setDesconto(v.desconto?.toString() || "0");
       setAcrescimo(v.acrescimo?.toString() || "0");
       setObservacoes(obs);
+      const stEntrega = String((v as any).delivery_status || (v as any).status_entrega || "");
+      setDeliveryStatus(stEntrega.toLowerCase() === "entregue" ? "entregue" : "nao_enviado");
 
       if (v.venda_itens && v.venda_itens.length > 0) {
         setItens(v.venda_itens.map((i: any) => ({
@@ -151,6 +154,7 @@ export function FormularioVenda({
       setStatus("rascunho");
       setDataVenda(new Date().toISOString().slice(0, 10));
       setDataEntrega("");
+      setDeliveryStatus("nao_enviado");
       setDesconto("0");
       setAcrescimo("0");
       setObservacoes("");
@@ -230,6 +234,7 @@ export function FormularioVenda({
     setStatus("rascunho");
     setDataVenda(new Date().toISOString().slice(0, 10));
     setDataEntrega("");
+    setDeliveryStatus("nao_enviado");
     setDesconto("0");
     setAcrescimo("0");
     setObservacoes("");
@@ -244,8 +249,10 @@ export function FormularioVenda({
 
       let vendaSalvaId: string = vendaId || "";
       const nomeCliente = (clientes.data ?? []).find((c) => c.id === clienteId)?.nome || null;
+      const statusFinalEntrega = deliveryStatus === "entregue" ? "entregue" : "pendente";
+      const dataRealizadaFinal = deliveryStatus === "entregue" ? (dataVenda || new Date().toISOString().slice(0, 10)) : null;
       
-      const payloadVenda = {
+      const payloadVenda: any = {
           empresa_id: empresa.id,
           cliente_id: clienteId || null,
           cliente: nomeCliente,
@@ -254,6 +261,8 @@ export function FormularioVenda({
           data_venda: dataVenda,
           data_entrega_prevista: dataEntrega || null,
           status: status as any,
+          status_entrega: statusFinalEntrega,
+          delivery_status: deliveryStatus,
           subtotal,
           desconto: numero(desconto),
           acrescimo: numero(acrescimo),
@@ -264,10 +273,17 @@ export function FormularioVenda({
 
       if (vendaId) {
         // UPDATE
-        const { error: erroVenda } = await supabase
+        let { error: erroVenda } = await supabase
           .from("vendas")
           .update(payloadVenda)
           .eq("id", vendaId);
+        
+        // Se a coluna delivery_status não existir no banco remoto ainda, faz update sem ela
+        if (erroVenda && (erroVenda.message?.includes("delivery_status") || (erroVenda as any).code === "PGRST204")) {
+          const { delivery_status: _, ...payloadSemDeliveryStatus } = payloadVenda;
+          const res = await supabase.from("vendas").update(payloadSemDeliveryStatus).eq("id", vendaId);
+          erroVenda = res.error;
+        }
         if (erroVenda) throw erroVenda;
         
         // Remove itens antigos
@@ -279,18 +295,32 @@ export function FormularioVenda({
         });
         if (erroNumero) throw erroNumero;
         
-        const { data: novaVenda, error: erroVenda } = await supabase
+        let novaVendaResult = await supabase
           .from("vendas")
           .insert({
             ...payloadVenda,
             numero: Number(proximo) || 1,
-            status_entrega: "pendente",
             criado_por: session?.user.id ?? null,
           })
           .select("id")
           .single();
-        if (erroVenda) throw erroVenda;
-        vendaSalvaId = novaVenda.id;
+
+        // Se a coluna delivery_status não existir no banco remoto ainda, insere sem ela
+        if (novaVendaResult.error && (novaVendaResult.error.message?.includes("delivery_status") || (novaVendaResult.error as any).code === "PGRST204")) {
+          const { delivery_status: _, ...payloadSemDeliveryStatus } = payloadVenda;
+          novaVendaResult = await supabase
+            .from("vendas")
+            .insert({
+              ...payloadSemDeliveryStatus,
+              numero: Number(proximo) || 1,
+              criado_por: session?.user.id ?? null,
+            })
+            .select("id")
+            .single();
+        }
+
+        if (novaVendaResult.error) throw novaVendaResult.error;
+        vendaSalvaId = novaVendaResult.data.id;
       }
 
       // Sincroniza / cadastra entrega vinculada à venda com cliente e destinatário corretos
@@ -302,7 +332,8 @@ export function FormularioVenda({
           cliente_id: clienteId || null,
           destinatario: nomeCliente,
           data_prevista: dataEntrega || dataVenda || new Date().toISOString().slice(0, 10),
-          status: "pendente",
+          status: statusFinalEntrega,
+          data_realizada: dataRealizadaFinal,
           criado_por: session?.user.id ?? null,
         } as any);
         if (erroEntrega) {
@@ -321,6 +352,8 @@ export function FormularioVenda({
             cliente_id: clienteId || null,
             destinatario: nomeCliente,
             data_prevista: dataEntrega || dataVenda,
+            status: statusFinalEntrega,
+            data_realizada: dataRealizadaFinal,
             atualizado_por: session?.user.id ?? null,
           } as any).eq("id", entregaExistente.id);
         } else {
@@ -330,7 +363,8 @@ export function FormularioVenda({
             cliente_id: clienteId || null,
             destinatario: nomeCliente,
             data_prevista: dataEntrega || dataVenda,
-            status: "pendente",
+            status: statusFinalEntrega,
+            data_realizada: dataRealizadaFinal,
             criado_por: session?.user.id ?? null,
           } as any);
         }
@@ -443,6 +477,44 @@ export function FormularioVenda({
               value={dataEntrega}
               onChange={(e) => setDataEntrega(e.target.value)}
             />
+          </div>
+        </div>
+
+        {/* Status de Envio */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Status de envio
+          </Label>
+          <div className="grid grid-cols-2 gap-2 p-1 bg-muted/40 rounded-lg border border-border/50">
+            <button
+              type="button"
+              onClick={() => setDeliveryStatus("nao_enviado")}
+              className={`
+                flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all border
+                ${deliveryStatus === "nao_enviado"
+                  ? "bg-amber-500/15 border-amber-500/50 text-amber-400 shadow-sm"
+                  : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                }
+              `}
+            >
+              <Clock className="size-3.5 shrink-0 text-amber-500" />
+              <span>Não enviado</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDeliveryStatus("entregue")}
+              className={`
+                flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all border
+                ${deliveryStatus === "entregue"
+                  ? "bg-emerald-500/20 border-emerald-500/60 text-emerald-400 shadow-sm"
+                  : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                }
+              `}
+            >
+              <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
+              <span>Entregue</span>
+            </button>
           </div>
         </div>
 
