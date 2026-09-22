@@ -243,10 +243,12 @@ export function FormularioVenda({
       if (validos.length === 0) throw new Error("Adicione ao menos um item com modalidade e quantidade.");
 
       let vendaSalvaId: string = vendaId || "";
+      const nomeCliente = (clientes.data ?? []).find((c) => c.id === clienteId)?.nome || null;
       
       const payloadVenda = {
           empresa_id: empresa.id,
           cliente_id: clienteId || null,
+          cliente: nomeCliente,
           responsavel_producao_id: funcionarioId === 'ciro-fornecedor' ? null : (funcionarioId || null),
           comissao_percentual: numero(percentualComissao),
           data_venda: dataVenda,
@@ -291,6 +293,49 @@ export function FormularioVenda({
         vendaSalvaId = novaVenda.id;
       }
 
+      // Sincroniza / cadastra entrega vinculada à venda com cliente e destinatário corretos
+      if (!vendaId) {
+        // Nova venda: cria a entrega correspondente
+        const { error: erroEntrega } = await supabase.from("entregas").insert({
+          empresa_id: empresa.id,
+          venda_id: vendaSalvaId,
+          cliente_id: clienteId || null,
+          destinatario: nomeCliente,
+          data_prevista: dataEntrega || dataVenda || new Date().toISOString().slice(0, 10),
+          status: "pendente",
+          criado_por: session?.user.id ?? null,
+        } as any);
+        if (erroEntrega) {
+          console.warn("Aviso ao vincular entrega na venda:", erroEntrega);
+        }
+      } else {
+        // Edição de venda: atualiza a entrega vinculada se existir ou cria se não existir
+        const { data: entregaExistente } = await supabase
+          .from("entregas")
+          .select("id")
+          .eq("venda_id", vendaId)
+          .maybeSingle();
+
+        if (entregaExistente) {
+          await supabase.from("entregas").update({
+            cliente_id: clienteId || null,
+            destinatario: nomeCliente,
+            data_prevista: dataEntrega || dataVenda,
+            atualizado_por: session?.user.id ?? null,
+          } as any).eq("id", entregaExistente.id);
+        } else {
+          await supabase.from("entregas").insert({
+            empresa_id: empresa.id,
+            venda_id: vendaId,
+            cliente_id: clienteId || null,
+            destinatario: nomeCliente,
+            data_prevista: dataEntrega || dataVenda,
+            status: "pendente",
+            criado_por: session?.user.id ?? null,
+          } as any);
+        }
+      }
+
       // Insere os novos itens
       const { error: erroItens } = await supabase.from("venda_itens").insert(
         validos.map((i) => ({
@@ -329,7 +374,9 @@ export function FormularioVenda({
     onSuccess: () => {
       toast.success("Venda registrada com sucesso.");
       void queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      void queryClient.invalidateQueries({ queryKey: ["entregas"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       limpar();
       aoFechar();
     },

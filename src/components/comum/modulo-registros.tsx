@@ -61,6 +61,7 @@ export type ColunaModulo = {
   formato?: "texto" | "moeda" | "data" | "numero";
   alinharDireita?: boolean;
   relacao?: { tabela: string; rotulo: string };
+  render?: (valor: unknown, registro: any) => React.ReactNode;
 };
 
 type Props = {
@@ -77,6 +78,7 @@ type Props = {
   vazioTitulo: string;
   vazioDescricao: string;
   topComponent?: React.ReactNode;
+  antesDeSalvar?: (registro: Record<string, any>, valores: Record<string, string>) => Promise<Record<string, any>> | Record<string, any>;
 };
 
 // A tabela é escolhida por uma união fechada acima; o cast evita a explosão de
@@ -99,6 +101,7 @@ export function ModuloRegistros({
   vazioDescricao,
   selectCustom,
   topComponent,
+  antesDeSalvar,
 }: Props) {
   const { empresa, session, fuso, temPermissao } = useSessao();
   const queryClient = useQueryClient();
@@ -132,15 +135,29 @@ export function ModuloRegistros({
       const mapa: Record<string, { id: string; rotulo: string }[]> = {};
       for (const campo of campos.filter((c) => c.tipo === "relacao" && c.relacao)) {
         const rel = campo.relacao!;
-        const { data, error } = await supabase
-          .from(rel.tabela)
-          .select(`id, ${rel.rotulo}`)
-          .limit(200);
-        if (error) throw error;
-        mapa[campo.nome] = (data ?? []).map((linha) => {
-          const item = linha as unknown as Record<string, unknown>;
-          return { id: String(item['id']), rotulo: String(item[rel.rotulo] ?? "—") };
-        });
+        if (rel.tabela === "vendas") {
+          const { data, error } = await supabase
+            .from("vendas")
+            .select("id, numero, cliente, clientes(nome)")
+            .order("numero", { ascending: false })
+            .limit(200);
+          if (error) throw error;
+          mapa[campo.nome] = (data ?? []).map((linha: any) => {
+            const nomeCli = linha.cliente || linha.clientes?.nome || "";
+            const rotuloVenda = nomeCli ? `Venda #${linha.numero} — ${nomeCli}` : `Venda #${linha.numero}`;
+            return { id: String(linha.id), rotulo: rotuloVenda };
+          });
+        } else {
+          const { data, error } = await supabase
+            .from(rel.tabela)
+            .select(`id, ${rel.rotulo}`)
+            .limit(200);
+          if (error) throw error;
+          mapa[campo.nome] = (data ?? []).map((linha) => {
+            const item = linha as unknown as Record<string, unknown>;
+            return { id: String(item['id']), rotulo: String(item[rel.rotulo] ?? "—") };
+          });
+        }
       }
       return mapa;
     },
@@ -207,7 +224,13 @@ export function ModuloRegistros({
             ? Number(bruto.replace(",", ".")) || 0
             : bruto;
       }
-      const { error } = await consultarTabela(tabela).insert(registro);
+
+      let registroFinal = registro;
+      if (antesDeSalvar) {
+        registroFinal = await antesDeSalvar(registro, valores);
+      }
+
+      const { error } = await consultarTabela(tabela).insert(registroFinal);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -220,14 +243,25 @@ export function ModuloRegistros({
   });
 
   const formatar = (valor: unknown, formato: ColunaModulo["formato"], c: ColunaModulo, registro?: any) => {
+    if (c.render) {
+      return c.render(valor, registro);
+    }
     if (valor === null || valor === undefined || valor === "") return "—";
     if (c.relacao && registro) {
       const relName = c.nome.replace('_id', '');
-      if (registro[relName]) return registro[relName][c.relacao.rotulo] || String(valor);
+      const relObj = registro[relName] || registro[c.relacao.tabela] || (c.relacao.tabela === 'clientes' ? registro.clientes : null);
+      if (relObj && typeof relObj === 'object') {
+        const rotulo = (relObj as any)[c.relacao.rotulo];
+        if (rotulo) return String(rotulo);
+      }
     }
     if (formato === "moeda") return formatarMoeda(valor as number);
     if (formato === "data") return formatarData(String(valor), fuso);
     if (c.nome === "status") return <SeloStatusVenda status={String(valor)} />;
+    // Evita exibir UUID bruto na interface
+    if (typeof valor === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valor)) {
+      return "—";
+    }
     return String(valor).replace(/_/g, " ");
   };
 
