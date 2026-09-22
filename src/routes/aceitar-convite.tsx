@@ -109,6 +109,7 @@ function PaginaAceitarConvite() {
         <div className="mb-6 flex items-center gap-3">
           <img 
             src={logoAsset.url} 
+            onError={(e) => { e.currentTarget.src = "/logo-bm.png"; }}
             alt="Logo BM" 
             className="size-11 rounded-lg object-cover shadow-panel" 
           />

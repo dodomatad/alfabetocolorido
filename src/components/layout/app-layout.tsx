@@ -62,6 +62,7 @@ function NavegacaoLateral() {
         <div className="flex items-center gap-2.5 px-2 py-1.5">
           <img 
             src={logoAsset.url} 
+            onError={(e) => { e.currentTarget.src = "/logo-bm.png"; }}
             alt="Logo BM" 
             className="size-8 shrink-0 rounded-md object-cover shadow-sm" 
           />
