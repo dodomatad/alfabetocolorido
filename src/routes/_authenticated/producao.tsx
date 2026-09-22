@@ -17,7 +17,6 @@ import {
 import {
   AlertTriangle,
   Factory,
-  Flame,
   Pencil,
   Plus,
   Rocket,
@@ -29,6 +28,7 @@ import {
   Info,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { BmOperationalForm } from "@/components/comum/bm-operational-form";
 
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -181,6 +181,21 @@ function Pagina() {
     },
   });
 
+  const consultaClientes = useQuery({
+    queryKey: ["clientes-producao", empresa?.id],
+    enabled: Boolean(empresa?.id) && aberto,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) return [];
+      return data || [];
+    },
+  });
+
   const registros = useMemo(() => {
     const { de, ate } = limiteInferior(periodo);
     return (consulta.data ?? []).filter((r) => {
@@ -199,7 +214,6 @@ function Pagina() {
   }, [permissoes]);
 
   const criadas = soma("bms_criadas");
-  const aquecidas = soma("bms_aquecidas");
   const subidas = soma("contas_subidas");
   const viradas = soma("contas_viradas");
   const bloqueios = soma("bloqueios");
@@ -231,7 +245,6 @@ function Pagina() {
   const { etapas, maiorQueda } = useMemo(() => {
     const et = [
       { etapa: "Criadas", valor: criadas },
-      { etapa: "Aquecidas", valor: aquecidas },
       { etapa: "Subidas", valor: subidas },
       { etapa: "Viradas / Ativas", valor: viradas },
     ].map((e, i, arr) => ({
@@ -241,14 +254,13 @@ function Pagina() {
     }));
     const mq = Math.max(0, ...et.map((e) => e.queda));
     return { etapas: et, maiorQueda: mq };
-  }, [criadas, aquecidas, subidas, viradas]);
+  }, [criadas, subidas, viradas]);
 
   const criarFormVazio = () => ({
     operador: "",
     data_registro: iso(new Date()),
     tipo_bm: "BM 250",
     bms_criadas: "",
-    bms_aquecidas: "",
     contas_subidas: "",
     contas_viradas: "",
     bloqueios: "",
@@ -256,6 +268,13 @@ function Pagina() {
     meta_diaria: "10",
     recebidas_fornecedor: "0",
     observacoes: "",
+    nome_bm: "",
+    limite_bm: "250",
+    tem_template: "false",
+    data_criacao: iso(new Date()),
+    destinatario: "",
+    status_envio: "disponivel",
+    quantidade: "1",
   });
   const [form, setForm] = useState<Record<string, string>>(criarFormVazio);
 
@@ -278,7 +297,6 @@ function Pagina() {
       data_registro: r.data_registro,
       tipo_bm: (r as any).tipo_bm || "BM 250",
       bms_criadas: String(r.bms_criadas),
-      bms_aquecidas: String(r.bms_aquecidas),
       contas_subidas: String(r.contas_subidas),
       contas_viradas: String(r.contas_viradas),
       bloqueios: String(r.bloqueios),
@@ -286,6 +304,13 @@ function Pagina() {
       motivo_queda: r.motivo_queda ?? "",
       meta_diaria: String(r.meta_diaria),
       observacoes: r.observacoes ?? "",
+      nome_bm: (r as any).nome_bm ?? "",
+      limite_bm: (r as any).limite_bm ?? "250",
+      tem_template: String((r as any).tem_template ?? false),
+      data_criacao: (r as any).data_criacao ?? r.data_registro ?? iso(new Date()),
+      destinatario: (r as any).destinatario ?? "",
+      status_envio: (r as any).status_envio ?? "disponivel",
+      quantidade: String((r as any).quantidade ?? 1),
     });
     setAberto(true);
   };
@@ -302,7 +327,7 @@ function Pagina() {
         operador: form["operador"],
         tipo_bm: form["tipo_bm"] || "BM 250",
         bms_criadas: n("bms_criadas"),
-        bms_aquecidas: n("bms_aquecidas"),
+        bms_aquecidas: 0,
         contas_subidas: n("contas_subidas"),
         contas_viradas: n("contas_viradas"),
         bloqueios: n("bloqueios"),
@@ -311,7 +336,16 @@ function Pagina() {
         meta_diaria: n("meta_diaria") || 10,
         observacoes: form["observacoes"] || null,
         atualizado_por: session?.user.id ?? null,
+        nome_bm: form["nome_bm"] || null,
+        limite_bm: form["limite_bm"] || null,
+        tem_template: form["tem_template"] === "true",
+        data_criacao: form["data_criacao"] || form["data_registro"] || iso(new Date()),
+        destinatario: form["destinatario"] || null,
+        status_envio: form["status_envio"] || "disponivel",
+        quantidade: n("quantidade") || 1,
       };
+
+      const isBM = (dados.tipo_bm || "").startsWith("BM");
 
       if (editando) {
         const { error } = await tabela().update(dados as any).eq("id", editando.id);
@@ -337,9 +371,29 @@ function Pagina() {
         } as any);
         if (error) throw error;
         
-        // Adiciona ao estoque
+        // Cadastra individualmente no Estoque para controle de BM e disponibilidade imediata
+        if (isBM) {
+          const qtdCadastrar = dados.quantidade || 1;
+          await supabase.from("estoque").insert({
+            empresa_id: empresa.id,
+            tipo_ativo: dados.tipo_bm,
+            nome_bm: dados.nome_bm || null,
+            limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
+            tem_template: dados.tem_template,
+            data_criacao: dados.data_criacao,
+            responsavel: dados.operador,
+            destinatario: dados.destinatario,
+            status_envio: dados.status_envio,
+            quantidade_disponivel: (dados.status_envio === "disponivel" || dados.status_envio === "pronta_envio") ? qtdCadastrar : 0,
+            quantidade_reservada: dados.status_envio === "reservada" ? qtdCadastrar : 0,
+            status: dados.status_envio === "enviada" ? "esgotado" : "em_estoque",
+            custo_medio: 0,
+          } as any);
+        }
+
+        // Adiciona ao totalizador agregado de estoque
         const addTotal = dados.contas_viradas + (dados.recebidas_fornecedor || 0);
-        if (addTotal > 0) {
+        if (addTotal > 0 && !isBM) {
           const { data: estoqueAtual } = await supabase.from("estoque").select("id, quantidade_disponivel").eq("tipo_ativo", dados.tipo_bm).maybeSingle();
           if (estoqueAtual) {
             await supabase.from("estoque").update({ quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + addTotal }).eq("id", estoqueAtual.id);
@@ -352,6 +406,7 @@ function Pagina() {
     onSuccess: () => {
       toast.success(editando ? "Registro atualizado." : "Produção registrada.");
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       setAberto(false);
       setEditando(null);
       setForm(criarFormVazio());
@@ -418,65 +473,54 @@ function Pagina() {
           }
         />
 
-        <section className="grid grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <CartaoKpi
-              rotulo="Fornecedor (Recebidas)"
-              valor={fmtNumero(recebidasFornecedor)}
-              icone={Factory}
-              corIcone="text-purple-500"
-              detalhe={ocultarValores ? "" : "Enviadas pelo fornecedor"}
-            />
-            <CartaoKpi
-              rotulo="BMs Criadas"
-              valor={fmtNumero(criadas)}
-              icone={Factory}
-              detalhe={ocultarValores ? "" : `Meta: ${metaDia}/dia`}
-              destaque
-            />
-            <CartaoKpi
-              rotulo="Contas Subidas"
-              valor={fmtNumero(subidas)}
-              icone={Rocket}
-              corIcone="text-amber-500"
-            />
-            <CartaoKpi
-              rotulo="Aproveitamento"
-              valor={fmtPercentual(aproveitamento)}
-              icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
-              corValor={
-                ocultarValores ? "text-white" :
-                aproveitamento >= 50
-                  ? "text-emerald-400"
-                  : aproveitamento < 30
-                  ? "text-red-500"
-                  : "text-amber-500"
-              }
-              detalhe={ocultarValores ? "" : "Viradas / Criadas"}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <CartaoKpi
-              rotulo="BMs Aquecidas"
-              valor={fmtNumero(aquecidas)}
-              icone={Flame}
-              corIcone="text-blue-500"
-            />
-            <CartaoKpi
-              rotulo="Contas Viradas"
-              valor={fmtNumero(viradas)}
-              icone={Target}
-              corValor="text-emerald-400"
-            />
-            <CartaoKpi
-              rotulo="Bloqueios"
-              valor={fmtNumero(bloqueios)}
-              icone={AlertTriangle}
-              corValor="text-red-500"
-              detalhe={ocultarValores ? "" : `${perda.toFixed(1)}% de perda`}
-            />
-          </div>
+        <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+          <CartaoKpi
+            rotulo="Fornecedor (Recebidas)"
+            valor={fmtNumero(recebidasFornecedor)}
+            icone={Factory}
+            corIcone="text-purple-500"
+            detalhe={ocultarValores ? "" : "Enviadas pelo fornecedor"}
+          />
+          <CartaoKpi
+            rotulo="BMs Criadas"
+            valor={fmtNumero(criadas)}
+            icone={Factory}
+            detalhe={ocultarValores ? "" : `Meta: ${metaDia}/dia`}
+            destaque
+          />
+          <CartaoKpi
+            rotulo="Contas Viradas"
+            valor={fmtNumero(viradas)}
+            icone={Target}
+            corValor="text-emerald-400"
+          />
+          <CartaoKpi
+            rotulo="Contas Subidas"
+            valor={fmtNumero(subidas)}
+            icone={Rocket}
+            corIcone="text-amber-500"
+          />
+          <CartaoKpi
+            rotulo="Bloqueios"
+            valor={fmtNumero(bloqueios)}
+            icone={AlertTriangle}
+            corValor="text-red-500"
+            detalhe={ocultarValores ? "" : `${perda.toFixed(1)}% de perda`}
+          />
+          <CartaoKpi
+            rotulo="Aproveitamento"
+            valor={fmtPercentual(aproveitamento)}
+            icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
+            corValor={
+              ocultarValores ? "text-white" :
+              aproveitamento >= 50
+                ? "text-emerald-400"
+                : aproveitamento < 30
+                ? "text-red-500"
+                : "text-amber-500"
+            }
+            detalhe={ocultarValores ? "" : "Viradas / Criadas"}
+          />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
@@ -651,7 +695,6 @@ function Pagina() {
                     <TableHead>Data</TableHead>
                     <TableHead>Funcionária / Operador</TableHead>
                     <TableHead className="text-right">Criadas</TableHead>
-                    <TableHead className="text-right">Aquecidas</TableHead>
                     <TableHead className="text-right">Subidas</TableHead>
                     <TableHead className="text-right">Viradas</TableHead>
                     <TableHead>Quedas / Motivo</TableHead>
@@ -670,7 +713,6 @@ function Pagina() {
                         <TableCell className="num font-medium text-white">{formatarData(r.data_registro, fuso)}</TableCell>
                         <TableCell className="font-semibold text-white/90">{r.operador}</TableCell>
                         <TableCell className="num text-right font-bold text-white">{r.bms_criadas}</TableCell>
-                        <TableCell className="num text-right text-blue-400 font-bold">{r.bms_aquecidas}</TableCell>
                         <TableCell className="num text-right font-bold text-white/90">{r.contas_subidas}</TableCell>
                         <TableCell className="num text-right">
                           <Badge 
@@ -776,11 +818,14 @@ function Pagina() {
                 </Select>
               </div>
               <Campo id="data_registro" rotulo="Data do registro" tipo="date" form={form} setForm={setForm} />
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="tipo_bm">Tipo de Ativo (BM / Perfil)</Label>
                 <Select
                   value={form['tipo_bm'] ?? "BM 250"}
-                  onValueChange={(v) => setForm((a) => ({ ...a, tipo_bm: v }))}
+                  onValueChange={(v) => {
+                    const lim = v.startsWith("BM ") ? v.replace("BM ", "") : "250";
+                    setForm((a) => ({ ...a, tipo_bm: v, limite_bm: lim }));
+                  }}
                 >
                   <SelectTrigger id="tipo_bm">
                     <SelectValue placeholder="Selecione" />
@@ -795,9 +840,47 @@ function Pagina() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {(form['tipo_bm'] ?? "").startsWith("BM") && (
+                <div className="sm:col-span-2">
+                  <BmOperationalForm
+                    data={{
+                      nomeBm: form["nome_bm"] || "",
+                      limiteBm: form["limite_bm"] || (form["tipo_bm"]?.replace("BM ", "") || "250"),
+                      temTemplate: form["tem_template"] === "true",
+                      dataCriacao: form["data_criacao"] || form["data_registro"] || iso(new Date()),
+                      responsavel: form["operador"] || "",
+                      destinatario: form["destinatario"] || "",
+                      statusEnvio: form["status_envio"] || "disponivel",
+                      quantidade: form["quantidade"] || "1",
+                    }}
+                    onChange={(campo, val) => {
+                      if (campo === "nomeBm") setForm((a) => ({ ...a, nome_bm: val as string }));
+                      else if (campo === "limiteBm") {
+                        setForm((a) => ({
+                          ...a,
+                          limite_bm: val as string,
+                          tipo_bm: `BM ${val}`,
+                        }));
+                      }
+                      else if (campo === "temTemplate") setForm((a) => ({ ...a, tem_template: String(val) }));
+                      else if (campo === "dataCriacao") setForm((a) => ({ ...a, data_criacao: val as string }));
+                      else if (campo === "responsavel") setForm((a) => ({ ...a, operador: val as string }));
+                      else if (campo === "destinatario") setForm((a) => ({ ...a, destinatario: val as string }));
+                      else if (campo === "statusEnvio") setForm((a) => ({ ...a, status_envio: val as string }));
+                      else if (campo === "quantidade") setForm((a) => ({ ...a, quantidade: String(val) }));
+                    }}
+                    equipeOptions={equipe.data || []}
+                    clientesOptions={consultaClientes.data || []}
+                    mostrarQuantidade={true}
+                    mostrarCusto={false}
+                    datalistSuffix="producao"
+                  />
+                </div>
+              )}
+
               <Campo id="recebidas_fornecedor" rotulo="Recebidas do Fornecedor" form={form} setForm={setForm} />
               <Campo id="bms_criadas" rotulo="BMs criadas" form={form} setForm={setForm} />
-              <Campo id="bms_aquecidas" rotulo="BMs aquecidas" form={form} setForm={setForm} />
               <Campo id="contas_subidas" rotulo="Contas subidas" form={form} setForm={setForm} />
               <Campo id="contas_viradas" rotulo="Contas viradas" form={form} setForm={setForm} />
               <Campo id="bloqueios" rotulo="Bloqueios" form={form} setForm={setForm} />

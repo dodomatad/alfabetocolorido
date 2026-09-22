@@ -64,6 +64,7 @@ import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { BotaoAdicionar } from "@/components/comum/botao-adicionar";
 import { CarregandoTabela, EstadoVazio } from "@/components/comum/estados";
 import { formatarMoeda, formatarData } from "@/lib/formatadores";
+import { BmOperationalForm } from "@/components/comum/bm-operational-form";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -684,161 +685,35 @@ function PaginaEstoque() {
 
             {/* CAMPOS CONDICIONAIS ESPECÍFICOS PARA BM */}
             {isBM ? (
-              <div className="space-y-4 rounded-lg border border-blue-500/20 bg-blue-950/10 p-4">
-                <div className="flex items-center gap-2 pb-1 border-b border-border/40 text-blue-400 font-semibold text-xs uppercase tracking-wider">
-                  <Sparkles className="size-4" />
-                  Controle Operacional de BM
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {/* Nome da BM */}
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="bm-nome">Nome da BM</Label>
-                    <Input
-                      id="bm-nome"
-                      placeholder="Ex: BM Matriz 01"
-                      value={nomeBm}
-                      onChange={(e) => setNomeBm(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Status / Limite da BM (Botões Toggle Segmentados) */}
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status / Limite da BM
-                    </Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {LIMITES_BM.map((lim) => (
-                        <button
-                          key={lim}
-                          type="button"
-                          onClick={() => setLimiteBm(lim)}
-                          className={`
-                            py-2 px-2 rounded-md text-xs font-bold transition-all border
-                            ${limiteBm === lim
-                              ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                              : "bg-muted/40 border-border/50 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                            }
-                          `}
-                        >
-                          {lim}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Template (Switch Sim / Não) */}
-                  <div className="flex items-center justify-between sm:col-span-2 rounded-lg border border-border/50 bg-background/50 p-3">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="switch-template" className="text-sm font-semibold cursor-pointer">
-                        Template
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Está com template configurado?
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold ${temTemplate ? "text-emerald-400" : "text-muted-foreground"}`}>
-                        {temTemplate ? "Sim" : "Não"}
-                      </span>
-                      <Switch
-                        id="switch-template"
-                        checked={temTemplate}
-                        onCheckedChange={setTemTemplate}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Data de Criação */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bm-data-criacao">Data de Criação</Label>
-                    <Input
-                      id="bm-data-criacao"
-                      type="date"
-                      value={dataCriacao}
-                      onChange={(e) => setDataCriacao(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Status de Envio */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bm-status-envio">Status de Envio</Label>
-                    <Select value={statusEnvio} onValueChange={setStatusEnvio}>
-                      <SelectTrigger id="bm-status-envio">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="disponivel">Disponível</SelectItem>
-                        <SelectItem value="reservada">Reservada</SelectItem>
-                        <SelectItem value="enviada">Enviada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Criador / Responsável */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bm-responsavel">Criador / Responsável</Label>
-                    <div className="relative">
-                      <Input
-                        id="bm-responsavel"
-                        list="lista-responsaveis"
-                        placeholder="Quem fez essa BM..."
-                        value={responsavel}
-                        onChange={(e) => setResponsavel(e.target.value)}
-                      />
-                      <datalist id="lista-responsaveis">
-                        {(consultaEquipe.data || []).map((m) => (
-                          <option key={m.id} value={m.nome} />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-
-                  {/* Destinatário / Cliente */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bm-destinatario">Destinatário / Cliente</Label>
-                    <div className="relative">
-                      <Input
-                        id="bm-destinatario"
-                        list="lista-destinatarios"
-                        placeholder="Para quem vai ser enviada..."
-                        value={destinatario}
-                        onChange={(e) => setDestinatario(e.target.value)}
-                      />
-                      <datalist id="lista-destinatarios">
-                        {(consultaClientes.data || []).map((c) => (
-                          <option key={c.id} value={c.nome} />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-
-                  {/* Quantidade (geralmente 1 por BM) */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bm-qtd">Quantidade</Label>
-                    <Input
-                      id="bm-qtd"
-                      type="number"
-                      min="1"
-                      value={qtdDisponivel}
-                      onChange={(e) => setQtdDisponivel(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Custo Unitário Opcional */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bm-custo">Custo Unitário (R$)</Label>
-                    <Input
-                      id="bm-custo"
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      value={custoMedio}
-                      onChange={(e) => setCustoMedio(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
+              <BmOperationalForm
+                data={{
+                  nomeBm,
+                  limiteBm,
+                  temTemplate,
+                  dataCriacao,
+                  responsavel,
+                  destinatario,
+                  statusEnvio,
+                  quantidade: qtdDisponivel,
+                  custoMedio,
+                }}
+                onChange={(campo, val) => {
+                  if (campo === "nomeBm") setNomeBm(val as string);
+                  else if (campo === "limiteBm") setLimiteBm(val as string);
+                  else if (campo === "temTemplate") setTemTemplate(val as boolean);
+                  else if (campo === "dataCriacao") setDataCriacao(val as string);
+                  else if (campo === "responsavel") setResponsavel(val as string);
+                  else if (campo === "destinatario") setDestinatario(val as string);
+                  else if (campo === "statusEnvio") setStatusEnvio(val as string);
+                  else if (campo === "quantidade") setQtdDisponivel(String(val));
+                  else if (campo === "custoMedio") setCustoMedio(val as string);
+                }}
+                equipeOptions={consultaEquipe.data || []}
+                clientesOptions={consultaClientes.data || []}
+                mostrarQuantidade={true}
+                mostrarCusto={true}
+                datalistSuffix="estoque"
+              />
             ) : (
               /* CAMPOS CONVENCIONAIS PARA OUTROS ATIVOS (Perfis, Contas genéricas) */
               <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-border/60 bg-muted/20 p-4">
