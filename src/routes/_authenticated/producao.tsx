@@ -17,9 +17,9 @@ import {
 import {
   AlertTriangle,
   Factory,
+  PackageCheck,
   Pencil,
   Plus,
-  Rocket,
   Target,
   Trash2,
   TrendingDown,
@@ -214,19 +214,11 @@ function Pagina() {
   }, [permissoes]);
 
   const criadas = soma("bms_criadas");
-  const subidas = soma("contas_subidas");
   const viradas = soma("contas_viradas");
   const bloqueios = soma("bloqueios");
   const recebidasFornecedor = soma("recebidas_fornecedor" as keyof Registro);
   const aproveitamento = criadas > 0 ? (viradas / criadas) * 100 : 0;
   const perda = criadas > 0 ? (bloqueios / criadas) * 100 : 0;
-  
-  // Métrica consolidada para meta baseada nos registros carregados
-  const metaDiariaMedia = registros.length > 0 
-    ? registros.reduce((s, r) => s + (Number(r.meta_diaria) || 0), 0) / registros.length 
-    : 10;
-  
-  const metaDia = registros[0]?.meta_diaria ?? 10;
 
   const fmtNumero = (v: number | string) => (ocultarValores ? "***" : v);
   const fmtPercentual = (v: number) => (ocultarValores ? "***%" : `${v.toFixed(1)}%`);
@@ -244,9 +236,8 @@ function Pagina() {
 
   const { etapas, maiorQueda } = useMemo(() => {
     const et = [
-      { etapa: "Criadas", valor: criadas },
-      { etapa: "Subidas", valor: subidas },
-      { etapa: "Viradas / Ativas", valor: viradas },
+      { etapa: "BMs Criadas", valor: criadas },
+      { etapa: "Contas Viradas", valor: viradas },
     ].map((e, i, arr) => ({
       ...e,
       percentual: criadas > 0 ? (e.valor / criadas) * 100 : 0,
@@ -254,18 +245,16 @@ function Pagina() {
     }));
     const mq = Math.max(0, ...et.map((e) => e.queda));
     return { etapas: et, maiorQueda: mq };
-  }, [criadas, subidas, viradas]);
+  }, [criadas, viradas]);
 
   const criarFormVazio = () => ({
     operador: "",
     data_registro: iso(new Date()),
     tipo_bm: "BM 250",
     bms_criadas: "",
-    contas_subidas: "",
     contas_viradas: "",
     bloqueios: "",
     motivo_queda: "",
-    meta_diaria: "10",
     recebidas_fornecedor: "0",
     observacoes: "",
     nome_bm: "",
@@ -297,12 +286,10 @@ function Pagina() {
       data_registro: r.data_registro,
       tipo_bm: (r as any).tipo_bm || "BM 250",
       bms_criadas: String(r.bms_criadas),
-      contas_subidas: String(r.contas_subidas),
       contas_viradas: String(r.contas_viradas),
       bloqueios: String(r.bloqueios),
       recebidas_fornecedor: String((r as any).recebidas_fornecedor || 0),
       motivo_queda: r.motivo_queda ?? "",
-      meta_diaria: String(r.meta_diaria),
       observacoes: r.observacoes ?? "",
       nome_bm: (r as any).nome_bm ?? "",
       limite_bm: (r as any).limite_bm ?? "250",
@@ -328,12 +315,12 @@ function Pagina() {
         tipo_bm: form["tipo_bm"] || "BM 250",
         bms_criadas: n("bms_criadas"),
         bms_aquecidas: 0,
-        contas_subidas: n("contas_subidas"),
+        contas_subidas: 0,
         contas_viradas: n("contas_viradas"),
         bloqueios: n("bloqueios"),
         recebidas_fornecedor: n("recebidas_fornecedor"),
         motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
-        meta_diaria: n("meta_diaria") || 10,
+        meta_diaria: 10,
         observacoes: form["observacoes"] || null,
         atualizado_por: session?.user.id ?? null,
         nome_bm: form["nome_bm"] || null,
@@ -347,21 +334,50 @@ function Pagina() {
 
       const isBM = (dados.tipo_bm || "").startsWith("BM");
 
+      // Ativos líquidos prontos para disponibilidade imediata no Estoque
+      const unidadesLiquidas = dados.contas_viradas > 0
+        ? dados.contas_viradas
+        : Math.max(0, dados.bms_criadas - dados.bloqueios);
+      const totalLiquidoEstoque = unidadesLiquidas + (dados.recebidas_fornecedor || 0);
+
       if (editando) {
         const { error } = await tabela().update(dados as any).eq("id", editando.id);
         if (error) throw error;
         
-        // Atualiza estoque com a diferença (delta)
-        const diffViradas = dados.contas_viradas - Number(editando.contas_viradas || 0);
-        const diffRecebidas = (dados.recebidas_fornecedor || 0) - Number((editando as any).recebidas_fornecedor || 0);
-        const diffTotal = diffViradas + diffRecebidas;
+        // Atualiza estoque com a diferença líquida (delta)
+        const prevViradas = Number(editando.contas_viradas || 0);
+        const prevCriadas = Number(editando.bms_criadas || 0);
+        const prevBloqueios = Number(editando.bloqueios || 0);
+        const prevRecebidas = Number((editando as any).recebidas_fornecedor || 0);
+        const prevLiquido = (prevViradas > 0 ? prevViradas : Math.max(0, prevCriadas - prevBloqueios)) + prevRecebidas;
+        const diffTotal = totalLiquidoEstoque - prevLiquido;
         
         if (diffTotal !== 0) {
-          const { data: estoqueAtual } = await supabase.from("estoque").select("id, quantidade_disponivel").eq("tipo_ativo", dados.tipo_bm).maybeSingle();
+          const { data: estoqueAtual } = await supabase
+            .from("estoque")
+            .select("id, quantidade_disponivel")
+            .eq("tipo_ativo", dados.tipo_bm)
+            .is("nome_bm", null)
+            .maybeSingle();
+
           if (estoqueAtual) {
-            await supabase.from("estoque").update({ quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + diffTotal }).eq("id", estoqueAtual.id);
+            await supabase
+              .from("estoque")
+              .update({
+                quantidade_disponivel: Math.max(0, Number(estoqueAtual.quantidade_disponivel) + diffTotal),
+                status: Number(estoqueAtual.quantidade_disponivel) + diffTotal > 0 ? "em_estoque" : "esgotado",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", estoqueAtual.id);
           } else if (diffTotal > 0) {
-            await supabase.from("estoque").insert({ empresa_id: empresa.id, tipo_ativo: dados.tipo_bm, quantidade_disponivel: diffTotal, status: "em_estoque" });
+            await supabase.from("estoque").insert({
+              empresa_id: empresa.id,
+              tipo_ativo: dados.tipo_bm,
+              limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
+              quantidade_disponivel: diffTotal,
+              quantidade_reservada: 0,
+              status: "em_estoque",
+            } as any);
           }
         }
       } else {
@@ -371,34 +387,56 @@ function Pagina() {
         } as any);
         if (error) throw error;
         
-        // Cadastra individualmente no Estoque para controle de BM e disponibilidade imediata
-        if (isBM) {
-          const qtdCadastrar = dados.quantidade || 1;
+        // Cadastra individualmente no Estoque se for BM com nome específico
+        if (isBM && dados.nome_bm) {
           await supabase.from("estoque").insert({
             empresa_id: empresa.id,
             tipo_ativo: dados.tipo_bm,
-            nome_bm: dados.nome_bm || null,
+            nome_bm: dados.nome_bm,
             limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
             tem_template: dados.tem_template,
             data_criacao: dados.data_criacao,
             responsavel: dados.operador,
             destinatario: dados.destinatario,
             status_envio: dados.status_envio,
-            quantidade_disponivel: (dados.status_envio === "disponivel" || dados.status_envio === "pronta_envio") ? qtdCadastrar : 0,
-            quantidade_reservada: dados.status_envio === "reservada" ? qtdCadastrar : 0,
+            quantidade_disponivel: (dados.status_envio === "disponivel" || dados.status_envio === "pronta_envio") ? (dados.quantidade || 1) : 0,
+            quantidade_reservada: dados.status_envio === "reservada" ? (dados.quantidade || 1) : 0,
             status: dados.status_envio === "enviada" ? "esgotado" : "em_estoque",
-            custo_medio: 0,
+            custo_medio_unitario: 0,
           } as any);
         }
 
-        // Adiciona ao totalizador agregado de estoque
-        const addTotal = dados.contas_viradas + (dados.recebidas_fornecedor || 0);
-        if (addTotal > 0 && !isBM) {
-          const { data: estoqueAtual } = await supabase.from("estoque").select("id, quantidade_disponivel").eq("tipo_ativo", dados.tipo_bm).maybeSingle();
+        // Atualiza ou insere saldo agregado de estoque para reflexo imediato no dashboard
+        const qtdParaPool = (isBM && dados.nome_bm)
+          ? Math.max(0, totalLiquidoEstoque - (dados.quantidade || 1))
+          : totalLiquidoEstoque;
+
+        if (qtdParaPool > 0) {
+          const { data: estoqueAtual } = await supabase
+            .from("estoque")
+            .select("id, quantidade_disponivel")
+            .eq("tipo_ativo", dados.tipo_bm)
+            .is("nome_bm", null)
+            .maybeSingle();
+
           if (estoqueAtual) {
-            await supabase.from("estoque").update({ quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + addTotal }).eq("id", estoqueAtual.id);
+            await supabase
+              .from("estoque")
+              .update({
+                quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + qtdParaPool,
+                status: "em_estoque",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", estoqueAtual.id);
           } else {
-            await supabase.from("estoque").insert({ empresa_id: empresa.id, tipo_ativo: dados.tipo_bm, quantidade_disponivel: addTotal, status: "em_estoque" });
+            await supabase.from("estoque").insert({
+              empresa_id: empresa.id,
+              tipo_ativo: dados.tipo_bm,
+              limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
+              quantidade_disponivel: qtdParaPool,
+              quantidade_reservada: 0,
+              status: "em_estoque",
+            } as any);
           }
         }
       }
@@ -407,6 +445,8 @@ function Pagina() {
       toast.success(editando ? "Registro atualizado." : "Produção registrada.");
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["stock"] });
       setAberto(false);
       setEditando(null);
       setForm(criarFormVazio());
@@ -485,7 +525,7 @@ function Pagina() {
             rotulo="BMs Criadas"
             valor={fmtNumero(criadas)}
             icone={Factory}
-            detalhe={ocultarValores ? "" : `Meta: ${metaDia}/dia`}
+            detalhe={ocultarValores ? "" : "Criação da equipe"}
             destaque
           />
           <CartaoKpi
@@ -495,10 +535,12 @@ function Pagina() {
             corValor="text-emerald-400"
           />
           <CartaoKpi
-            rotulo="Contas Subidas"
-            valor={fmtNumero(subidas)}
-            icone={Rocket}
-            corIcone="text-amber-500"
+            rotulo="Prontas p/ Estoque"
+            valor={fmtNumero(Math.max(0, viradas > 0 ? viradas : criadas - bloqueios) + recebidasFornecedor)}
+            icone={PackageCheck}
+            corIcone="text-cyan-400"
+            corValor="text-cyan-400"
+            detalhe={ocultarValores ? "" : "Disponível para venda/entrega"}
           />
           <CartaoKpi
             rotulo="Bloqueios"
@@ -695,7 +737,6 @@ function Pagina() {
                     <TableHead>Data</TableHead>
                     <TableHead>Funcionária / Operador</TableHead>
                     <TableHead className="text-right">Criadas</TableHead>
-                    <TableHead className="text-right">Subidas</TableHead>
                     <TableHead className="text-right">Viradas</TableHead>
                     <TableHead>Quedas / Motivo</TableHead>
                     <TableHead className="text-right">Taxa</TableHead>
@@ -706,19 +747,18 @@ function Pagina() {
                 <TableBody>
                   {registros.map((r) => {
                     const taxa = r.bms_criadas > 0 ? (r.contas_viradas / r.bms_criadas) * 100 : 0;
-                    const bateu = r.contas_viradas >= r.meta_diaria;
+                    const sucesso = r.contas_viradas > 0;
                     
                     return (
                       <TableRow key={r.id} className="group hover:bg-muted/30 transition-colors">
                         <TableCell className="num font-medium text-white">{formatarData(r.data_registro, fuso)}</TableCell>
                         <TableCell className="font-semibold text-white/90">{r.operador}</TableCell>
                         <TableCell className="num text-right font-bold text-white">{r.bms_criadas}</TableCell>
-                        <TableCell className="num text-right font-bold text-white/90">{r.contas_subidas}</TableCell>
                         <TableCell className="num text-right">
                           <Badge 
                             className={cn(
                               "border-none font-bold px-3 py-1 rounded-md",
-                              bateu ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20" : "bg-emerald-500/10 text-emerald-400"
+                              sucesso ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20" : "bg-emerald-500/10 text-emerald-400"
                             )}
                           >
                             {r.contas_viradas}
@@ -751,9 +791,9 @@ function Pagina() {
                         <TableCell>
                           <Badge className={cn(
                             "border-none font-bold rounded-md px-2",
-                            bateu ? "bg-emerald-500/10 text-emerald-500" : "bg-muted/50 text-muted-foreground"
+                            sucesso ? "bg-emerald-500/10 text-emerald-500" : "bg-muted/50 text-muted-foreground"
                           )}>
-                            {bateu ? "Meta Batida" : "Abaixo Meta"}
+                            {sucesso ? "Viradas" : "Em Produção"}
                           </Badge>
                         </TableCell>
 
@@ -881,10 +921,8 @@ function Pagina() {
 
               <Campo id="recebidas_fornecedor" rotulo="Recebidas do Fornecedor" form={form} setForm={setForm} />
               <Campo id="bms_criadas" rotulo="BMs criadas" form={form} setForm={setForm} />
-              <Campo id="contas_subidas" rotulo="Contas subidas" form={form} setForm={setForm} />
               <Campo id="contas_viradas" rotulo="Contas viradas" form={form} setForm={setForm} />
               <Campo id="bloqueios" rotulo="Bloqueios" form={form} setForm={setForm} />
-              <Campo id="meta_diaria" rotulo="Meta diária" form={form} setForm={setForm} />
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="motivo_queda">Motivo principal das quedas</Label>
                 <Select
