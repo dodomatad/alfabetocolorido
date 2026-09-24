@@ -133,27 +133,27 @@ function CartaoFinanceiro({
   );
 }
 
-const CATEGORIAS_PAGAR = [
-  { valor: "custo_producao_bm", rotulo: "Custo de Produção BM" },
-  { valor: "fornecedor_bm_ciro", rotulo: "Fornecedor BM (Ciro)" },
-  { valor: "custos_funcionarios", rotulo: "Custos de Funcionários" },
-  { valor: "outras_despesas_operacionais", rotulo: "Outras Despesas Operacionais" },
-];
-
-const CATEGORIAS_RECEBER = [
-  { valor: "venda_bm", rotulo: "Venda de BM" },
-  { valor: "outras_receitas", rotulo: "Outras Receitas" },
+const CATEGORIAS_OPCOES = [
+  { valor: "Produção de BM / Insumos", rotulo: "Produção de BM / Insumos" },
+  { valor: "vendas", rotulo: "Vendas Diretas" },
+  { valor: "trafego", rotulo: "Tráfego Pago" },
+  { valor: "ferramentas", rotulo: "Ferramentas / SaaS" },
+  { valor: "operacional", rotulo: "Operacional" },
+  { valor: "comissoes", rotulo: "Comissões" },
+  { valor: "outros", rotulo: "Outros" },
 ];
 
 function formatarCategoriaLabel(cat?: string | null): string {
   if (!cat) return "Geral";
   const c = cat.trim().toLowerCase();
-  if (c === "custo_producao_bm" || c === "produção de bm / insumos" || c === "produção bm" || c === "producao bm" || c === "insumos") return "Custo de Produção BM";
+  if (c === "produção de bm / insumos" || c === "custo_producao_bm" || c === "produção bm" || c === "producao bm" || c === "insumos") return "Produção de BM / Insumos";
+  if (c === "vendas" || c === "venda_bm") return "Vendas Diretas";
+  if (c === "trafego") return "Tráfego Pago";
+  if (c === "ferramentas") return "Ferramentas / SaaS";
+  if (c === "operacional") return "Operacional";
+  if (c === "comissoes" || c === "comissões" || c === "custos_funcionarios") return "Comissões";
   if (c === "fornecedor_bm_ciro" || c === "fornecedor bm") return "Fornecedor BM (Ciro)";
-  if (c === "custos_funcionarios" || c === "comissoes" || c === "comissões" || c === "funcionarios" || c === "funcionários") return "Custos de Funcionários";
-  if (c === "outras_despesas_operacionais" || c === "operacional" || c === "ferramentas") return "Outras Despesas";
-  if (c === "venda_bm" || c === "vendas") return "Venda de BM";
-  if (c === "outras_receitas") return "Outras Receitas";
+  if (c === "outros" || c === "outras_receitas" || c === "outras_despesas_operacionais") return "Outros";
   return cat;
 }
 
@@ -174,7 +174,7 @@ function PaginaFinanceiro() {
   const [valores, setValores] = useState({
     tipo: "receber" as TipoLancamento,
     descricao: "",
-    categoria: "venda_bm",
+    categoria: "Produção de BM / Insumos",
     subcategoria: "",
     quantidade_unidades: "0",
     valor: "0",
@@ -762,165 +762,179 @@ function PaginaFinanceiro() {
       </div>
 
       <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Novo Lançamento Financeiro</DialogTitle>
-            <DialogDescription>Registre uma nova entrada ou saída de caixa.</DialogDescription>
+        <DialogContent className="max-h-[90vh] sm:max-h-[85vh] w-[95vw] sm:max-w-xl p-0 flex flex-col overflow-hidden bg-[#141417] border-[#27272A]/80 text-white rounded-2xl shadow-2xl">
+          <DialogHeader className="p-5 pb-3 border-b border-white/5 shrink-0 text-left">
+            <DialogTitle className="text-lg font-bold text-white">Novo Lançamento Financeiro</DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">Registre uma nova entrada ou saída de caixa.</DialogDescription>
           </DialogHeader>
 
-          <Tabs 
-            value={valores.tipo} 
-            onValueChange={(v) => setValores(a => ({ 
-              ...a, 
-              tipo: v as TipoLancamento,
-              categoria: v === "pagar" ? "custo_producao_bm" : "venda_bm",
-              subcategoria: ""
-            }))}
-            className="w-full"
+          <div 
+            className="flex-1 overflow-y-auto px-5 pt-3 pb-32 sm:pb-6 space-y-4 overscroll-contain touch-pan-y" 
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="receber">Receita / A Receber</TabsTrigger>
-              <TabsTrigger value="pagar">Despesa / A Pagar</TabsTrigger>
-            </TabsList>
-          </Tabs>
+            <Tabs 
+              value={valores.tipo} 
+              onValueChange={(v) => setValores(a => ({ 
+                ...a, 
+                tipo: v as TipoLancamento,
+                categoria: v === "pagar" ? "Produção de BM / Insumos" : "vendas",
+                subcategoria: ""
+              }))}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-white/5">
+                <TabsTrigger value="receber">Receita / A Receber</TabsTrigger>
+                <TabsTrigger value="pagar">Despesa / A Pagar</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          <div className="grid gap-4 py-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="descricao">Descrição / Título</Label>
-              <Input 
-                id="descricao" 
-                placeholder={valores.tipo === "pagar" ? "Ex: Pagamento Proxy, Insumo BM, Comissão..." : "Ex: Venda BM Matriz, Consultoria..."} 
-                value={valores.descricao}
-                onChange={e => setValores(a => ({ ...a, descricao: e.target.value }))}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="descricao" className="text-xs font-medium text-zinc-300">Descrição / Título</Label>
+                <Input 
+                  id="descricao" 
+                  placeholder={valores.tipo === "pagar" ? "Ex: Pagamento Proxy, Insumo BM, Comissão..." : "Ex: Venda BM Matriz, Consultoria..."} 
+                  value={valores.descricao}
+                  onChange={e => setValores(a => ({ ...a, descricao: e.target.value }))}
+                  className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valor" className="text-xs font-medium text-zinc-300">Valor (R$)</Label>
+                <Input 
+                  id="valor" 
+                  placeholder="0,00"
+                  value={valores.valor}
+                  onChange={e => setValores(a => ({ ...a, valor: e.target.value }))}
+                  className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vencimento" className="text-xs font-medium text-zinc-300">Data de Vencimento</Label>
+                <Input 
+                  id="vencimento" 
+                  type="date"
+                  value={valores.data_vencimento}
+                  onChange={e => setValores(a => ({ ...a, data_vencimento: e.target.value }))}
+                  className="bg-black/30 border-white/10 text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="categoria" className="text-xs font-medium text-zinc-300">Categoria</Label>
+                <Select 
+                  value={valores.categoria} 
+                  onValueChange={v => {
+                    const isProd = v === "Produção de BM / Insumos" || v === "custo_producao_bm";
+                    setValores(a => ({ 
+                      ...a, 
+                      categoria: v, 
+                      tipo: isProd ? "pagar" : a.tipo,
+                      subcategoria: isProd ? a.subcategoria : ""
+                    }));
+                  }}
+                >
+                  <SelectTrigger id="categoria" className="bg-black/30 border-white/10 text-white">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                    {CATEGORIAS_OPCOES.map((cat) => (
+                      <SelectItem key={cat.valor} value={cat.valor}>
+                        {cat.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(valores.categoria === "Produção de BM / Insumos" || valores.categoria === "custo_producao_bm") && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="subcategoria" className="text-xs font-medium text-zinc-300">Tipo de Insumo (Opcional)</Label>
+                    <Select value={valores.subcategoria} onValueChange={v => setValores(a => ({ ...a, subcategoria: v }))}>
+                      <SelectTrigger id="subcategoria" className="bg-black/30 border-white/10 text-white">
+                        <SelectValue placeholder="Selecione o insumo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                        <SelectItem value="Perfis / Contas de Aquecimento">Perfis / Contas de Aquecimento</SelectItem>
+                        <SelectItem value="Proxies / IPs Residenciais">Proxies / IPs Residenciais</SelectItem>
+                        <SelectItem value="Chips / SMS Virtual">Chips / SMS Virtual</SelectItem>
+                        <SelectItem value="Cartões / Taxas de Gateway">Cartões / Taxas de Gateway</SelectItem>
+                        <SelectItem value="Navegador Multilogin / Ferramentas">Navegador Multilogin / Ferramentas</SelectItem>
+                        <SelectItem value="Outros Insumos">Outros Insumos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="quantidade_unidades" className="text-xs font-medium text-zinc-300">Qtd. BMs Produzidas (Opcional)</Label>
+                    <Input 
+                      id="quantidade_unidades" 
+                      type="number"
+                      placeholder="0"
+                      value={valores.quantidade_unidades}
+                      onChange={e => setValores(a => ({ ...a, quantidade_unidades: e.target.value }))}
+                      className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="forma" className="text-xs font-medium text-zinc-300">Forma de Pagamento</Label>
+                <Select value={valores.forma_pagamento} onValueChange={v => setValores(a => ({ ...a, forma_pagamento: v }))}>
+                  <SelectTrigger id="forma" className="bg-black/30 border-white/10 text-white">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="cartao">Cartão de Crédito</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="situacao" className="text-xs font-medium text-zinc-300">Status Inicial</Label>
+                <Select value={valores.situacao} onValueChange={v => setValores(a => ({ ...a, situacao: v as SituacaoLancamento }))}>
+                  <SelectTrigger id="situacao" className="bg-black/30 border-white/10 text-white">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                    <SelectItem value="aberto">Pendente</SelectItem>
+                    <SelectItem value="pago">Já Pago / Recebido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="obs" className="text-xs font-medium text-zinc-300">Observações (Opcional)</Label>
+                <Textarea 
+                  id="obs" 
+                  placeholder="Detalhes adicionais do lançamento..." 
+                  value={valores.observacoes}
+                  onChange={e => setValores(a => ({ ...a, observacoes: e.target.value }))}
+                  className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500 resize-none min-h-[70px]"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="valor">Valor (R$)</Label>
-              <Input 
-                id="valor" 
-                placeholder="0,00"
-                value={valores.valor}
-                onChange={e => setValores(a => ({ ...a, valor: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vencimento">Data de Vencimento</Label>
-              <Input 
-                id="vencimento" 
-                type="date"
-                value={valores.data_vencimento}
-                onChange={e => setValores(a => ({ ...a, data_vencimento: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="categoria">Categoria</Label>
-              <Select 
-                value={valores.categoria} 
-                onValueChange={v => {
-                  setValores(a => ({ 
-                    ...a, 
-                    categoria: v, 
-                    subcategoria: (v === "custo_producao_bm" || v === "Produção de BM / Insumos") ? a.subcategoria : ""
-                  }));
-                }}
+            <div className="pt-2 sm:hidden pb-6">
+              <Button 
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-sm shadow-lg shadow-primary/20" 
+                onClick={() => salvar.mutate()} 
+                disabled={salvar.isPending}
               >
-                <SelectTrigger id="categoria">
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {valores.tipo === "pagar" ? (
-                    CATEGORIAS_PAGAR.map((cat) => (
-                      <SelectItem key={cat.valor} value={cat.valor}>
-                        {cat.rotulo}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    CATEGORIAS_RECEBER.map((cat) => (
-                      <SelectItem key={cat.valor} value={cat.valor}>
-                        {cat.rotulo}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {(valores.categoria === "custo_producao_bm" || valores.categoria === "Produção de BM / Insumos") && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="subcategoria">Tipo de Insumo (Opcional)</Label>
-                  <Select value={valores.subcategoria} onValueChange={v => setValores(a => ({ ...a, subcategoria: v }))}>
-                    <SelectTrigger id="subcategoria">
-                      <SelectValue placeholder="Selecione o insumo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Perfis / Contas de Aquecimento">Perfis / Contas de Aquecimento</SelectItem>
-                      <SelectItem value="Proxies / IPs Residenciais">Proxies / IPs Residenciais</SelectItem>
-                      <SelectItem value="Chips / SMS Virtual">Chips / SMS Virtual</SelectItem>
-                      <SelectItem value="Cartões / Taxas de Gateway">Cartões / Taxas de Gateway</SelectItem>
-                      <SelectItem value="Navegador Multilogin / Ferramentas">Navegador Multilogin / Ferramentas</SelectItem>
-                      <SelectItem value="Outros Insumos">Outros Insumos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantidade_unidades">Qtd. BMs Produzidas (Opcional)</Label>
-                  <Input 
-                    id="quantidade_unidades" 
-                    type="number"
-                    placeholder="0"
-                    value={valores.quantidade_unidades}
-                    onChange={e => setValores(a => ({ ...a, quantidade_unidades: e.target.value }))}
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="forma">Forma de Pagamento</Label>
-              <Select value={valores.forma_pagamento} onValueChange={v => setValores(a => ({ ...a, forma_pagamento: v }))}>
-                <SelectTrigger id="forma">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pix">Pix</SelectItem>
-                  <SelectItem value="cartao">Cartão de Crédito</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="situacao">Status Inicial</Label>
-              <Select value={valores.situacao} onValueChange={v => setValores(a => ({ ...a, situacao: v as SituacaoLancamento }))}>
-                <SelectTrigger id="situacao">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="aberto">Pendente</SelectItem>
-                  <SelectItem value="pago">Já Pago / Recebido</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="obs">Observações (Opcional)</Label>
-              <Textarea 
-                id="obs" 
-                placeholder="Detalhes adicionais do lançamento..." 
-                value={valores.observacoes}
-                onChange={e => setValores(a => ({ ...a, observacoes: e.target.value }))}
-              />
+                {salvar.isPending ? "Salvando..." : "Salvar Lançamento"}
+              </Button>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
+          <DialogFooter className="p-4 border-t border-white/5 bg-black/30 shrink-0 hidden sm:flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setAberto(false)} className="text-zinc-400 hover:text-white">Cancelar</Button>
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               {salvar.isPending ? "Salvando..." : "Salvar Lançamento"}
             </Button>
