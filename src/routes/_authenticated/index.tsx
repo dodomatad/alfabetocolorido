@@ -325,6 +325,10 @@ function PaginaDashboard() {
         const situacao = (l.situacao || "").trim().toLowerCase();
         
         const categoriasProducaoBM = [
+          'custo_producao_bm',
+          'fornecedor_bm_ciro',
+          'custos_funcionarios',
+          'outras_despesas_operacionais',
           'operacional', 
           'produção bm', 
           'producao bm', 

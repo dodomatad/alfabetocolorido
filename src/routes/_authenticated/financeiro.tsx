@@ -133,6 +133,30 @@ function CartaoFinanceiro({
   );
 }
 
+const CATEGORIAS_PAGAR = [
+  { valor: "custo_producao_bm", rotulo: "Custo de Produção BM" },
+  { valor: "fornecedor_bm_ciro", rotulo: "Fornecedor BM (Ciro)" },
+  { valor: "custos_funcionarios", rotulo: "Custos de Funcionários" },
+  { valor: "outras_despesas_operacionais", rotulo: "Outras Despesas Operacionais" },
+];
+
+const CATEGORIAS_RECEBER = [
+  { valor: "venda_bm", rotulo: "Venda de BM" },
+  { valor: "outras_receitas", rotulo: "Outras Receitas" },
+];
+
+function formatarCategoriaLabel(cat?: string | null): string {
+  if (!cat) return "Geral";
+  const c = cat.trim().toLowerCase();
+  if (c === "custo_producao_bm" || c === "produção de bm / insumos" || c === "produção bm" || c === "producao bm" || c === "insumos") return "Custo de Produção BM";
+  if (c === "fornecedor_bm_ciro" || c === "fornecedor bm") return "Fornecedor BM (Ciro)";
+  if (c === "custos_funcionarios" || c === "comissoes" || c === "comissões" || c === "funcionarios" || c === "funcionários") return "Custos de Funcionários";
+  if (c === "outras_despesas_operacionais" || c === "operacional" || c === "ferramentas") return "Outras Despesas";
+  if (c === "venda_bm" || c === "vendas") return "Venda de BM";
+  if (c === "outras_receitas") return "Outras Receitas";
+  return cat;
+}
+
 function PaginaFinanceiro() {
   const { empresa, session, fuso, temPermissao, permissoes } = useSessao();
   const queryClient = useQueryClient();
@@ -150,7 +174,7 @@ function PaginaFinanceiro() {
   const [valores, setValores] = useState({
     tipo: "receber" as TipoLancamento,
     descricao: "",
-    categoria: "",
+    categoria: "venda_bm",
     subcategoria: "",
     quantidade_unidades: "0",
     valor: "0",
@@ -279,7 +303,7 @@ function PaginaFinanceiro() {
         empresa_id: empresa.id,
         tipo: "pagar",
         descricao: `Comissão Venda #${item.numero} - ${item.nome}`,
-        categoria: "comissoes",
+        categoria: item.nome.toLowerCase().includes("ciro") ? "fornecedor_bm_ciro" : "custos_funcionarios",
         valor: item.comissao,
         data_vencimento: new Date().toISOString().slice(0, 10),
         data_pagamento: new Date().toISOString().slice(0, 10),
@@ -296,35 +320,72 @@ function PaginaFinanceiro() {
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["financial_metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
   const totalComissoesDevidas = useMemo(() => {
-    return comissoesPendentes.reduce((acc, f) => acc + (Number(f.comissao) || 0), 0);
-  }, [comissoesPendentes]);
+    const lista = consulta.data || [];
+    const lancamentosFuncPendentes = lista.filter(i => {
+      const cat = (i.categoria || "").trim().toLowerCase();
+      const tipo = (i.tipo || "").trim().toLowerCase();
+      const sit = (i.situacao || "").trim().toLowerCase();
+      const obs = (i.observacoes || "").toLowerCase();
+      const ehFunc = (cat === "custos_funcionarios" || cat === "comissoes" || cat === "comissões" || cat === "funcionarios" || cat === "funcionários") && !obs.includes("[fornecedor_ciro]");
+      const ehPagar = tipo === "pagar" || tipo === "saida" || tipo === "despesa";
+      const ehPendente = sit === "aberto" || sit === "parcial" || sit === "pendente";
+      return ehFunc && ehPagar && ehPendente;
+    }).reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
+
+    const comissoesEquipe = comissoesPendentes
+      .filter(f => !f.nome.toLowerCase().includes("ciro"))
+      .reduce((acc, f) => acc + (Number(f.comissao) || 0), 0);
+
+    return lancamentosFuncPendentes + comissoesEquipe;
+  }, [consulta.data, comissoesPendentes]);
 
   const fornecedorBmTotal = useMemo(() => {
+    const lista = consulta.data || [];
+    const lancamentosCiroPendentes = lista.filter(i => {
+      const cat = (i.categoria || "").trim().toLowerCase();
+      const tipo = (i.tipo || "").trim().toLowerCase();
+      const sit = (i.situacao || "").trim().toLowerCase();
+      const obs = (i.observacoes || "").toLowerCase();
+      const ehCiro = cat === "fornecedor_bm_ciro" || cat === "fornecedor bm" || obs.includes("[fornecedor_ciro]");
+      const ehPagar = tipo === "pagar" || tipo === "saida" || tipo === "despesa";
+      const ehPendente = sit === "aberto" || sit === "parcial" || sit === "pendente";
+      return ehCiro && ehPagar && ehPendente;
+    }).reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
+
     const vendas = (consultaVendas.data?.vendas || []) as any[];
-    return vendas.reduce((acc, v) => {
+    const comissoesCiroPendentes = vendas.reduce((acc, v) => {
       const nomeResponsavel = v.responsavel?.nome?.toLowerCase() || "";
       const obs = v.observacoes || "";
       if (nomeResponsavel.includes("ciro") || obs.includes("[FORNECEDOR_CIRO]")) {
+        const jaLancado = lista.some(l => l.observacoes?.includes(`[COMISSAO_VENDA:${v.id}]`));
+        if (jaLancado) return acc;
         const percentual = Number(v.comissao_percentual || 0);
         const valorTotal = Number(v.valor_total || 0);
         return acc + (valorTotal * (percentual / 100));
       }
       return acc;
     }, 0);
-  }, [consultaVendas.data]);
+
+    return lancamentosCiroPendentes + comissoesCiroPendentes;
+  }, [consulta.data, consultaVendas.data]);
 
   const qtdVendasComComissao = comissoesPendentes.length;
 
   const dados = useMemo(() => {
     let lista = consulta.data || [];
     if (filtroTipo !== "todos") {
-      if (filtroTipo === "Produção de BM / Insumos") {
-        lista = lista.filter(item => item.categoria === "Produção de BM / Insumos");
+      if (filtroTipo === "custo_producao_bm" || filtroTipo === "Produção de BM / Insumos") {
+        lista = lista.filter(item => {
+          const cat = (item.categoria || "").trim().toLowerCase();
+          return cat === "custo_producao_bm" || cat === "produção de bm / insumos" || cat === "produção bm" || cat === "producao bm" || cat === "insumos";
+        });
       } else {
         lista = lista.filter(item => item.tipo === filtroTipo);
       }
@@ -466,11 +527,15 @@ function PaginaFinanceiro() {
       toast.success("Lançamento registrado com sucesso.");
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["painel"] });
+      void queryClient.invalidateQueries({ queryKey: ["financial_metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setAberto(false);
       setValores({
         tipo: "receber",
         descricao: "",
-        categoria: "",
+        categoria: "venda_bm",
         subcategoria: "",
         quantidade_unidades: "0",
         valor: "0",
@@ -656,8 +721,8 @@ function PaginaFinanceiro() {
                     </TableCell>
                     <TableCell className="font-medium">{item.descricao}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-normal capitalize">
-                        {item.categoria || "Geral"}
+                      <Badge variant="outline" className="font-normal">
+                        {formatarCategoriaLabel(item.categoria)}
                       </Badge>
                     </TableCell>
                     <TableCell className={cn(
@@ -705,7 +770,12 @@ function PaginaFinanceiro() {
 
           <Tabs 
             value={valores.tipo} 
-            onValueChange={(v) => setValores(a => ({ ...a, tipo: v as TipoLancamento }))}
+            onValueChange={(v) => setValores(a => ({ 
+              ...a, 
+              tipo: v as TipoLancamento,
+              categoria: v === "pagar" ? "custo_producao_bm" : "venda_bm",
+              subcategoria: ""
+            }))}
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2">
@@ -719,7 +789,7 @@ function PaginaFinanceiro() {
               <Label htmlFor="descricao">Descrição / Título</Label>
               <Input 
                 id="descricao" 
-                placeholder="Ex: Pagamento Proxy, Venda BM..." 
+                placeholder={valores.tipo === "pagar" ? "Ex: Pagamento Proxy, Insumo BM, Comissão..." : "Ex: Venda BM Matriz, Consultoria..."} 
                 value={valores.descricao}
                 onChange={e => setValores(a => ({ ...a, descricao: e.target.value }))}
               />
@@ -747,37 +817,44 @@ function PaginaFinanceiro() {
 
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria</Label>
-              <Select value={valores.categoria} onValueChange={v => {
-                const isProd = v === "Produção de BM / Insumos";
-                setValores(a => ({ 
-                  ...a, 
-                  categoria: v, 
-                  tipo: isProd ? "pagar" : a.tipo,
-                  subcategoria: isProd ? a.subcategoria : ""
-                }));
-              }}>
+              <Select 
+                value={valores.categoria} 
+                onValueChange={v => {
+                  setValores(a => ({ 
+                    ...a, 
+                    categoria: v, 
+                    subcategoria: (v === "custo_producao_bm" || v === "Produção de BM / Insumos") ? a.subcategoria : ""
+                  }));
+                }}
+              >
                 <SelectTrigger id="categoria">
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Produção de BM / Insumos">Produção de BM / Insumos</SelectItem>
-                  <SelectItem value="vendas">Vendas Diretas</SelectItem>
-                  <SelectItem value="trafego">Tráfego Pago</SelectItem>
-                  <SelectItem value="ferramentas">Ferramentas / SaaS</SelectItem>
-                  <SelectItem value="operacional">Operacional</SelectItem>
-                  <SelectItem value="comissoes">Comissões</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
+                  {valores.tipo === "pagar" ? (
+                    CATEGORIAS_PAGAR.map((cat) => (
+                      <SelectItem key={cat.valor} value={cat.valor}>
+                        {cat.rotulo}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    CATEGORIAS_RECEBER.map((cat) => (
+                      <SelectItem key={cat.valor} value={cat.valor}>
+                        {cat.rotulo}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
-            {valores.categoria === "Produção de BM / Insumos" && (
+            {(valores.categoria === "custo_producao_bm" || valores.categoria === "Produção de BM / Insumos") && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="subcategoria">Tipo de Insumo</Label>
+                  <Label htmlFor="subcategoria">Tipo de Insumo (Opcional)</Label>
                   <Select value={valores.subcategoria} onValueChange={v => setValores(a => ({ ...a, subcategoria: v }))}>
                     <SelectTrigger id="subcategoria">
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione o insumo" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Perfis / Contas de Aquecimento">Perfis / Contas de Aquecimento</SelectItem>
@@ -791,10 +868,11 @@ function PaginaFinanceiro() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantidade_unidades">Qtd. BMs Produzidas</Label>
+                  <Label htmlFor="quantidade_unidades">Qtd. BMs Produzidas (Opcional)</Label>
                   <Input 
                     id="quantidade_unidades" 
                     type="number"
+                    placeholder="0"
                     value={valores.quantidade_unidades}
                     onChange={e => setValores(a => ({ ...a, quantidade_unidades: e.target.value }))}
                   />
@@ -831,10 +909,10 @@ function PaginaFinanceiro() {
             </div>
 
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="obs">Observações</Label>
+              <Label htmlFor="obs">Observações (Opcional)</Label>
               <Textarea 
                 id="obs" 
-                placeholder="Detalhes adicionais..." 
+                placeholder="Detalhes adicionais do lançamento..." 
                 value={valores.observacoes}
                 onChange={e => setValores(a => ({ ...a, observacoes: e.target.value }))}
               />
