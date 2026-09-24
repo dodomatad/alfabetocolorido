@@ -7,6 +7,18 @@
   "theme_color": "#0a0a0a",
   "icons": [
     {
+      "src": "/logo-bm.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-bm.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/favicon.png",
       "sizes": "64x64",
       "type": "image/png",
