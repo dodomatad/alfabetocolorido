@@ -24,15 +24,15 @@ export function CartaoMetrica({
 }: {
   rotulo: string;
   valor: string;
-  detalhe?: string;
-  destaque?: boolean;
-  positivo?: boolean;
-  className?: string;
-  corValor?: string;
-  explicacao?: string;
-  icone?: React.ElementType;
-  subvalor?: string;
-  onClick?: () => void;
+  detalhe?: string | undefined;
+  destaque?: boolean | undefined;
+  positivo?: boolean | undefined;
+  className?: string | undefined;
+  corValor?: string | undefined;
+  explicacao?: string | undefined;
+  icone?: React.ElementType | undefined;
+  subvalor?: string | undefined;
+  onClick?: (() => void) | undefined;
 }) {
   const content = (
     <div
