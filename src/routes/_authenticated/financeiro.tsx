@@ -55,7 +55,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
-import { formatarData, formatarMoeda } from "@/lib/formatadores";
+import { formatarData, formatarMoeda, formatarNumero } from "@/lib/formatadores";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -169,6 +169,7 @@ function PaginaFinanceiro() {
       const { data, error } = await supabase
         .from("lancamentos_financeiros")
         .select("*")
+        .eq("empresa_id", empresa!.id)
         .order("data_vencimento", { ascending: false });
       
       if (error) throw error;
@@ -181,22 +182,47 @@ function PaginaFinanceiro() {
     enabled: Boolean(empresa?.id),
     staleTime: 1000 * 60,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vendas")
-        .select(`
-          id, 
-          numero_venda, 
-          valor_total, 
-          criado_por,
-          data_venda,
-          equipe_membros:criado_por (nome, email, cargo),
-          comissao_percentual,
-          observacoes,
-          responsavel:perfis!vendas_responsavel_producao_id_fkey (nome)
-        `)
-        .eq("status", "confirmada");
-      if (error) throw error;
-      return data || [];
+      const [vendasRes, reposicoesRes, entregasRes] = await Promise.all([
+        supabase
+          .from("vendas")
+          .select(`
+            id, 
+            numero_venda, 
+            valor_total, 
+            desconto,
+            status,
+            criado_por,
+            data_venda,
+            equipe_membros:criado_por (nome, email, cargo),
+            comissao_percentual,
+            observacoes,
+            responsavel:perfis!vendas_responsavel_producao_id_fkey (nome),
+            venda_itens (
+              quantidade,
+              preco_unitario,
+              modalidades_bm (
+                custo_producao_padrao,
+                nome
+              )
+            )
+          `)
+          .eq("empresa_id", empresa!.id),
+        supabase
+          .from("reposicoes_perfis")
+          .select("id, custo_reposicao, status, created_at")
+          .eq("empresa_id", empresa!.id),
+        supabase
+          .from("entregas")
+          .select("id, custo_reposicao, status, created_at")
+          .eq("empresa_id", empresa!.id)
+      ]);
+
+      if (vendasRes.error) throw vendasRes.error;
+      return {
+        vendas: vendasRes.data || [],
+        reposicoes: (reposicoesRes.data || []) as any[],
+        entregas: (entregasRes.data || []) as any[],
+      };
     }
   });
 
@@ -210,11 +236,12 @@ function PaginaFinanceiro() {
         })
     );
 
-    const vendas = (consultaVendas.data || []) as any[];
+    const vendas = (consultaVendas.data?.vendas || []) as any[];
     const lista: any[] = [];
 
     vendas.forEach(v => {
       if (pagas.has(v.id)) return;
+      if (v.status !== "confirmada") return;
       
       const obs = v.observacoes || "";
       const isCiro = obs.includes("[FORNECEDOR_CIRO]");
@@ -268,6 +295,7 @@ function PaginaFinanceiro() {
       toast.success("Comissão paga com sucesso!");
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -277,7 +305,7 @@ function PaginaFinanceiro() {
   }, [comissoesPendentes]);
 
   const fornecedorBmTotal = useMemo(() => {
-    const vendas = (consultaVendas.data || []) as any[];
+    const vendas = (consultaVendas.data?.vendas || []) as any[];
     return vendas.reduce((acc, v) => {
       const nomeResponsavel = v.responsavel?.nome?.toLowerCase() || "";
       const obs = v.observacoes || "";
@@ -311,9 +339,10 @@ function PaginaFinanceiro() {
     const lista = consulta.data || [];
     const hoje = new Date().toISOString().slice(0, 10);
     
-    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "parcial" || i.situacao === "pendente" as any || i.situacao === "a_vencer" as any));
-    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial" || i.situacao === "pendente" as any || i.situacao === "a_vencer" as any));
+    const aReceber = lista.filter(i => i.tipo === "receber" && (i.situacao === "aberto" || i.situacao === "parcial" || (i.situacao as any) === "pendente" || (i.situacao as any) === "a_vencer"));
+    const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial" || (i.situacao as any) === "pendente" || (i.situacao as any) === "a_vencer"));
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
+    
     const producaoBM = lista.filter(i => {
       const categoria = (i.categoria || "").trim().toLowerCase();
       const tipo = (i.tipo || "").trim().toLowerCase();
@@ -347,25 +376,60 @@ function PaginaFinanceiro() {
     const totalReceber = aReceber.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
     const totalPagar = aPagar.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
     const totalAtrasado = atrasados.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
-    const totalProducao = producaoBM.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
     
-    // Calcula o Lucro / ROI baseado nas Vendas - Custos de Producao Pagos
-    const vendas = (consultaVendas.data || []) as any[];
-    const faturamentoTotal = vendas.reduce((acc, v) => acc + Number(v.valor_total || 0), 0);
+    // 1. Faturamento de Vendas Válidas
+    const vendas = (consultaVendas.data?.vendas || []) as any[];
+    const validas = vendas.filter((v: any) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
+    const faturamentoTotal = validas.reduce((acc, v) => acc + Number(v.valor_total || 0), 0);
+
+    // 2. Custo de produção dos itens vendidos (quantidade * custo_unitario)
+    const totalCustoItensVendidos = validas.reduce((acc: number, v: any) => {
+      const itens = (v.venda_itens || []) as any[];
+      const custoVenda = itens.reduce((s: number, item: any) => {
+        const custoUnit = Number(item.modalidades_bm?.custo_producao_padrao || item.custo_unitario || 0);
+        const qtd = Number(item.quantidade || 1);
+        return s + (custoUnit * qtd);
+      }, 0);
+      return acc + custoVenda;
+    }, 0);
+
+    // 3. Despesas operacionais e de produção pagas
     const producaoBMPagos = producaoBM.filter(i => (i.situacao || "").trim().toLowerCase() === "pago");
-    const totalProducaoPago = producaoBMPagos.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
-    const lucroReal = faturamentoTotal - totalProducaoPago;
+    const totalDespesasProducaoPagas = producaoBMPagos.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
+    const totalCustoProducaoBM = totalCustoItensVendidos + totalDespesasProducaoPagas;
+
+    const todasDespesasPagas = lista.filter(i => {
+      const tipo = (i.tipo || "").trim().toLowerCase();
+      const situacao = (i.situacao || "").trim().toLowerCase();
+      const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
+      return ehSaida && situacao === 'pago';
+    }).reduce((acc: number, i: any) => acc + (Number(i.valor) || 0), 0);
+
+    // 4. Custos de reposição
+    const custoReposicoesPerfis = (consultaVendas.data?.reposicoes || []).reduce((acc: number, r: any) => acc + (Number(r.custo_reposicao) || 0), 0);
+    const custoReposicoesEntregas = (consultaVendas.data?.entregas || []).reduce((acc: number, e: any) => acc + (Number(e.custo_reposicao) || 0), 0);
+    const totalCustoReposicao = custoReposicoesPerfis + custoReposicoesEntregas;
+
+    // 5. Custos totais e Lucro Real
+    const custosTotais = totalCustoItensVendidos + todasDespesasPagas + totalCustoReposicao;
+    const lucroReal = faturamentoTotal - custosTotais;
+    const roi = custosTotais > 0 ? ((lucroReal / custosTotais) * 100) : (lucroReal > 0 ? 100 : 0);
 
     const totalUnidadesBM = producaoBM.reduce((acc, i) => acc + (Number(i.quantidade_unidades) || 0), 0);
-    const custoMedioBM = totalUnidadesBM > 0 ? totalProducao / totalUnidadesBM : 0;
+    const custoMedioBM = totalUnidadesBM > 0 ? totalCustoProducaoBM / totalUnidadesBM : 0;
 
     return {
       receber: { valor: totalReceber, qtd: aReceber.length },
       pagar: { valor: totalPagar, qtd: aPagar.length },
-      liquido: lucroReal, // Agora reflete o Lucro (ROI)
+      liquido: lucroReal,
+      faturamento: faturamentoTotal,
+      custosTotais,
+      custoItensVendidos: totalCustoItensVendidos,
+      despesasProducao: totalDespesasProducaoPagas,
+      roi,
       atrasado: { valor: totalAtrasado, qtd: atrasados.length },
       producao: { 
-        valor: totalProducao, 
+        valor: totalCustoProducaoBM, 
         qtd: producaoBM.length,
         unidades: totalUnidadesBM,
         custoMedio: custoMedioBM
@@ -473,7 +537,7 @@ function PaginaFinanceiro() {
           <CartaoFinanceiro
             rotulo="CUSTO PRODUÇÃO BM"
             valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.producao.valor)}
-            detalhe={resumo.producao.unidades > 0 ? `Custo médio: ${formatarMoeda(resumo.producao.custoMedio)} / BM` : `${resumo.producao.qtd} insumos/lançamentos`}
+            detalhe={resumo.producao.unidades > 0 ? `Custo médio: ${formatarMoeda(resumo.producao.custoMedio)} / BM` : (resumo.custoItensVendidos > 0 ? `Itens: ${formatarMoeda(resumo.custoItensVendidos)} + Desp.: ${formatarMoeda(resumo.despesasProducao)}` : `${resumo.producao.qtd} lançamentos`)}
             corValor="text-amber-400 font-bold text-2xl"
             icone={Layers}
             corIcone="text-amber-400"
@@ -482,7 +546,7 @@ function PaginaFinanceiro() {
           <CartaoFinanceiro
             rotulo="LUCRO LÍQUIDO (ROI)"
             valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
-            detalhe="Faturamento de Vendas - Custos Pagos"
+            detalhe={ocultarValores ? "" : `ROI: ${formatarNumero(resumo.roi)}% | Custos: ${formatarMoeda(resumo.custosTotais)}`}
             corValor={resumo.liquido >= 0 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}
             icone={Wallet}
             corIcone="text-blue-500"

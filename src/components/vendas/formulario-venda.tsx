@@ -411,6 +411,8 @@ export function FormularioVenda({
       void queryClient.invalidateQueries({ queryKey: ["entregas"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
       limpar();
       aoFechar();
     },

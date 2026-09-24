@@ -114,6 +114,8 @@ function PaginaVendas() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendas"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
+      queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
       toast.success("Venda excluída com sucesso!");
     },
     onError: (error) => {
