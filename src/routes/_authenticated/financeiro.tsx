@@ -762,180 +762,180 @@ function PaginaFinanceiro() {
       </div>
 
       <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent className="max-h-[90vh] sm:max-h-[85vh] w-[95vw] sm:max-w-xl p-0 flex flex-col overflow-hidden bg-[#141417] border-[#27272A]/80 text-white rounded-2xl shadow-2xl">
-          <DialogHeader className="p-5 pb-3 border-b border-white/5 shrink-0 text-left">
+        <DialogContent 
+          className="max-h-[88dvh] overflow-y-auto w-[95vw] sm:max-w-xl p-5 sm:p-6 bg-[#141417] border-[#27272A]/80 text-white rounded-2xl shadow-2xl overscroll-contain touch-pan-y"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          <DialogHeader className="text-left pb-1">
             <DialogTitle className="text-lg font-bold text-white">Novo Lançamento Financeiro</DialogTitle>
             <DialogDescription className="text-xs text-zinc-400">Registre uma nova entrada ou saída de caixa.</DialogDescription>
           </DialogHeader>
 
-          <div 
-            className="flex-1 overflow-y-auto px-5 pt-3 pb-32 sm:pb-6 space-y-4 overscroll-contain touch-pan-y" 
-            style={{ WebkitOverflowScrolling: "touch" }}
+          <Tabs 
+            value={valores.tipo} 
+            onValueChange={(v) => setValores(a => ({ 
+              ...a, 
+              tipo: v as TipoLancamento,
+              categoria: v === "pagar" ? "Produção de BM / Insumos" : "vendas",
+              subcategoria: ""
+            }))}
+            className="w-full mt-2"
           >
-            <Tabs 
-              value={valores.tipo} 
-              onValueChange={(v) => setValores(a => ({ 
-                ...a, 
-                tipo: v as TipoLancamento,
-                categoria: v === "pagar" ? "Produção de BM / Insumos" : "vendas",
-                subcategoria: ""
-              }))}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-2 bg-white/5">
-                <TabsTrigger value="receber">Receita / A Receber</TabsTrigger>
-                <TabsTrigger value="pagar">Despesa / A Pagar</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <TabsList className="grid w-full grid-cols-2 bg-white/5">
+              <TabsTrigger value="receber">Receita / A Receber</TabsTrigger>
+              <TabsTrigger value="pagar">Despesa / A Pagar</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="descricao" className="text-xs font-medium text-zinc-300">Descrição / Título</Label>
-                <Input 
-                  id="descricao" 
-                  placeholder={valores.tipo === "pagar" ? "Ex: Pagamento Proxy, Insumo BM, Comissão..." : "Ex: Venda BM Matriz, Consultoria..."} 
-                  value={valores.descricao}
-                  onChange={e => setValores(a => ({ ...a, descricao: e.target.value }))}
-                  className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="valor" className="text-xs font-medium text-zinc-300">Valor (R$)</Label>
-                <Input 
-                  id="valor" 
-                  placeholder="0,00"
-                  value={valores.valor}
-                  onChange={e => setValores(a => ({ ...a, valor: e.target.value }))}
-                  className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="vencimento" className="text-xs font-medium text-zinc-300">Data de Vencimento</Label>
-                <Input 
-                  id="vencimento" 
-                  type="date"
-                  value={valores.data_vencimento}
-                  onChange={e => setValores(a => ({ ...a, data_vencimento: e.target.value }))}
-                  className="bg-black/30 border-white/10 text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="categoria" className="text-xs font-medium text-zinc-300">Categoria</Label>
-                <Select 
-                  value={valores.categoria} 
-                  onValueChange={v => {
-                    const isProd = v === "Produção de BM / Insumos" || v === "custo_producao_bm";
-                    setValores(a => ({ 
-                      ...a, 
-                      categoria: v, 
-                      tipo: isProd ? "pagar" : a.tipo,
-                      subcategoria: isProd ? a.subcategoria : ""
-                    }));
-                  }}
-                >
-                  <SelectTrigger id="categoria" className="bg-black/30 border-white/10 text-white">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-white/10 text-white">
-                    {CATEGORIAS_OPCOES.map((cat) => (
-                      <SelectItem key={cat.valor} value={cat.valor}>
-                        {cat.rotulo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {(valores.categoria === "Produção de BM / Insumos" || valores.categoria === "custo_producao_bm") && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="subcategoria" className="text-xs font-medium text-zinc-300">Tipo de Insumo (Opcional)</Label>
-                    <Select value={valores.subcategoria} onValueChange={v => setValores(a => ({ ...a, subcategoria: v }))}>
-                      <SelectTrigger id="subcategoria" className="bg-black/30 border-white/10 text-white">
-                        <SelectValue placeholder="Selecione o insumo" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#18181b] border-white/10 text-white">
-                        <SelectItem value="Perfis / Contas de Aquecimento">Perfis / Contas de Aquecimento</SelectItem>
-                        <SelectItem value="Proxies / IPs Residenciais">Proxies / IPs Residenciais</SelectItem>
-                        <SelectItem value="Chips / SMS Virtual">Chips / SMS Virtual</SelectItem>
-                        <SelectItem value="Cartões / Taxas de Gateway">Cartões / Taxas de Gateway</SelectItem>
-                        <SelectItem value="Navegador Multilogin / Ferramentas">Navegador Multilogin / Ferramentas</SelectItem>
-                        <SelectItem value="Outros Insumos">Outros Insumos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="quantidade_unidades" className="text-xs font-medium text-zinc-300">Qtd. BMs Produzidas (Opcional)</Label>
-                    <Input 
-                      id="quantidade_unidades" 
-                      type="number"
-                      placeholder="0"
-                      value={valores.quantidade_unidades}
-                      onChange={e => setValores(a => ({ ...a, quantidade_unidades: e.target.value }))}
-                      className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="forma" className="text-xs font-medium text-zinc-300">Forma de Pagamento</Label>
-                <Select value={valores.forma_pagamento} onValueChange={v => setValores(a => ({ ...a, forma_pagamento: v }))}>
-                  <SelectTrigger id="forma" className="bg-black/30 border-white/10 text-white">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-white/10 text-white">
-                    <SelectItem value="pix">Pix</SelectItem>
-                    <SelectItem value="cartao">Cartão de Crédito</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="situacao" className="text-xs font-medium text-zinc-300">Status Inicial</Label>
-                <Select value={valores.situacao} onValueChange={v => setValores(a => ({ ...a, situacao: v as SituacaoLancamento }))}>
-                  <SelectTrigger id="situacao" className="bg-black/30 border-white/10 text-white">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-white/10 text-white">
-                    <SelectItem value="aberto">Pendente</SelectItem>
-                    <SelectItem value="pago">Já Pago / Recebido</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="obs" className="text-xs font-medium text-zinc-300">Observações (Opcional)</Label>
-                <Textarea 
-                  id="obs" 
-                  placeholder="Detalhes adicionais do lançamento..." 
-                  value={valores.observacoes}
-                  onChange={e => setValores(a => ({ ...a, observacoes: e.target.value }))}
-                  className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500 resize-none min-h-[70px]"
-                />
-              </div>
+          <div className="grid gap-4 sm:grid-cols-2 mt-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="descricao" className="text-xs font-medium text-zinc-300">Descrição / Título</Label>
+              <Input 
+                id="descricao" 
+                placeholder={valores.tipo === "pagar" ? "Ex: Pagamento Proxy, Insumo BM, Comissão..." : "Ex: Venda BM Matriz, Consultoria..."} 
+                value={valores.descricao}
+                onChange={e => setValores(a => ({ ...a, descricao: e.target.value }))}
+                className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
+              />
             </div>
 
-            <div className="pt-2 sm:hidden pb-6">
-              <Button 
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-sm shadow-lg shadow-primary/20" 
-                onClick={() => salvar.mutate()} 
-                disabled={salvar.isPending}
+            <div className="space-y-2">
+              <Label htmlFor="valor" className="text-xs font-medium text-zinc-300">Valor (R$)</Label>
+              <Input 
+                id="valor" 
+                placeholder="0,00"
+                value={valores.valor}
+                onChange={e => setValores(a => ({ ...a, valor: e.target.value }))}
+                className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vencimento" className="text-xs font-medium text-zinc-300">Data de Vencimento</Label>
+              <Input 
+                id="vencimento" 
+                type="date"
+                value={valores.data_vencimento}
+                onChange={e => setValores(a => ({ ...a, data_vencimento: e.target.value }))}
+                className="bg-black/30 border-white/10 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="categoria" className="text-xs font-medium text-zinc-300">Categoria</Label>
+              <Select 
+                value={valores.categoria} 
+                onValueChange={v => {
+                  const isProd = v === "Produção de BM / Insumos" || v === "custo_producao_bm";
+                  setValores(a => ({ 
+                    ...a, 
+                    categoria: v, 
+                    tipo: isProd ? "pagar" : a.tipo,
+                    subcategoria: isProd ? a.subcategoria : ""
+                  }));
+                }}
               >
-                {salvar.isPending ? "Salvando..." : "Salvar Lançamento"}
-              </Button>
+                <SelectTrigger id="categoria" className="bg-black/30 border-white/10 text-white">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                  {CATEGORIAS_OPCOES.map((cat) => (
+                    <SelectItem key={cat.valor} value={cat.valor}>
+                      {cat.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(valores.categoria === "Produção de BM / Insumos" || valores.categoria === "custo_producao_bm") && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="subcategoria" className="text-xs font-medium text-zinc-300">Tipo de Insumo (Opcional)</Label>
+                  <Select value={valores.subcategoria} onValueChange={v => setValores(a => ({ ...a, subcategoria: v }))}>
+                    <SelectTrigger id="subcategoria" className="bg-black/30 border-white/10 text-white">
+                      <SelectValue placeholder="Selecione o insumo" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                      <SelectItem value="Perfis / Contas de Aquecimento">Perfis / Contas de Aquecimento</SelectItem>
+                      <SelectItem value="Proxies / IPs Residenciais">Proxies / IPs Residenciais</SelectItem>
+                      <SelectItem value="Chips / SMS Virtual">Chips / SMS Virtual</SelectItem>
+                      <SelectItem value="Cartões / Taxas de Gateway">Cartões / Taxas de Gateway</SelectItem>
+                      <SelectItem value="Navegador Multilogin / Ferramentas">Navegador Multilogin / Ferramentas</SelectItem>
+                      <SelectItem value="Outros Insumos">Outros Insumos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantidade_unidades" className="text-xs font-medium text-zinc-300">Qtd. BMs Produzidas (Opcional)</Label>
+                  <Input 
+                    id="quantidade_unidades" 
+                    type="number"
+                    placeholder="0"
+                    value={valores.quantidade_unidades}
+                    onChange={e => setValores(a => ({ ...a, quantidade_unidades: e.target.value }))}
+                    className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="forma" className="text-xs font-medium text-zinc-300">Forma de Pagamento</Label>
+              <Select value={valores.forma_pagamento} onValueChange={v => setValores(a => ({ ...a, forma_pagamento: v }))}>
+                <SelectTrigger id="forma" className="bg-black/30 border-white/10 text-white">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="cartao">Cartão de Crédito</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="situacao" className="text-xs font-medium text-zinc-300">Status Inicial</Label>
+              <Select value={valores.situacao} onValueChange={v => setValores(a => ({ ...a, situacao: v as SituacaoLancamento }))}>
+                <SelectTrigger id="situacao" className="bg-black/30 border-white/10 text-white">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-white/10 text-white">
+                  <SelectItem value="aberto">Pendente</SelectItem>
+                  <SelectItem value="pago">Já Pago / Recebido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="obs" className="text-xs font-medium text-zinc-300">Observações (Opcional)</Label>
+              <Textarea 
+                id="obs" 
+                placeholder="Detalhes adicionais do lançamento..." 
+                value={valores.observacoes}
+                onChange={e => setValores(a => ({ ...a, observacoes: e.target.value }))}
+                className="bg-black/30 border-white/10 text-white placeholder:text-zinc-500 resize-none min-h-[70px]"
+              />
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-white/5 bg-black/30 shrink-0 hidden sm:flex items-center justify-end gap-2">
-            <Button variant="ghost" onClick={() => setAberto(false)} className="text-zinc-400 hover:text-white">Cancelar</Button>
-            <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+          <DialogFooter className="mt-4 pt-4 border-t border-white/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pb-2">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={() => setAberto(false)} 
+              className="text-zinc-400 hover:text-white h-11 sm:h-9"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="button" 
+              onClick={() => salvar.mutate()} 
+              disabled={salvar.isPending}
+              className="h-11 sm:h-9 font-semibold"
+            >
               {salvar.isPending ? "Salvando..." : "Salvar Lançamento"}
             </Button>
           </DialogFooter>
