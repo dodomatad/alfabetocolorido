@@ -267,6 +267,7 @@ function PaginaFinanceiro() {
     onSuccess: () => {
       toast.success("Comissão paga com sucesso!");
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });

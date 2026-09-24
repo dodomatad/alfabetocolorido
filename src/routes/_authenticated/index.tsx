@@ -197,6 +197,7 @@ function PaginaDashboard() {
       let vendasQuery = supabase
         .from("vendas")
         .select("id, numero_venda, cliente, status, valor_total, desconto, data_venda, created_at, clientes(nome)")
+        .eq("empresa_id", empresa!.id)
         .gte("data_venda", inicioIso)
         .lte("data_venda", hojeIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
@@ -205,29 +206,32 @@ function PaginaDashboard() {
         vendasQuery,
         supabase
           .from("venda_itens")
-          .select("quantidade, vendas!inner(data_venda), modalidades_bm(custo_producao_padrao)")
+          .select("quantidade, venda_id, vendas!inner(empresa_id, data_venda, status), modalidades_bm(custo_producao_padrao)")
+          .eq("vendas.empresa_id", empresa!.id)
           .gte("vendas.data_venda", inicioIso)
           .lte("vendas.data_venda", hojeIso),
         supabase
           .from("reposicoes_perfis")
           .select("*")
+          .eq("empresa_id", empresa!.id)
           .gte("created_at", inicioIso)
           .lte("created_at", hojeIso + "T23:59:59.999Z"),
         supabase
           .from("entregas")
-          .select("id, status, custo_reposicao, created_at")
+          .select("id, status, custo_reposicao, created_at, empresa_id")
+          .eq("empresa_id", empresa!.id)
           .gte("created_at", inicioIso)
           .lte("created_at", hojeIso + "T23:59:59.999Z"),
         supabase
           .from("lancamentos_financeiros")
           .select("*")
+          .eq("empresa_id", empresa!.id)
           .gte("data_vencimento", inicioIso)
           .lte("data_vencimento", hojeIso),
         supabase
           .from("vendas")
           .select("valor_total, desconto, status")
-          .gte("data_venda", inicioIso)
-          .lte("data_venda", hojeIso)
+          .eq("empresa_id", empresa!.id)
       ]);
 
       const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error ?? lancamentos.error ?? vendasTotais.error;
@@ -282,6 +286,8 @@ function PaginaDashboard() {
     descontos,
     bruto,
     custosProducaoPadrao,
+    custosProducaoTotal,
+    custoReposicaoTotal,
     custosTotais,
     lucro,
     taxaReposicao,
@@ -296,15 +302,21 @@ function PaginaDashboard() {
     const fatLiq = val.reduce((s, v) => s + Number(v.valor_total ?? 0), 0) || 0;
     const desc = val.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
     const brt = fatLiq + totReemb + desc;
-    const custPadrao = itens.reduce(
+
+    // 1. Custo de produção padrão das modalidades dos itens vendidos válidos
+    const itensValidos = itens.filter((i: any) => {
+      const st = (i.vendas as any)?.status;
+      return !st || !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(st);
+    });
+    const custPadrao = itensValidos.reduce(
       (s, i) => {
-        const custo = Number(i.modalidades_bm?.custo_producao_padrao ?? 0);
+        const custo = Number((i as any).modalidades_bm?.custo_producao_padrao ?? 0);
         return s + Number(i.quantidade ?? 0) * custo;
       },
       0,
     ) || 0;
 
-    // 1. Buscar despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
+    // 2. Despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
     const lancamentosFinanceiros = (consulta.data as any)?.lancamentosFinanceiros ?? [];
     const despesasOperacionaisFinanceiro = lancamentosFinanceiros
       .filter((l: any) => {
@@ -340,16 +352,24 @@ function PaginaDashboard() {
       })
       .reduce((acc: number, l: any) => acc + Number(l.valor || 0), 0);
 
-    const cTotais = despesasOperacionaisFinanceiro;
+    const cProducaoTotal = custPadrao + despesasOperacionaisFinanceiro;
+
+    // 3. Custos de reposição (reposicoes_perfis + entregas com custo de reposição)
+    const custoReposicoesPerfis = reposicoes.reduce((s: number, r: any) => s + (Number(r.custo_reposicao) || 0), 0);
+    const custoReposicoesEntregas = entregas.reduce((s: number, e: any) => s + (Number(e.custo_reposicao) || 0), 0);
+    const cReposicaoTotal = custoReposicoesPerfis + custoReposicoesEntregas;
+
+    const cTotais = cProducaoTotal + cReposicaoTotal;
     const luc = fatLiq - cTotais;
 
     const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
     const totalReposicoesPerfis = reposicoes.length;
     const totalReposicoesEntregas = entregas.filter((e: LinhaEntrega) => e.status === 'reposicao').length;
-    const txReposicao = totalEntregue > 0 ? ((totalReposicoesPerfis + totalReposicoesEntregas) / totalEntregue) * 100 : 0;
+    const totalReposicoesQtd = totalReposicoesPerfis + totalReposicoesEntregas;
+    const txReposicao = totalEntregue > 0 ? (totalReposicoesQtd / totalEntregue) * 100 : 0;
 
     const convertidas = vendas.filter(
-      (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status),
+      (v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status),
     ).length;
     const txConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
 
@@ -375,6 +395,8 @@ function PaginaDashboard() {
       descontos: desc,
       bruto: brt,
       custosProducaoPadrao: custPadrao,
+      custosProducaoTotal: cProducaoTotal,
+      custoReposicaoTotal: cReposicaoTotal,
       custosTotais: cTotais,
       lucro: luc,
       taxaReposicao: txReposicao,
@@ -526,12 +548,13 @@ function PaginaDashboard() {
         }
       });
       const convertidasDia = vendasDia.filter(
-        (v) => !["rascunho", "cancelada", "reembolsada"].includes(v.status)
+        (v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status)
+      ).length;
+      const falhasDia = vendasDia.filter(
+        (v) => ["cancelada", "reembolsada", "estornada"].includes(v.status)
       ).length;
       const taxa = vendasDia.length > 0 ? (convertidasDia / vendasDia.length) * 100 : 0;
-      
-      // Simulação de taxa de erro para o gráfico comparativo
-      const taxaErro = vendasDia.length > 0 ? (100 - taxa) * 0.3 : 0; 
+      const taxaErro = vendasDia.length > 0 ? (falhasDia / vendasDia.length) * 100 : 0;
 
       return {
         dia,
@@ -729,7 +752,8 @@ function PaginaDashboard() {
             />
             <CartaoMetrica
               rotulo="Custo de Produção"
-              valor={fmtValor(custosTotais)}
+              valor={fmtValor(custosProducaoTotal)}
+              subvalor={custoReposicaoTotal > 0 ? `+ ${fmtValor(custoReposicaoTotal)} reposição` : undefined}
             />
             <CartaoMetrica
               rotulo="Taxa de Acertos"
@@ -745,7 +769,7 @@ function PaginaDashboard() {
             <CartaoMetrica
               rotulo="Taxa de Reposição"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaReposicao)}%`}
-              subvalor=""
+              subvalor={ocultarValores ? "" : (custoReposicaoTotal > 0 ? fmtValor(custoReposicaoTotal) : undefined)}
               corValor={ocultarValores ? "text-white" : getCorTaxaReposicao(taxaReposicao)}
               className="cursor-pointer hover:bg-white/5 transition-colors"
               onClick={() => setModalReposicoesAberto(true)}
