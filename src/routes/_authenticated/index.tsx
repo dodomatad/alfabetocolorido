@@ -225,9 +225,7 @@ function PaginaDashboard() {
         supabase
           .from("lancamentos_financeiros")
           .select("*")
-          .eq("empresa_id", empresa!.id)
-          .gte("data_vencimento", inicioIso)
-          .lte("data_vencimento", hojeIso),
+          .eq("empresa_id", empresa!.id),
         supabase
           .from("vendas")
           .select("valor_total, desconto, status")
@@ -303,68 +301,54 @@ function PaginaDashboard() {
     const desc = val.reduce((s, v) => s + Number(v.desconto ?? 0), 0) || 0;
     const brt = fatLiq + totReemb + desc;
 
-    // 1. Custo de produção padrão das modalidades dos itens vendidos válidos
-    const itensValidos = itens.filter((i: any) => {
-      const st = (i.vendas as any)?.status;
-      return !st || !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(st);
+    // 1. Despesas operacionais e custos de produção do financeiro dentro do período
+    const todosLancamentos = (consulta.data as any)?.lancamentosFinanceiros ?? [];
+    const lancamentosPeriodo = todosLancamentos.filter((l: any) => {
+      const dt = l.data_vencimento || l.created_at?.slice(0, 10) || "";
+      if (!dt) return true;
+      return dt >= inicioIso && dt <= hojeIso;
     });
-    const custPadrao = itensValidos.reduce(
-      (s, i) => {
-        const custo = Number((i as any).modalidades_bm?.custo_producao_padrao ?? 0);
-        return s + Number(i.quantidade ?? 0) * custo;
-      },
-      0,
-    ) || 0;
 
-    // 2. Despesas operacionais reais do financeiro (Produção BM, Insumos, Operacional)
-    const lancamentosFinanceiros = (consulta.data as any)?.lancamentosFinanceiros ?? [];
-    const despesasOperacionaisFinanceiro = lancamentosFinanceiros
+    const categoriasProducaoBM = [
+      'custo_producao_bm',
+      'produção de bm / insumos',
+      'produção bm', 
+      'producao bm', 
+      'insumos',
+      'ferramentas',
+      'saldo bot',
+      'saldo do bot',
+      'operacional'
+    ];
+
+    const cProducaoTotal = lancamentosPeriodo
       .filter((l: any) => {
         const categoria = (l.categoria || "").trim().toLowerCase();
         const tipo = (l.tipo || "").trim().toLowerCase();
-        const situacao = (l.situacao || "").trim().toLowerCase();
-        
-        const categoriasProducaoBM = [
-          'custo_producao_bm',
-          'fornecedor_bm_ciro',
-          'custos_funcionarios',
-          'outras_despesas_operacionais',
-          'operacional', 
-          'produção bm', 
-          'producao bm', 
-          'insumos', 
-          'ferramentas', 
-          'saldo bot', 
-          'saldo do bot', 
-          'produção de bm / insumos',
-          'comissoes',
-          'comissões',
-          'comissão',
-          'comissao',
-          'repasses',
-          'repasse',
-          'funcionarios',
-          'funcionários',
-          'fornecedores',
-          'fornecedor bm'
-        ];
-        const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
         const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
-        const ehPago = situacao === 'pago';
-
-        return ehCategoriaBM && ehSaida && ehPago;
+        const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
+        return ehSaida && ehCategoriaBM;
       })
       .reduce((acc: number, l: any) => acc + Number(l.valor || 0), 0);
 
-    const cProducaoTotal = custPadrao + despesasOperacionaisFinanceiro;
+    const outrasDespesasPeriodo = lancamentosPeriodo
+      .filter((l: any) => {
+        const categoria = (l.categoria || "").trim().toLowerCase();
+        const tipo = (l.tipo || "").trim().toLowerCase();
+        const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
+        const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
+        return ehSaida && !ehCategoriaBM;
+      })
+      .reduce((acc: number, l: any) => acc + Number(l.valor || 0), 0);
 
-    // 3. Custos de reposição (reposicoes_perfis + entregas com custo de reposição)
+    // 2. Custos de reposição (reposicoes_perfis + entregas com custo de reposição)
     const custoReposicoesPerfis = reposicoes.reduce((s: number, r: any) => s + (Number(r.custo_reposicao) || 0), 0);
     const custoReposicoesEntregas = entregas.reduce((s: number, e: any) => s + (Number(e.custo_reposicao) || 0), 0);
     const cReposicaoTotal = custoReposicoesPerfis + custoReposicoesEntregas;
 
-    const cTotais = cProducaoTotal + cReposicaoTotal;
-    const luc = fatLiq - cTotais;
+    // 3. Custos Totais e Lucro Real
+    const cTotais = Number(cProducaoTotal) + Number(cReposicaoTotal) + Number(outrasDespesasPeriodo);
+    const luc = Number(fatLiq) - cTotais;
 
     const totalEntregue = itens.reduce((s: number, i: LinhaItem) => s + (Number(i.quantidade) || 0), 0);
     const totalReposicoesPerfis = reposicoes.length;
@@ -377,18 +361,17 @@ function PaginaDashboard() {
     ).length;
     const txConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
 
-    let dROI: { valor: string; cor: string };
-    if (cTotais === 0) {
-      if (luc > 0) dROI = { valor: "100%", cor: "text-emerald-400" };
-      else if (luc < 0) dROI = { valor: "Prejuízo", cor: "text-rose-400" };
-      else dROI = { valor: "0%", cor: "text-white" };
-    } else {
-      const roiVal = (luc / cTotais) * 100;
-      dROI = {
-        valor: `${formatarNumero(roiVal)}%`,
-        cor: roiVal > 0 ? "text-emerald-400" : roiVal < 0 ? "text-rose-400" : "text-white",
-      };
-    }
+    // 4. ROI Exato
+    const roiCalculado = cTotais > 0 
+      ? ((Number(luc) / cTotais) * 100) 
+      : 0;
+
+    const roiFormatado = `${roiCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
+
+    const dROI = {
+      valor: roiFormatado,
+      cor: roiCalculado > 0 ? "text-emerald-400" : roiCalculado < 0 ? "text-rose-400" : "text-white",
+    };
 
     return {
       validas: val,
@@ -398,7 +381,7 @@ function PaginaDashboard() {
       faturamentoLiquido: fatLiq,
       descontos: desc,
       bruto: brt,
-      custosProducaoPadrao: custPadrao,
+      custosProducaoPadrao: cProducaoTotal,
       custosProducaoTotal: cProducaoTotal,
       custoReposicaoTotal: cReposicaoTotal,
       custosTotais: cTotais,
@@ -407,7 +390,7 @@ function PaginaDashboard() {
       taxaConversao: txConversao,
       dadosROI: dROI,
     };
-  }, [vendas, itens, reposicoes, entregas, consulta.data]);
+  }, [vendas, itens, reposicoes, entregas, consulta.data, inicioIso, hojeIso]);
 
   const getCorTaxaReposicao = (taxa: number) => {
     if (taxa > 20) return "text-rose-400";

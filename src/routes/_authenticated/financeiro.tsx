@@ -319,9 +319,11 @@ function PaginaFinanceiro() {
       toast.success("Comissão paga com sucesso!");
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["financial_overview"] });
       void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
       void queryClient.invalidateQueries({ queryKey: ["financial_metrics"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["painel"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -404,33 +406,23 @@ function PaginaFinanceiro() {
     const aPagar = lista.filter(i => i.tipo === "pagar" && (i.situacao === "aberto" || i.situacao === "parcial" || (i.situacao as any) === "pendente" || (i.situacao as any) === "a_vencer"));
     const atrasados = lista.filter(i => i.situacao === "atrasado" || (i.situacao === "aberto" && i.data_vencimento < hoje));
     
+    const categoriasProducaoBM = [
+      'custo_producao_bm',
+      'produção de bm / insumos',
+      'produção bm', 
+      'producao bm', 
+      'insumos', 
+      'ferramentas', 
+      'saldo bot', 
+      'saldo do bot', 
+      'operacional'
+    ];
+
     const producaoBM = lista.filter(i => {
       const categoria = (i.categoria || "").trim().toLowerCase();
       const tipo = (i.tipo || "").trim().toLowerCase();
-      
-      const categoriasProducaoBM = [
-        'operacional', 
-        'produção bm', 
-        'producao bm', 
-        'insumos', 
-        'ferramentas', 
-        'saldo bot', 
-        'saldo do bot', 
-        'produção de bm / insumos',
-        'comissoes',
-        'comissões',
-        'comissão',
-        'comissao',
-        'repasses',
-        'repasse',
-        'funcionarios',
-        'funcionários',
-        'fornecedores',
-        'fornecedor bm'
-      ];
       const ehCategoriaBM = categoriasProducaoBM.includes(categoria);
       const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
-
       return ehCategoriaBM && ehSaida;
     });
 
@@ -443,27 +435,16 @@ function PaginaFinanceiro() {
     const validas = vendas.filter((v: any) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
     const faturamentoTotal = validas.reduce((acc, v) => acc + Number(v.valor_total || 0), 0);
 
-    // 2. Custo de produção dos itens vendidos (quantidade * custo_unitario)
-    const totalCustoItensVendidos = validas.reduce((acc: number, v: any) => {
-      const itens = (v.venda_itens || []) as any[];
-      const custoVenda = itens.reduce((s: number, item: any) => {
-        const custoUnit = Number(item.modalidades_bm?.custo_producao_padrao || item.custo_unitario || 0);
-        const qtd = Number(item.quantidade || 1);
-        return s + (custoUnit * qtd);
-      }, 0);
-      return acc + custoVenda;
-    }, 0);
+    // 2. Custo de produção BM (total das despesas da categoria de produção/insumos)
+    const totalCustoProducaoBM = producaoBM.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
 
-    // 3. Despesas operacionais e de produção pagas
-    const producaoBMPagos = producaoBM.filter(i => (i.situacao || "").trim().toLowerCase() === "pago");
-    const totalDespesasProducaoPagas = producaoBMPagos.reduce((acc, i) => acc + (Number(i.valor) || 0), 0);
-    const totalCustoProducaoBM = totalCustoItensVendidos + totalDespesasProducaoPagas;
-
-    const todasDespesasPagas = lista.filter(i => {
+    // 3. Demais despesas registradas
+    const outrasDespesas = lista.filter(i => {
       const tipo = (i.tipo || "").trim().toLowerCase();
-      const situacao = (i.situacao || "").trim().toLowerCase();
+      const cat = (i.categoria || "").trim().toLowerCase();
       const ehSaida = tipo === 'pagar' || tipo === 'saida' || tipo === 'saída' || tipo === 'despesa';
-      return ehSaida && situacao === 'pago';
+      const ehProducao = categoriasProducaoBM.includes(cat);
+      return ehSaida && !ehProducao;
     }).reduce((acc: number, i: any) => acc + (Number(i.valor) || 0), 0);
 
     // 4. Custos de reposição
@@ -472,9 +453,10 @@ function PaginaFinanceiro() {
     const totalCustoReposicao = custoReposicoesPerfis + custoReposicoesEntregas;
 
     // 5. Custos totais e Lucro Real
-    const custosTotais = totalCustoItensVendidos + todasDespesasPagas + totalCustoReposicao;
-    const lucroReal = faturamentoTotal - custosTotais;
-    const roi = custosTotais > 0 ? ((lucroReal / custosTotais) * 100) : (lucroReal > 0 ? 100 : 0);
+    const custosTotais = Number(totalCustoProducaoBM) + Number(outrasDespesas) + Number(totalCustoReposicao);
+    const lucroReal = Number(faturamentoTotal) - custosTotais;
+    const roiCalculado = custosTotais > 0 ? ((lucroReal / custosTotais) * 100) : 0;
+    const roiFormatado = `${roiCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
 
     const totalUnidadesBM = producaoBM.reduce((acc, i) => acc + (Number(i.quantidade_unidades) || 0), 0);
     const custoMedioBM = totalUnidadesBM > 0 ? totalCustoProducaoBM / totalUnidadesBM : 0;
@@ -485,9 +467,9 @@ function PaginaFinanceiro() {
       liquido: lucroReal,
       faturamento: faturamentoTotal,
       custosTotais,
-      custoItensVendidos: totalCustoItensVendidos,
-      despesasProducao: totalDespesasProducaoPagas,
-      roi,
+      despesasProducao: totalCustoProducaoBM,
+      roi: roiCalculado,
+      roiFormatado,
       atrasado: { valor: totalAtrasado, qtd: atrasados.length },
       producao: { 
         valor: totalCustoProducaoBM, 
@@ -527,10 +509,11 @@ function PaginaFinanceiro() {
       toast.success("Lançamento registrado com sucesso.");
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["financial_overview"] });
       void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["financial_metrics"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setAberto(false);
       setValores({
         tipo: "receber",
@@ -602,7 +585,7 @@ function PaginaFinanceiro() {
           <CartaoFinanceiro
             rotulo="CUSTO PRODUÇÃO BM"
             valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.producao.valor)}
-            detalhe={resumo.producao.unidades > 0 ? `Custo médio: ${formatarMoeda(resumo.producao.custoMedio)} / BM` : (resumo.custoItensVendidos > 0 ? `Itens: ${formatarMoeda(resumo.custoItensVendidos)} + Desp.: ${formatarMoeda(resumo.despesasProducao)}` : `${resumo.producao.qtd} lançamentos`)}
+            detalhe={resumo.producao.unidades > 0 ? `Custo médio: ${formatarMoeda(resumo.producao.custoMedio)} / BM` : `${resumo.producao.qtd} lançamentos`}
             corValor="text-amber-400 font-bold text-2xl"
             icone={Layers}
             corIcone="text-amber-400"
@@ -611,7 +594,7 @@ function PaginaFinanceiro() {
           <CartaoFinanceiro
             rotulo="LUCRO LÍQUIDO (ROI)"
             valor={ocultarValores ? "R$ ***" : formatarMoeda(resumo.liquido)}
-            detalhe={ocultarValores ? "" : `ROI: ${formatarNumero(resumo.roi)}% | Custos: ${formatarMoeda(resumo.custosTotais)}`}
+            detalhe={ocultarValores ? "" : `ROI: ${resumo.roiFormatado} | Custos: ${formatarMoeda(resumo.custosTotais)}`}
             corValor={resumo.liquido >= 0 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}
             icone={Wallet}
             corIcone="text-blue-500"
