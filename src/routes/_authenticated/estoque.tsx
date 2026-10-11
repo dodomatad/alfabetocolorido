@@ -111,15 +111,36 @@ const TIPOS_ATIVO = [
   { valor: "Outro", rotulo: "Outro Tipo de Ativo" },
 ];
 
+function extrairInfoBM(item: Partial<ItemEstoque> & { tipo_ativo: string }) {
+  const limiteExtraido = item.limite_bm || (item.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0]?.toUpperCase() ?? "");
+  
+  // Prioridade absoluta para o nome customizado salvo:
+  let nomeCustom = item.nome_bm?.trim() || "";
+  
+  if (!nomeCustom && item.tipo_ativo) {
+    // Se tipo_ativo guardou "Nome [2K]" ou "Nome (2K)", extrair o nome limpo
+    const limpo = item.tipo_ativo
+      .replace(/\s*\[(250|2K|10K|100K|Ilimitada)\]/i, "")
+      .replace(/\s*\((250|2K|10K|100K|Ilimitada)\)/i, "")
+      .trim();
+    if (limpo && !/^BM(\s*(250|2K|10K|100K|Ilimitada))?$/i.test(limpo)) {
+      nomeCustom = limpo;
+    }
+  }
+
+  const nomeExibicao = nomeCustom || (limiteExtraido ? `BM ${limiteExtraido}` : (item.tipo_ativo || "BM"));
+  return { nome: nomeExibicao, limite: limiteExtraido, temNomeCustom: Boolean(nomeCustom) };
+}
+
 function DashboardEstoque() {
   const { empresa } = useSessao();
   const { data: estoque } = useQuery({
-    queryKey: ["estoque", empresa?.id],
+    queryKey: ["estoque", "bm_stock", empresa?.id],
     enabled: !!empresa?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("estoque")
-        .select("tipo_ativo, limite_bm, quantidade_disponivel");
+        .select("*");
       if (error) throw error;
       return (data || []) as any[];
     },
@@ -129,11 +150,12 @@ function DashboardEstoque() {
   const getQtd = (tipo: string) => {
     return (estoque || [])
       .filter((e) => {
-        if (tipo === "BM 250") return e.tipo_ativo === "BM 250" || e.limite_bm === "250";
-        if (tipo === "BM 2K") return e.tipo_ativo === "BM 2K" || e.limite_bm === "2K";
-        if (tipo === "BM 10K") return e.tipo_ativo === "BM 10K" || e.limite_bm === "10K";
-        if (tipo === "BM 100K") return e.tipo_ativo === "BM 100K" || e.limite_bm === "100K";
-        if (tipo === "BM Ilimitada") return e.tipo_ativo === "BM Ilimitada" || e.limite_bm === "Ilimitada";
+        const lim = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
+        if (tipo === "BM 250") return lim === "250" || e.tipo_ativo?.includes("250");
+        if (tipo === "BM 2K") return lim === "2K" || e.tipo_ativo?.includes("2K") || e.tipo_ativo === "BM 2K";
+        if (tipo === "BM 10K") return lim === "10K" || e.tipo_ativo?.includes("10K");
+        if (tipo === "BM 100K") return lim === "100K" || e.tipo_ativo?.includes("100K");
+        if (tipo === "BM Ilimitada") return lim === "ILIMITADA" || e.tipo_ativo?.toLowerCase().includes("ilimitada");
         return e.tipo_ativo === tipo;
       })
       .reduce((acc, curr) => acc + Number(curr.quantidade_disponivel || 0), 0);
@@ -219,7 +241,7 @@ function PaginaEstoque() {
 
   // Consulta principal do Estoque
   const { data: itensEstoque, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["estoque-lista", empresa?.id],
+    queryKey: ["estoque-lista", "bm_stock", empresa?.id],
     enabled: !!empresa?.id,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -239,10 +261,11 @@ function PaginaEstoque() {
 
   function abrirModal(item?: ItemEstoque) {
     if (item) {
+      const { nome, limite, temNomeCustom } = extrairInfoBM(item);
       setItemEditando(item);
-      setTipoAtivo(item.tipo_ativo || "BM");
-      setNomeBm(item.nome_bm || "");
-      setLimiteBm(item.limite_bm || (item.tipo_ativo.includes("250") ? "250" : item.tipo_ativo.includes("10K") ? "10K" : item.tipo_ativo.includes("100K") ? "100K" : "2K"));
+      setTipoAtivo(item.tipo_ativo && !item.tipo_ativo.toUpperCase().startsWith("BM") ? item.tipo_ativo : "BM");
+      setNomeBm(temNomeCustom ? nome : (item.nome_bm || ""));
+      setLimiteBm(limite || "2K");
       setTemTemplate(Boolean(item.tem_template));
       setDataCriacao(item.data_criacao ? item.data_criacao.slice(0, 10) : new Date().toISOString().slice(0, 10));
       setResponsavel(item.responsavel || "");
@@ -275,15 +298,26 @@ function PaginaEstoque() {
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
 
-      const tipoAtivoFinal = isBM
-        ? (tipoAtivo === "BM" && limiteBm ? `BM ${limiteBm}` : tipoAtivo)
-        : tipoAtivo;
+      const nomeDigitado = nomeBm.trim();
+      const limiteEscolhido = limiteBm || "2K";
+
+      // Se for BM e o usuário forneceu um nome customizado, NUNCA substitua pelo tipo/limite genérico
+      let tipoAtivoFinal = tipoAtivo;
+      if (isBM) {
+        if (nomeDigitado) {
+          tipoAtivoFinal = nomeDigitado.toLowerCase().includes(limiteEscolhido.toLowerCase())
+            ? nomeDigitado
+            : `${nomeDigitado} [${limiteEscolhido}]`;
+        } else {
+          tipoAtivoFinal = `BM ${limiteEscolhido}`;
+        }
+      }
 
       const payloadBase: any = {
         empresa_id: empresa.id,
         tipo_ativo: tipoAtivoFinal,
-        nome_bm: isBM ? (nomeBm.trim() || null) : null,
-        limite_bm: isBM ? limiteBm : null,
+        nome_bm: isBM ? (nomeDigitado || null) : null,
+        limite_bm: isBM ? limiteEscolhido : null,
         tem_template: isBM ? temTemplate : false,
         data_criacao: isBM ? (dataCriacao || new Date().toISOString().slice(0, 10)) : null,
         responsavel: isBM ? (responsavel.trim() || null) : null,
@@ -329,8 +363,11 @@ function PaginaEstoque() {
     },
     onSuccess: () => {
       toast.success(itemEditando ? "Ativo atualizado com sucesso!" : "Ativo adicionado ao estoque!");
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setModalAberto(false);
     },
     onError: (err: Error) => {
@@ -346,8 +383,11 @@ function PaginaEstoque() {
     },
     onSuccess: () => {
       toast.success("Item removido do estoque.");
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setItemParaExcluir(null);
     },
     onError: (err: Error) => {
@@ -491,28 +531,39 @@ function PaginaEstoque() {
               </TableHeader>
               <TableBody>
                 {itensFiltrados.map((item) => {
-                  const ehBm = item.tipo_ativo?.toUpperCase().startsWith("BM");
-                  const limite = item.limite_bm || (item.tipo_ativo.match(/250|2K|10K|100K/i)?.[0] ?? "");
+                  const ehBm = item.tipo_ativo?.toUpperCase().startsWith("BM") || Boolean(item.nome_bm) || Boolean(item.limite_bm);
+                  const { nome, limite } = extrairInfoBM(item);
                   
                   return (
                     <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
                       {/* Nome do Ativo */}
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                          <span className="font-semibold text-sm text-foreground flex items-center gap-2 flex-wrap">
                             {ehBm ? (
                               <>
                                 <Sparkles className="size-3.5 text-blue-400 shrink-0" />
-                                <span>{item.nome_bm || item.tipo_ativo}</span>
+                                <span className="font-bold text-white tracking-tight">{nome}</span>
+                                {limite && (
+                                  <Badge 
+                                    variant="outline"
+                                    className={`
+                                      font-bold text-[10px] px-1.5 py-0 h-4.5
+                                      ${limite === "250" ? "border-sky-500/40 text-sky-400 bg-sky-500/10" : ""}
+                                      ${limite === "2K" ? "border-amber-500/40 text-amber-400 bg-amber-500/10" : ""}
+                                      ${limite === "10K" ? "border-purple-500/40 text-purple-400 bg-purple-500/10" : ""}
+                                      ${limite === "100K" ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : ""}
+                                    `}
+                                  >
+                                    {limite}
+                                  </Badge>
+                                )}
                               </>
                             ) : (
                               <span>{item.tipo_ativo}</span>
                             )}
                           </span>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                            {item.nome_bm && item.tipo_ativo !== item.nome_bm && (
-                              <span>{item.tipo_ativo}</span>
-                            )}
                             {item.data_criacao && (
                               <span className="flex items-center gap-0.5">
                                 <Calendar className="size-3 text-muted-foreground/60" />

@@ -389,11 +389,17 @@ function Pagina() {
         
         // Cadastra individualmente no Estoque se for BM com nome específico
         if (isBM && dados.nome_bm) {
-          await supabase.from("estoque").insert({
+          const nomeClean = dados.nome_bm.trim();
+          const limite = dados.limite_bm || dados.tipo_bm.replace("BM ", "");
+          const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite.toLowerCase())
+            ? nomeClean
+            : `${nomeClean} [${limite}]`;
+
+          const payloadEstoque: any = {
             empresa_id: empresa.id,
-            tipo_ativo: dados.tipo_bm,
-            nome_bm: dados.nome_bm,
-            limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
+            tipo_ativo: tipoAtivoFinal,
+            nome_bm: nomeClean,
+            limite_bm: limite,
             tem_template: dados.tem_template,
             data_criacao: dados.data_criacao,
             responsavel: dados.operador,
@@ -403,7 +409,13 @@ function Pagina() {
             quantidade_reservada: dados.status_envio === "reservada" ? (dados.quantidade || 1) : 0,
             status: dados.status_envio === "enviada" ? "esgotado" : "em_estoque",
             custo_medio_unitario: 0,
-          } as any);
+          };
+
+          let { error: errEst } = await supabase.from("estoque").insert(payloadEstoque);
+          if (errEst && (errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
+            const { nome_bm, limite_bm, tem_template, data_criacao, responsavel, destinatario, status_envio, ...payloadFallback } = payloadEstoque;
+            await supabase.from("estoque").insert(payloadFallback);
+          }
         }
 
         // Atualiza ou insere saldo agregado de estoque para reflexo imediato no dashboard
@@ -444,6 +456,7 @@ function Pagina() {
     onSuccess: () => {
       toast.success(editando ? "Registro atualizado." : "Produção registrada.");
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
       void queryClient.invalidateQueries({ queryKey: ["stock"] });
