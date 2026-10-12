@@ -38,6 +38,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listarEstoqueLocal,
+  baixarBmsVendaLocal,
+  registrarContaEnviadaLocal,
+} from "@/lib/estoque.functions";
 import { formatarMoeda } from "@/lib/formatadores";
 import { cn } from "@/lib/utils";
 
@@ -235,12 +240,24 @@ export function FormularioVenda({
     },
   });
 
-  // Consulta de Contas e BMs disponíveis no Estoque para seleção individual
+  // Consulta de Contas e BMs disponíveis no Estoque para seleção individual (Local com Fallback)
   const contasEstoqueQuery = useQuery({
     queryKey: ["estoque-disponivel-venda", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
     staleTime: 1000 * 60 * 1,
     queryFn: async () => {
+      try {
+        const locais = await listarEstoqueLocal({ data: { empresa_id: empresa!.id } });
+        const disponiveis = (locais || []).filter((item) => {
+          const st = (item.status_envio || item.status || "").toLowerCase();
+          const disp = st === "disponivel" || st === "em_estoque" || st === "pronta_envio";
+          return disp && Number(item.quantidade_disponivel || 0) > 0;
+        });
+        if (disponiveis.length > 0) return disponiveis as any[];
+      } catch (errLocal) {
+        console.warn("Aviso ao buscar estoque local:", errLocal);
+      }
+
       const { data, error } = await supabase
         .from("estoque")
         .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio")
@@ -510,105 +527,64 @@ export function FormularioVenda({
         }
 
         if (idsParaBaixar.length > 0) {
-          // 1. Tentar execução via RPC transacional no Supabase
-          let rpcSucesso = false;
+          const statusEnvioFinal = deliveryStatus === "entregue" ? "entregue" : "reservada";
+
+          // 1. Baixa atômica prioritária no banco local SQLite
           try {
-            const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("baixar_bms_venda", {
-              p_empresa_id: empresa.id,
-              p_venda_id: vendaSalvaId,
-              p_cliente_id: clienteId || null,
-              p_destinatario: nomeCliente,
-              p_bms_ids: idsParaBaixar,
-            });
-
-            if (!rpcErr && rpcRes?.sucesso) {
-              rpcSucesso = true;
-            } else if (rpcErr) {
-              console.warn("Aviso na RPC baixar_bms_venda, executando fallback atômico:", rpcErr);
-            }
-          } catch (eRpc) {
-            console.warn("RPC indisponível, usando fallback seguro:", eRpc);
-          }
-
-          // 2. Fallback seguro: UPDATE com WHERE id = ANY(ids) AND status = 'disponivel' conferindo ROW_COUNT
-          if (!rpcSucesso) {
-            // Conferir se todas ainda estão com status='disponivel'
-            const { data: bmsDisponiveisAgora } = await supabase
-              .from("estoque")
-              .select("id, nome_bm, tipo_ativo, limite_bm")
-              .in("id", idsParaBaixar)
-              .eq("empresa_id", empresa.id)
-              .eq("status", "disponivel")
-              .gt("quantidade_disponivel", 0);
-
-            const qtdDisponiveisAgora = bmsDisponiveisAgora?.length || 0;
-            if (qtdDisponiveisAgora < idsParaBaixar.length) {
-              throw new Error(`Concorrência detectada: uma ou mais BMs selecionadas acabaram de ser vendidas ou não estão mais disponíveis.`);
-            }
-
-            const { data: bmsAfetadas, error: errUpdate } = await supabase
-              .from("estoque")
-              .update({
-                status: "vendida",
-                quantidade_disponivel: 0,
-                status_envio: "entregue",
+            await baixarBmsVendaLocal({
+              data: {
+                empresa_id: empresa.id,
                 venda_id: vendaSalvaId,
                 cliente_id: clienteId || null,
                 destinatario: nomeCliente,
-                updated_at: new Date().toISOString(),
-              } as any)
-              .in("id", idsParaBaixar)
-              .eq("empresa_id", empresa.id)
-              .eq("status", "disponivel")
-              .select("id");
-
-            if (errUpdate) throw errUpdate;
-
-            const rowCountAfetadas = bmsAfetadas?.length || 0;
-            if (rowCountAfetadas < idsParaBaixar.length) {
-              throw new Error(`Falha de integridade ao dar baixa: esperava atualizar ${idsParaBaixar.length} BM(s), mas apenas ${rowCountAfetadas} estavam disponíveis.`);
-            }
+                bms_ids: idsParaBaixar,
+                status_envio: statusEnvioFinal,
+              },
+            });
+          } catch (errLocalBaixa) {
+            console.warn("Aviso na baixa local (ou ativo já baixado):", errLocalBaixa);
+            throw errLocalBaixa;
           }
 
-          // Grava histórico de contas enviadas/entregues para cada BM
+          // 2. Registro no histórico local de contas enviadas
           for (const bmId of idsParaBaixar) {
             const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
             const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
             const limiteBMFinal = contaRef?.limite_bm || limiteAlvo || null;
 
             try {
-              await supabase.from("historico_envios_estoque").insert({
-                empresa_id: empresa.id,
-                conta_id: bmId,
-                venda_id: vendaSalvaId,
-                nome_conta: nomeBMFinal,
-                cliente_id: clienteId || null,
-                cliente_nome: nomeCliente || "Cliente da Venda",
-                valor_venda: numero(itemVenda.preco_unitario),
-                status_entrega: "entregue",
-                data_entrega: dataDespacho,
+              await registrarContaEnviadaLocal({
+                data: {
+                  empresa_id: empresa.id,
+                  bm_id: bmId,
+                  venda_id: vendaSalvaId,
+                  nome_bm: nomeBMFinal,
+                  limite_bm: limiteBMFinal,
+                  destinatario_cliente: nomeCliente || "Cliente da Venda",
+                  responsavel_envio: nomeRespEnvio,
+                  data_envio: dataDespacho,
+                  custo_unitario: contaRef?.custo_medio_unitario || 0,
+                  valor_venda: numero(itemVenda.preco_unitario),
+                  status_envio: "enviada",
+                },
               });
-            } catch (errHist) {
-              console.warn("Aviso em historico_envios_estoque:", errHist);
+            } catch (eHLocal) {
+              console.warn("Aviso ao salvar histórico de conta local:", eHLocal);
             }
+          }
 
-            try {
-              await supabase.from("contas_enviadas").insert({
-                empresa_id: empresa.id,
-                bm_id: bmId,
-                venda_id: vendaSalvaId,
-                nome_bm: nomeBMFinal,
-                limite_bm: limiteBMFinal,
-                destinatario_cliente: nomeCliente || "Cliente da Venda",
-                responsavel_envio: nomeRespEnvio,
-                data_envio: dataDespacho,
-                custo_unitario: contaRef?.custo_medio_unitario || 0,
-                valor_venda: numero(itemVenda.preco_unitario),
-                status_envio: "enviada",
-              });
-            } catch (errContas) {
-              console.warn("Aviso em contas_enviadas:", errContas);
-            }
+          // 3. Espelhamento não-bloqueante no Supabase (se disponível)
+          try {
+            await (supabase as any).rpc("baixar_bms_venda", {
+              p_empresa_id: empresa.id,
+              p_venda_id: vendaSalvaId,
+              p_cliente_id: clienteId || null,
+              p_destinatario: nomeCliente,
+              p_bms_ids: idsParaBaixar,
+              p_status_envio: statusEnvioFinal,
+            });
+          } catch (eRpc) {
+            // Ignora falha remota do Supabase
           }
         }
       }

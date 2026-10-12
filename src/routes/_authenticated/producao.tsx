@@ -35,6 +35,7 @@ import { BmOperationalForm } from "@/components/comum/bm-operational-form";
 
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { inserirLoteEstoqueLocal } from "@/lib/estoque.functions";
 
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
@@ -510,14 +511,44 @@ function Pagina() {
             };
           });
 
-          // Inserção em lote (batch insert)
-          let { error: errEst } = await supabase.from("estoque").insert(recordsToInsert as any);
-          if (errEst && (errEst.message?.includes("origem") || errEst.message?.includes("producao_id") || errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
-            const recordsFallback = recordsToInsert.map((rec) => {
-              const { origem, producao_id, contingencia_id, ...fallback } = rec as any;
-              return fallback;
+          // Inserção no estoque local SQLite (Persistência Garantida)
+          try {
+            await inserirLoteEstoqueLocal({
+              data: {
+                empresa_id: empresa.id,
+                items: recordsToInsert.map((rec) => ({
+                  tipo_ativo: rec.tipo_ativo,
+                  nome_bm: rec.nome_bm,
+                  limite_bm: rec.limite_bm,
+                  status_envio: rec.status_envio,
+                  tem_template: rec.tem_template,
+                  data_criacao: rec.data_criacao,
+                  responsavel: rec.responsavel,
+                  destinatario: rec.destinatario,
+                  origem: rec.origem,
+                  producao_id: rec.producao_id,
+                  quantidade_disponivel: rec.quantidade_disponivel,
+                  quantidade_reservada: rec.quantidade_reservada,
+                  status: rec.status,
+                })),
+              },
             });
-            await supabase.from("estoque").insert(recordsFallback as any);
+          } catch (errLocalLote) {
+            console.warn("Aviso ao inserir lote no estoque local:", errLocalLote);
+          }
+
+          // Tentativa de espelhamento no Supabase (sem bloquear caso o remoto falhe)
+          try {
+            let { error: errEst } = await supabase.from("estoque").insert(recordsToInsert as any);
+            if (errEst && (errEst.message?.includes("origem") || errEst.message?.includes("producao_id") || errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
+              const recordsFallback = recordsToInsert.map((rec) => {
+                const { origem, producao_id, contingencia_id, ...fallback } = rec as any;
+                return fallback;
+              });
+              await supabase.from("estoque").insert(recordsFallback as any);
+            }
+          } catch (eRemote) {
+            // Ignora falha remota
           }
         }
 

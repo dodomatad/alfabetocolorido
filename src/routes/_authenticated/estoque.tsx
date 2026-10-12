@@ -27,6 +27,14 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessao } from "@/hooks/use-sessao";
+import {
+  listarEstoqueLocal,
+  salvarItemEstoqueLocal,
+  alterarStatusEstoqueLocal,
+  excluirItemEstoqueLocal,
+  listarContasEnviadasLocal,
+  registrarContaEnviadaLocal,
+} from "@/lib/estoque.functions";
 import { CartaoMetrica } from "@/components/dashboard/cartao-metrica";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,12 +177,18 @@ function DashboardEstoque() {
     queryKey: ["estoque", "bm_stock", empresa?.id],
     enabled: !!empresa?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque")
-        .select("*")
-        .eq("empresa_id", empresa!.id);
-      if (error) throw error;
-      return (data || []) as any[];
+      try {
+        const locais = await listarEstoqueLocal({ data: { empresa_id: empresa!.id } });
+        return (locais || []) as any[];
+      } catch (errLocal) {
+        console.warn("Erro ao buscar estoque local, tentando fallback remoto:", errLocal);
+        const { data, error } = await supabase
+          .from("estoque")
+          .select("*")
+          .eq("empresa_id", empresa!.id);
+        if (error) return [];
+        return (data || []) as any[];
+      }
     },
     staleTime: 1000 * 60 * 2,
   });
@@ -275,44 +289,47 @@ function PaginaEstoque() {
     },
   });
 
-  // Consulta principal do Estoque
+  // Consulta principal do Estoque (Persistência Local Integrada)
   const { data: itensEstoque, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["estoque-lista", "bm_stock", empresa?.id],
     enabled: !!empresa?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque")
-        .select("*")
-        .eq("empresa_id", empresa!.id)
-        .order("updated_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as ItemEstoque[];
+      try {
+        const locais = await listarEstoqueLocal({ data: { empresa_id: empresa!.id } });
+        return (locais || []) as ItemEstoque[];
+      } catch (errLocal) {
+        console.warn("Erro ao buscar estoque local, tentando fallback:", errLocal);
+        const { data, error } = await supabase
+          .from("estoque")
+          .select("*")
+          .eq("empresa_id", empresa!.id)
+          .order("updated_at", { ascending: false });
+        if (error) return [];
+        return (data || []) as ItemEstoque[];
+      }
     },
     staleTime: 1000 * 60 * 1,
   });
 
   const [abaAtiva, setAbaAtiva] = useState<string>("estoque");
 
-  // Consulta de Contas Enviadas (Histórico Permanente com número da venda)
+  // Consulta de Contas Enviadas (Persistência Local Integrada)
   const { data: contasEnviadas, isLoading: carregandoEnvios, refetch: refetchEnvios } = useQuery({
     queryKey: ["contas_enviadas", "historico_envios", empresa?.id],
     enabled: !!empresa?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contas_enviadas")
-        .select("*, vendas(id, numero, cliente)")
-        .eq("empresa_id", empresa!.id)
-        .order("data_envio", { ascending: false });
-      if (error) {
-        // Fallback caso a relação vendas não resolva diretamente
+      try {
+        const locais = await listarContasEnviadasLocal({ data: { empresa_id: empresa!.id } });
+        return (locais || []) as any[];
+      } catch (errLocal) {
+        console.warn("Erro ao buscar histórico local, tentando fallback:", errLocal);
         const res = await supabase
           .from("contas_enviadas")
           .select("*")
           .eq("empresa_id", empresa!.id)
           .order("data_envio", { ascending: false });
-        return (res.data || []) as (ContaEnviada & { vendas?: { id: string; numero: number; cliente?: string | null } | null })[];
+        return (res.data || []) as any[];
       }
-      return (data || []) as (ContaEnviada & { vendas?: { id: string; numero: number; cliente?: string | null } | null })[];
     },
     staleTime: 1000 * 60 * 1,
   });
@@ -356,7 +373,7 @@ function PaginaEstoque() {
     setModalAberto(true);
   }
 
-  // Mutation de Salvar (Criar / Editar)
+  // Mutation de Salvar (Persistência Local Integrada)
   const salvarMutation = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
@@ -371,7 +388,6 @@ function PaginaEstoque() {
         ? "2k"
         : "250";
 
-      // Se for BM e o usuário forneceu um nome customizado, NUNCA substitua pelo tipo/limite genérico
       let tipoAtivoFinal = tipoAtivo;
       if (isBM) {
         if (nomeDigitado) {
@@ -384,7 +400,12 @@ function PaginaEstoque() {
       }
 
       const estaDisponivel = statusEnvio === "disponivel" || statusEnvio === "pronta_envio";
-      const payloadBase: any = {
+      const statusFinal = isBM 
+        ? (estaDisponivel ? "disponivel" : statusEnvio === "reservada" ? "baixo_estoque" : "vendida")
+        : statusGenerico;
+
+      const payloadLocal = {
+        id: itemEditando?.id || crypto.randomUUID(),
         empresa_id: empresa.id,
         tipo_ativo: tipoAtivoFinal,
         nome_bm: isBM ? (nomeDigitado || null) : null,
@@ -397,94 +418,45 @@ function PaginaEstoque() {
         quantidade_disponivel: Number(qtdDisponivel) || 0,
         quantidade_reservada: Number(qtdReservada) || 0,
         custo_medio_unitario: Number(custoMedio.replace(",", ".")) || 0,
-        status: isBM 
-          ? (estaDisponivel ? "disponivel" : statusEnvio === "reservada" ? "baixo_estoque" : "vendida")
-          : statusGenerico,
-        updated_at: new Date().toISOString(),
+        status: statusFinal,
       };
 
-      let estoqueSalvoId: string = itemEditando?.id || "";
+      // 1. Salva localmente no SQLite
+      const resLocal = await salvarItemEstoqueLocal({ data: payloadLocal });
+      const estoqueSalvoId = resLocal.id || payloadLocal.id;
 
-      if (itemEditando) {
-        // UPDATE
-        let { error } = await supabase
-          .from("estoque")
-          .update(payloadBase)
-          .eq("id", itemEditando.id);
-
-        // Fallback caso alguma coluna nova não esteja no cache remoto ainda
-        if (error && (error.message?.includes("nome_bm") || (error as any).code === "PGRST204")) {
-          const { nome_bm, limite_bm, tem_template, data_criacao, responsavel, destinatario, status_envio, ...payloadFallback } = payloadBase;
-          const res = await supabase.from("estoque").update(payloadFallback).eq("id", itemEditando.id);
-          error = res.error;
-        }
-        if (error) throw error;
-        estoqueSalvoId = itemEditando.id;
-      } else {
-        // INSERT (com tratamento inteligente de constraint de unicidade caso a migração ainda não tenha rodado)
-        let { data: inserido, error } = await supabase
-          .from("estoque")
-          .insert(payloadBase)
-          .select("id")
-          .maybeSingle();
-
-        // Se houver conflito de duplicidade (uq_estoque_empresa_tipo), faz merge somando quantidade
-        if (error && (error.code === "23505" || error.message?.includes("uq_estoque_empresa_tipo"))) {
-          // Busca registro existente daquele tipo de ativo
-          const { data: itemExistente } = await supabase
-            .from("estoque")
-            .select("id, quantidade_disponivel, quantidade_reservada")
-            .eq("empresa_id", empresa.id)
-            .eq("tipo_ativo", tipoAtivoFinal)
-            .maybeSingle();
-
-          if (itemExistente) {
-            const novaQtd = Number(itemExistente.quantidade_disponivel || 0) + Number(payloadBase.quantidade_disponivel || 0);
-            const { error: errUpdate } = await supabase
-              .from("estoque")
-              .update({
-                ...payloadBase,
-                quantidade_disponivel: novaQtd,
-                status: novaQtd > 0 ? "em_estoque" : "esgotado",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", itemExistente.id);
-            if (errUpdate) throw errUpdate;
-            estoqueSalvoId = itemExistente.id;
-            error = null;
-          }
-        }
-
-        // Fallback caso alguma coluna nova não esteja no cache remoto ainda
-        if (error && (error.message?.includes("nome_bm") || (error as any).code === "PGRST204")) {
-          const { nome_bm, limite_bm, tem_template, data_criacao, responsavel, destinatario, status_envio, ...payloadFallback } = payloadBase;
-          const res = await supabase.from("estoque").insert(payloadFallback).select("id").maybeSingle();
-          if (res.data?.id) estoqueSalvoId = res.data.id;
-          error = res.error;
-        }
-
-        if (error) throw error;
-        if (inserido?.id) estoqueSalvoId = inserido.id;
-      }
-
-      // Se o status for "enviada" ou tiver preenchido destinatário, registra no histórico de contas enviadas
+      // 2. Se o status for "enviada" ou tiver destinatário, registra localmente no histórico
       const ehEnviada = statusEnvio === "enviada" || (isBM && Boolean(destinatario.trim()) && statusEnvio !== "disponivel");
       if (ehEnviada) {
         try {
-          await supabase.from("contas_enviadas").insert({
-            empresa_id: empresa.id,
-            bm_id: estoqueSalvoId || null,
-            nome_bm: nomeDigitado || tipoAtivoFinal,
-            limite_bm: limiteEscolhido,
-            destinatario_cliente: destinatario.trim() || "Cliente não informado",
-            responsavel_envio: responsavel.trim() || null,
-            data_envio: dataCriacao || new Date().toISOString().slice(0, 10),
-            custo_unitario: Number(custoMedio.replace(",", ".")) || 0,
-            status_envio: "enviada",
-          } as any);
-        } catch (errHist) {
-          console.warn("Aviso ao registrar histórico de conta enviada:", errHist);
+          await registrarContaEnviadaLocal({
+            data: {
+              empresa_id: empresa.id,
+              bm_id: estoqueSalvoId,
+              nome_bm: nomeDigitado || tipoAtivoFinal,
+              limite_bm: limiteEscolhido,
+              destinatario_cliente: destinatario.trim() || "Cliente não informado",
+              responsavel_envio: responsavel.trim() || null,
+              data_envio: dataCriacao || new Date().toISOString().slice(0, 10),
+              custo_unitario: Number(custoMedio.replace(",", ".")) || 0,
+              valor_venda: 0,
+              status_envio: "enviada",
+            },
+          });
+        } catch (eH) {
+          console.warn("Aviso ao salvar histórico de conta enviada local:", eH);
         }
+      }
+
+      // 3. Fallback assíncrono para o Supabase (sem travar a interface se o Supabase falhar)
+      try {
+        if (itemEditando) {
+          await supabase.from("estoque").update(payloadLocal as any).eq("id", itemEditando.id);
+        } else {
+          await supabase.from("estoque").insert(payloadLocal as any);
+        }
+      } catch (errSupabase) {
+        // Ignora divergência remota; o local já garantiu a persistência
       }
     },
     onSuccess: () => {
@@ -505,16 +477,31 @@ function PaginaEstoque() {
   // Mutation rápida para alternar status (Mover para Contingência / Liberar para Estoque / Bloquear)
   const alterarStatusMutation = useMutation({
     mutationFn: async ({ id, novoStatus, novaOrigem }: { id: string; novoStatus: string; novaOrigem?: string }) => {
-      const payload: any = {
-        status_envio: novoStatus,
-        status: (novoStatus === "disponivel" || novoStatus === "pronta_envio") ? "em_estoque" : novoStatus === "reservada" ? "baixo_estoque" : "esgotado",
-        quantidade_disponivel: (novoStatus === "disponivel" || novoStatus === "pronta_envio") ? 1 : 0,
-        updated_at: new Date().toISOString(),
-      };
-      if (novaOrigem) payload.origem = novaOrigem;
+      if (!empresa?.id) throw new Error("Empresa não identificada.");
+      
+      // 1. Atualiza localmente
+      await alterarStatusEstoqueLocal({
+        data: {
+          id,
+          empresa_id: empresa.id,
+          novoStatus,
+          novaOrigem,
+        },
+      });
 
-      const { error } = await supabase.from("estoque").update(payload).eq("id", id);
-      if (error) throw error;
+      // 2. Tenta refletir no Supabase em segundo plano
+      try {
+        const payload: any = {
+          status_envio: novoStatus,
+          status: (novoStatus === "disponivel" || novoStatus === "pronta_envio") ? "em_estoque" : novoStatus === "reservada" ? "baixo_estoque" : "esgotado",
+          quantidade_disponivel: (novoStatus === "disponivel" || novoStatus === "pronta_envio") ? 1 : 0,
+          updated_at: new Date().toISOString(),
+        };
+        if (novaOrigem) payload.origem = novaOrigem;
+        await supabase.from("estoque").update(payload).eq("id", id);
+      } catch (e) {
+        // Ignora erro remoto
+      }
     },
     onSuccess: (_, variables) => {
       const msg = variables.novoStatus === "disponivel"
@@ -535,11 +522,16 @@ function PaginaEstoque() {
     },
   });
 
-  // Mutation de Excluir
+  // Mutation de Excluir (Persistência Local Integrada)
   const excluirMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("estoque").delete().eq("id", id);
-      if (error) throw error;
+      if (!empresa?.id) throw new Error("Empresa não identificada.");
+      await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
+      try {
+        await supabase.from("estoque").delete().eq("id", id);
+      } catch (e) {
+        // Ignora erro remoto
+      }
     },
     onSuccess: () => {
       toast.success("Item removido do estoque.");
