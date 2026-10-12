@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
+import { listarVendasLocal } from "@/lib/estoque.functions";
 import { formatarData, formatarMoeda } from "@/lib/formatadores";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
@@ -90,6 +91,15 @@ function PaginaVendas() {
     enabled: Boolean(empresa?.id),
     staleTime: 1000 * 60,
     queryFn: async () => {
+      try {
+        const locais = await listarVendasLocal({
+          data: { empresa_id: empresa!.id, status: status !== "todos" ? status : undefined },
+        });
+        if (locais && locais.length > 0) return locais as unknown as Venda[];
+      } catch (errLocal) {
+        console.warn("Aviso ao buscar vendas locais:", errLocal);
+      }
+
       let q = supabase
         .from("vendas")
         .select("id, numero, status, status_entrega, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
@@ -97,7 +107,7 @@ function PaginaVendas() {
         .limit(50);
       if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
       const { data, error } = await q;
-      if (error) throw error;
+      if (error) return [];
       return (data ?? []) as unknown as Venda[];
     },
   });

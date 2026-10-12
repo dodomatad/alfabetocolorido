@@ -88,6 +88,44 @@ export function getLocalDatabase(): DatabaseSync {
     );
 
     CREATE INDEX IF NOT EXISTS idx_contas_enviadas_empresa ON contas_enviadas(empresa_id);
+
+    CREATE TABLE IF NOT EXISTS vendas (
+      id TEXT PRIMARY KEY,
+      empresa_id TEXT NOT NULL,
+      cliente_id TEXT,
+      numero INTEGER NOT NULL,
+      status TEXT DEFAULT 'efetuada',
+      status_entrega TEXT DEFAULT 'entregue',
+      delivery_status TEXT DEFAULT 'entregue',
+      data_venda TEXT,
+      data_entrega_prevista TEXT,
+      desconto REAL DEFAULT 0,
+      acrescimo REAL DEFAULT 0,
+      valor_total REAL DEFAULT 0,
+      observacoes TEXT,
+      cliente_nome TEXT,
+      responsavel_producao_id TEXT,
+      criado_por TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_vendas_empresa ON vendas(empresa_id);
+    CREATE INDEX IF NOT EXISTS idx_vendas_numero ON vendas(empresa_id, numero);
+
+    CREATE TABLE IF NOT EXISTS venda_itens (
+      id TEXT PRIMARY KEY,
+      venda_id TEXT NOT NULL,
+      modalidade_id TEXT,
+      conta_id TEXT,
+      quantidade REAL DEFAULT 1,
+      preco_unitario REAL DEFAULT 0,
+      desconto REAL DEFAULT 0,
+      valor_total REAL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_venda_itens_venda ON venda_itens(venda_id);
   `);
 
   dbInstance = db;

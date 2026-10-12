@@ -42,6 +42,7 @@ import {
   listarEstoqueLocal,
   baixarBmsVendaLocal,
   registrarContaEnviadaLocal,
+  salvarVendaLocal,
 } from "@/lib/estoque.functions";
 import { formatarMoeda } from "@/lib/formatadores";
 import { cn } from "@/lib/utils";
@@ -374,46 +375,70 @@ export function FormularioVenda({
         // Se a coluna delivery_status não existir no banco remoto ainda, faz update sem ela
         if (erroVenda && (erroVenda.message?.includes("delivery_status") || (erroVenda as any).code === "PGRST204")) {
           const { delivery_status: _, ...payloadSemDeliveryStatus } = payloadVenda;
-          const res = await supabase.from("vendas").update(payloadSemDeliveryStatus).eq("id", vendaId);
-          erroVenda = res.error;
+          const retry = await supabase.from("vendas").update(payloadSemDeliveryStatus).eq("id", vendaId);
+          erroVenda = retry.error;
         }
         if (erroVenda) throw erroVenda;
-        
-        // Remove itens antigos
         await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
-      } else {
-        // INSERT
-        const { data: proximo, error: erroNumero } = await (supabase as any).rpc("proximo_numero_venda", {
-          _empresa: empresa.id,
-        });
-        if (erroNumero) throw erroNumero;
-        
-        let novaVendaResult = await supabase
-          .from("vendas")
-          .insert({
-            ...payloadVenda,
-            numero: Number(proximo) || 1,
-            criado_por: session?.user.id ?? null,
-          })
-          .select("id")
-          .single();
+      }
 
-        // Se a coluna delivery_status não existir no banco remoto ainda, insere sem ela
-        if (novaVendaResult.error && (novaVendaResult.error.message?.includes("delivery_status") || (novaVendaResult.error as any).code === "PGRST204")) {
-          const { delivery_status: _, ...payloadSemDeliveryStatus } = payloadVenda;
-          novaVendaResult = await supabase
+      // 1. Persistência Local Garantida da Venda (SQLite via TanStack Start)
+      try {
+        const resVendaLocal = await salvarVendaLocal({
+          data: {
+            id: vendaId || undefined,
+            empresa_id: empresa.id,
+            cliente_id: clienteId || null,
+            cliente_nome: nomeCliente || null,
+            responsavel_producao_id: funcionarioId || null,
+            status,
+            status_entrega: statusFinalEntrega,
+            delivery_status: deliveryStatus,
+            data_venda: dataVenda || new Date().toISOString().slice(0, 10),
+            data_entrega_prevista: dataEntrega || null,
+            desconto: numero(desconto),
+            acrescimo: numero(acrescimo),
+            valor_total: total,
+            observacoes: ((funcionarioId === 'ciro-fornecedor' ? '[FORNECEDOR_CIRO] ' : '') + (observacoes.trim() || '')) || null,
+            criado_por: session?.user.id ?? null,
+            itens: validos.map((i) => ({
+              modalidade_id: i.modalidade_id,
+              conta_id: i.conta_id || (i.contas_ids?.[0]) || null,
+              quantidade: numero(i.quantidade),
+              preco_unitario: numero(i.preco_unitario),
+              desconto: 0,
+              valor_total: numero(i.quantidade) * numero(i.preco_unitario),
+            })),
+          },
+        });
+        vendaSalvaId = resVendaLocal.id;
+      } catch (errLocalVenda) {
+        console.warn("Aviso ao salvar venda localmente:", errLocalVenda);
+      }
+
+      // 2. Sincronização secundária com o Supabase (sem falhar a venda se o remoto falhar)
+      try {
+        if (vendaId) {
+          await supabase.from("vendas").update(payloadVenda).eq("id", vendaId);
+          await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+        } else {
+          const { data: proximo } = await (supabase as any).rpc("proximo_numero_venda", {
+            _empresa: empresa.id,
+          });
+          const numV = Number(proximo) || 1;
+          const { data: novaV } = await supabase
             .from("vendas")
             .insert({
-              ...payloadSemDeliveryStatus,
-              numero: Number(proximo) || 1,
+              ...payloadVenda,
+              numero: numV,
               criado_por: session?.user.id ?? null,
             })
             .select("id")
-            .single();
+            .maybeSingle();
+          if (novaV?.id) vendaSalvaId = novaV.id;
         }
-
-        if (novaVendaResult.error) throw novaVendaResult.error;
-        vendaSalvaId = novaVendaResult.data.id;
+      } catch (errRemotoVenda) {
+        // Ignora erro remoto caso offline/sem conexão
       }
 
       // Sincroniza / cadastra entrega vinculada à venda com cliente e destinatário corretos

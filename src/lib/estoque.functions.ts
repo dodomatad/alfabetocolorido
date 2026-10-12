@@ -404,3 +404,144 @@ export const registrarContaEnviadaLocal = createServerFn({ method: "POST" })
 
     return { id, sucesso: true };
   });
+
+// 9. Salvar venda local com número sequencial por empresa e itens vinculados
+export const salvarVendaLocal = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z.object({
+      id: z.string().optional(),
+      empresa_id: z.string(),
+      cliente_id: z.string().nullable().optional(),
+      cliente_nome: z.string().nullable().optional(),
+      responsavel_producao_id: z.string().nullable().optional(),
+      status: z.string().default("efetuada"),
+      status_entrega: z.string().default("entregue"),
+      delivery_status: z.string().default("entregue"),
+      data_venda: z.string(),
+      data_entrega_prevista: z.string().nullable().optional(),
+      desconto: z.number().default(0),
+      acrescimo: z.number().default(0),
+      valor_total: z.number().default(0),
+      observacoes: z.string().nullable().optional(),
+      criado_por: z.string().nullable().optional(),
+      itens: z.array(
+        z.object({
+          modalidade_id: z.string(),
+          conta_id: z.string().nullable().optional(),
+          quantidade: z.number(),
+          preco_unitario: z.number(),
+          desconto: z.number().default(0),
+          valor_total: z.number(),
+        })
+      ),
+    }).parse(data)
+  )
+  .handler(async ({ data }) => {
+    const db = getLocalDatabase();
+    const now = new Date().toISOString();
+    const vendaId = data.id || crypto.randomUUID();
+
+    db.exec("BEGIN IMMEDIATE TRANSACTION;");
+    try {
+      let numeroVenda = 1;
+      if (data.id) {
+        const rowExistente = db.prepare("SELECT numero FROM vendas WHERE id = ?").get(data.id) as any;
+        if (rowExistente) numeroVenda = rowExistente.numero;
+      } else {
+        const maxRow = db.prepare("SELECT MAX(numero) as max_num FROM vendas WHERE empresa_id = ?").get(data.empresa_id) as any;
+        numeroVenda = (Number(maxRow?.max_num) || 0) + 1;
+      }
+
+      db.prepare(`
+        INSERT INTO vendas (
+          id, empresa_id, cliente_id, numero, status, status_entrega,
+          delivery_status, data_venda, data_entrega_prevista, desconto,
+          acrescimo, valor_total, observacoes, cliente_nome, responsavel_producao_id,
+          criado_por, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          cliente_id = excluded.cliente_id,
+          status = excluded.status,
+          status_entrega = excluded.status_entrega,
+          delivery_status = excluded.delivery_status,
+          data_venda = excluded.data_venda,
+          data_entrega_prevista = excluded.data_entrega_prevista,
+          desconto = excluded.desconto,
+          acrescimo = excluded.acrescimo,
+          valor_total = excluded.valor_total,
+          observacoes = excluded.observacoes,
+          cliente_nome = excluded.cliente_nome,
+          responsavel_producao_id = excluded.responsavel_producao_id,
+          updated_at = excluded.updated_at
+      `).run(
+        vendaId,
+        data.empresa_id,
+        data.cliente_id ?? null,
+        numeroVenda,
+        data.status,
+        data.status_entrega,
+        data.delivery_status,
+        data.data_venda,
+        data.data_entrega_prevista ?? null,
+        data.desconto,
+        data.acrescimo,
+        data.valor_total,
+        data.observacoes ?? null,
+        data.cliente_nome ?? null,
+        data.responsavel_producao_id ?? null,
+        data.criado_por ?? null,
+        now
+      );
+
+      // Limpar itens anteriores caso edição
+      db.prepare("DELETE FROM venda_itens WHERE venda_id = ?").run(vendaId);
+
+      const stmtItem = db.prepare(`
+        INSERT INTO venda_itens (
+          id, venda_id, modalidade_id, conta_id, quantidade,
+          preco_unitario, desconto, valor_total, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      for (const item of data.itens) {
+        stmtItem.run(
+          crypto.randomUUID(),
+          vendaId,
+          item.modalidade_id,
+          item.conta_id ?? null,
+          item.quantidade,
+          item.preco_unitario,
+          item.desconto,
+          item.valor_total,
+          now
+        );
+      }
+
+      db.exec("COMMIT;");
+      return { id: vendaId, numero: numeroVenda, sucesso: true };
+    } catch (err) {
+      db.exec("ROLLBACK;");
+      throw err;
+    }
+  });
+
+// 10. Listar vendas locais
+export const listarVendasLocal = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ empresa_id: z.string(), status: z.string().optional() }).parse(data))
+  .handler(async ({ data }) => {
+    const db = getLocalDatabase();
+    let query = "SELECT * FROM vendas WHERE empresa_id = ?";
+    const params: any[] = [data.empresa_id];
+
+    if (data.status && data.status !== "todos") {
+      query += " AND status = ?";
+      params.push(data.status);
+    }
+    query += " ORDER BY numero DESC LIMIT 50";
+
+    const rows = db.prepare(query).all(...params) as any[];
+    return rows.map((r) => ({
+      ...r,
+      clientes: r.cliente_nome ? { nome: r.cliente_nome } : null,
+    }));
+  });
