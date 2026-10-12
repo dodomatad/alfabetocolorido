@@ -381,12 +381,14 @@ function Pagina() {
           }
         }
       } else {
-        const { error } = await tabela().insert({
+        const { data: novoReg, error } = await tabela().insert({
           ...dados,
           criado_por: session?.user.id ?? null,
-        } as any);
+        } as any).select("id").maybeSingle();
         if (error) throw error;
         
+        const producaoId = novoReg?.id || null;
+
         // Cadastra individualmente no Estoque se for BM com nome específico
         if (isBM && dados.nome_bm) {
           const nomeClean = dados.nome_bm.trim();
@@ -409,12 +411,14 @@ function Pagina() {
             quantidade_reservada: dados.status_envio === "reservada" ? (dados.quantidade || 1) : 0,
             status: dados.status_envio === "enviada" ? "esgotado" : "em_estoque",
             custo_medio_unitario: 0,
+            origem: "producao",
+            producao_id: producaoId,
           };
 
           let { error: errEst } = await supabase.from("estoque").insert(payloadEstoque);
-          if (errEst && (errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
-            const { nome_bm, limite_bm, tem_template, data_criacao, responsavel, destinatario, status_envio, ...payloadFallback } = payloadEstoque;
-            await supabase.from("estoque").insert(payloadFallback);
+          if (errEst && (errEst.message?.includes("origem") || errEst.message?.includes("producao_id") || errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
+            const { origem, producao_id, contingencia_id, ...payloadFallback } = payloadEstoque;
+            await supabase.from("estoque").insert(payloadFallback as any);
           }
         }
 
@@ -448,6 +452,8 @@ function Pagina() {
               quantidade_disponivel: qtdParaPool,
               quantidade_reservada: 0,
               status: "em_estoque",
+              origem: "producao",
+              producao_id: producaoId,
             } as any);
           }
         }
@@ -459,6 +465,8 @@ function Pagina() {
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["contingencia"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["stock"] });
       setAberto(false);
       setEditando(null);

@@ -419,6 +419,7 @@ export type Database = {
       }
       estoque: {
         Row: {
+          contingencia_id: string | null
           custo_medio_unitario: number | null
           data_criacao: string | null
           destinatario: string | null
@@ -426,6 +427,8 @@ export type Database = {
           id: string
           limite_bm: string | null
           nome_bm: string | null
+          origem: string | null
+          producao_id: string | null
           quantidade_disponivel: number
           quantidade_reservada: number
           responsavel: string | null
@@ -436,6 +439,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          contingencia_id?: string | null
           custo_medio_unitario?: number | null
           data_criacao?: string | null
           destinatario?: string | null
@@ -443,6 +447,8 @@ export type Database = {
           id?: string
           limite_bm?: string | null
           nome_bm?: string | null
+          origem?: string | null
+          producao_id?: string | null
           quantidade_disponivel?: number
           quantidade_reservada?: number
           responsavel?: string | null
@@ -453,6 +459,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          contingencia_id?: string | null
           custo_medio_unitario?: number | null
           data_criacao?: string | null
           destinatario?: string | null
@@ -460,6 +467,8 @@ export type Database = {
           id?: string
           limite_bm?: string | null
           nome_bm?: string | null
+          origem?: string | null
+          producao_id?: string | null
           quantidade_disponivel?: number
           quantidade_reservada?: number
           responsavel?: string | null
@@ -475,6 +484,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_producao_id_fkey"
+            columns: ["producao_id"]
+            isOneToOne: false
+            referencedRelation: "producao_diaria"
             referencedColumns: ["id"]
           },
         ]

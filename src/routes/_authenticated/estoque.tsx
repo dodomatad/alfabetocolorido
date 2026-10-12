@@ -18,7 +18,10 @@ import {
   Calendar,
   History,
   DollarSign,
-  ExternalLink
+  ExternalLink,
+  Factory,
+  Shield,
+  Info
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +34,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -99,6 +107,9 @@ type ItemEstoque = {
   quantidade_reservada: number;
   custo_medio_unitario: number | null;
   status: string;
+  origem?: string | null;
+  producao_id?: string | null;
+  contingencia_id?: string | null;
   updated_at?: string;
 };
 
@@ -472,6 +483,39 @@ function PaginaEstoque() {
     },
   });
 
+  // Mutation rápida para alternar status (Mover para Contingência / Liberar para Estoque / Bloquear)
+  const alterarStatusMutation = useMutation({
+    mutationFn: async ({ id, novoStatus, novaOrigem }: { id: string; novoStatus: string; novaOrigem?: string }) => {
+      const payload: any = {
+        status_envio: novoStatus,
+        status: (novoStatus === "disponivel" || novoStatus === "pronta_envio") ? "em_estoque" : novoStatus === "reservada" ? "baixo_estoque" : "esgotado",
+        quantidade_disponivel: (novoStatus === "disponivel" || novoStatus === "pronta_envio") ? 1 : 0,
+        updated_at: new Date().toISOString(),
+      };
+      if (novaOrigem) payload.origem = novaOrigem;
+
+      const { error } = await supabase.from("estoque").update(payload).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      const msg = variables.novoStatus === "disponivel"
+        ? "✓ Ativo liberado para Estoque Disponível!"
+        : variables.novoStatus === "reservada"
+        ? "🛡️ Ativo alocado para Contingência!"
+        : "⚠️ Ativo marcado como Esgotado / Bloqueado.";
+      toast.success(msg);
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao alterar status do ativo", { description: err.message });
+    },
+  });
+
   // Mutation de Excluir
   const excluirMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -506,10 +550,12 @@ function PaginaEstoque() {
         if (!bateNome && !bateTipo && !bateResp && !bateDest && !bateLimite) return false;
       }
 
-      // Filtro por Tipo
+      // Filtro por Tipo / Origem
       if (filtroTipo !== "todos") {
         if (filtroTipo === "bm" && !item.tipo_ativo.toUpperCase().startsWith("BM")) return false;
         if (filtroTipo === "perfil" && !item.tipo_ativo.toLowerCase().includes("perfil")) return false;
+        if (filtroTipo === "producao" && item.origem !== "producao") return false;
+        if (filtroTipo === "contingencia" && item.origem !== "contingencia") return false;
       }
 
       // Filtro por Status
@@ -558,13 +604,15 @@ function PaginaEstoque() {
 
         <div className="flex items-center gap-2">
           <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-            <SelectTrigger className="w-[140px] h-9 text-xs">
-              <SelectValue placeholder="Tipo de Ativo" />
+            <SelectTrigger className="w-[150px] h-9 text-xs">
+              <SelectValue placeholder="Tipo / Origem" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos os Tipos</SelectItem>
+              <SelectItem value="todos">Todos os Ativos</SelectItem>
               <SelectItem value="bm">Apenas BMs</SelectItem>
               <SelectItem value="perfil">Apenas Perfis</SelectItem>
+              <SelectItem value="producao">⚙️ Da Produção</SelectItem>
+              <SelectItem value="contingencia">🛡️ Contingência</SelectItem>
             </SelectContent>
           </Select>
 
@@ -650,7 +698,7 @@ function PaginaEstoque() {
                           {/* Nome do Ativo */}
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="font-semibold text-sm text-foreground flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm text-foreground flex items-center gap-1.5 flex-wrap">
                                 {ehBm ? (
                                   <>
                                     <Sparkles className="size-3.5 text-blue-400 shrink-0" />
@@ -672,6 +720,52 @@ function PaginaEstoque() {
                                   </>
                                 ) : (
                                   <span>{item.tipo_ativo}</span>
+                                )}
+
+                                {/* Badge de Origem Integrada: Produção ou Contingência */}
+                                {item.origem === "producao" && (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button 
+                                        type="button"
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-900/50 transition-colors"
+                                        title="Clique para detalhes da produção"
+                                      >
+                                        <Factory className="size-2.5" />
+                                        <span>Produção</span>
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-64 p-3 text-xs bg-popover border-border/60 shadow-lg space-y-2">
+                                      <div className="flex items-center gap-1.5 font-bold text-cyan-400 border-b border-border/40 pb-1.5">
+                                        <Factory className="size-3.5" />
+                                        <span>Ativo Criado na Produção</span>
+                                      </div>
+                                      <div className="space-y-1 text-muted-foreground">
+                                        <div className="flex justify-between">
+                                          <span>Responsável:</span>
+                                          <span className="text-foreground font-medium">{item.responsavel || "Equipe"}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Data de Entrada:</span>
+                                          <span className="text-foreground font-medium">{item.data_criacao ? formatarData(item.data_criacao, fuso) : "—"}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Status no Estoque:</span>
+                                          <span className="text-foreground font-medium">{item.status_envio || "Disponível"}</span>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
+
+                                {item.origem === "contingencia" && (
+                                  <span 
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-500/30"
+                                    title="Alocado da contingência"
+                                  >
+                                    <Shield className="size-2.5" />
+                                    <span>Contingência</span>
+                                  </span>
                                 )}
                               </span>
                               <span className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
@@ -779,6 +873,29 @@ function PaginaEstoque() {
                           {/* Ações */}
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              {/* Ação rápida de Contingência / Liberação */}
+                              {item.origem === "contingencia" || (item.status_envio === "reservada") ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-emerald-400/80 hover:text-emerald-400 hover:bg-emerald-500/10"
+                                  onClick={() => alterarStatusMutation.mutate({ id: item.id, novoStatus: "disponivel", novaOrigem: "producao" })}
+                                  title="Liberar para Estoque Disponível"
+                                >
+                                  <Package className="size-3.5" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-purple-400/80 hover:text-purple-400 hover:bg-purple-500/10"
+                                  onClick={() => alterarStatusMutation.mutate({ id: item.id, novoStatus: "reservada", novaOrigem: "contingencia" })}
+                                  title="Mover para Contingência (Reserva)"
+                                >
+                                  <Shield className="size-3.5" />
+                                </Button>
+                              )}
+
                               {temPermissao("estoque", "editar") && (
                                 <Button
                                   variant="ghost"
