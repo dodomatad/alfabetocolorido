@@ -258,6 +258,7 @@ function Pagina() {
     recebidas_fornecedor: "0",
     observacoes: "",
     nome_bm: "",
+    nomes_bm: "",
     limite_bm: "250",
     tem_template: "false",
     data_criacao: iso(new Date()),
@@ -266,21 +267,26 @@ function Pagina() {
     quantidade: "1",
   });
   const [form, setForm] = useState<Record<string, string>>(criarFormVazio);
+  const [nomesBmLista, setNomesBmLista] = useState<string[]>([""]);
 
   useEffect(() => {
     if (!aberto && !editando) {
       setForm(criarFormVazio());
+      setNomesBmLista([""]);
     }
   }, [aberto, editando]);
 
   const abrirNovo = () => {
     setEditando(null);
     setForm(criarFormVazio());
+    setNomesBmLista([""]);
     setAberto(true);
   };
 
   const abrirEdicao = (r: Registro) => {
     setEditando(r);
+    const nomeOriginal = (r as any).nome_bm ?? "";
+    setNomesBmLista(nomeOriginal ? [nomeOriginal] : [""]);
     setForm({
       operador: r.operador,
       data_registro: r.data_registro,
@@ -291,7 +297,8 @@ function Pagina() {
       recebidas_fornecedor: String((r as any).recebidas_fornecedor || 0),
       motivo_queda: r.motivo_queda ?? "",
       observacoes: r.observacoes ?? "",
-      nome_bm: (r as any).nome_bm ?? "",
+      nome_bm: nomeOriginal,
+      nomes_bm: nomeOriginal,
       limite_bm: (r as any).limite_bm ?? "250",
       tem_template: String((r as any).tem_template ?? false),
       data_criacao: (r as any).data_criacao ?? r.data_registro ?? iso(new Date()),
@@ -389,42 +396,62 @@ function Pagina() {
         
         const producaoId = novoReg?.id || null;
 
-        // Cadastra individualmente no Estoque se for BM com nome específico
-        if (isBM && dados.nome_bm) {
-          const nomeClean = dados.nome_bm.trim();
+        // Extrai todos os nomes preenchidos (lote de BMs)
+        const nomesValidos = nomesBmLista
+          .map((n) => n.trim())
+          .filter((n) => n.length > 0);
+        
+        // Se a lista estiver vazia mas tiver dados.nome_bm, usa ele
+        if (nomesValidos.length === 0 && dados.nome_bm?.trim()) {
+          nomesValidos.push(dados.nome_bm.trim());
+        }
+
+        // Cadastra individualmente no Estoque para CADA nome de BM preenchido
+        if (isBM && nomesValidos.length > 0) {
           const limite = dados.limite_bm || dados.tipo_bm.replace("BM ", "");
-          const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite.toLowerCase())
-            ? nomeClean
-            : `${nomeClean} [${limite}]`;
+          const statusEnvioAlvo = dados.status_envio || "disponivel";
+          const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
+          const estaReservada = statusEnvioAlvo === "reservada";
 
-          const payloadEstoque: any = {
-            empresa_id: empresa.id,
-            tipo_ativo: tipoAtivoFinal,
-            nome_bm: nomeClean,
-            limite_bm: limite,
-            tem_template: dados.tem_template,
-            data_criacao: dados.data_criacao,
-            responsavel: dados.operador,
-            destinatario: dados.destinatario,
-            status_envio: dados.status_envio,
-            quantidade_disponivel: (dados.status_envio === "disponivel" || dados.status_envio === "pronta_envio") ? (dados.quantidade || 1) : 0,
-            quantidade_reservada: dados.status_envio === "reservada" ? (dados.quantidade || 1) : 0,
-            status: dados.status_envio === "enviada" ? "esgotado" : "em_estoque",
-            custo_medio_unitario: 0,
-            origem: "producao",
-            producao_id: producaoId,
-          };
+          const recordsToInsert = nomesValidos.map((nomeClean) => {
+            const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite.toLowerCase())
+              ? nomeClean
+              : `${nomeClean} [${limite}]`;
 
-          let { error: errEst } = await supabase.from("estoque").insert(payloadEstoque);
+            return {
+              empresa_id: empresa.id,
+              tipo_ativo: tipoAtivoFinal,
+              nome_bm: nomeClean,
+              limite_bm: limite,
+              tem_template: dados.tem_template,
+              data_criacao: dados.data_criacao,
+              responsavel: dados.operador,
+              destinatario: dados.destinatario,
+              status_envio: statusEnvioAlvo,
+              quantidade_disponivel: estaDisponivel ? 1 : 0,
+              quantidade_reservada: estaReservada ? 1 : 0,
+              status: statusEnvioAlvo === "enviada" ? "esgotado" : estaReservada ? "baixo_estoque" : "em_estoque",
+              custo_medio_unitario: 0,
+              origem: "producao",
+              producao_id: producaoId,
+            };
+          });
+
+          // Inserção em lote (batch insert)
+          let { error: errEst } = await supabase.from("estoque").insert(recordsToInsert as any);
           if (errEst && (errEst.message?.includes("origem") || errEst.message?.includes("producao_id") || errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
-            const { origem, producao_id, contingencia_id, ...payloadFallback } = payloadEstoque;
-            await supabase.from("estoque").insert(payloadFallback as any);
+            const recordsFallback = recordsToInsert.map((rec) => {
+              const { origem, producao_id, contingencia_id, ...fallback } = rec as any;
+              return fallback;
+            });
+            await supabase.from("estoque").insert(recordsFallback as any);
           }
         }
 
         // Atualiza ou insere saldo agregado de estoque para reflexo imediato no dashboard
-        const qtdParaPool = (isBM && dados.nome_bm)
-          ? Math.max(0, totalLiquidoEstoque - (dados.quantidade || 1))
+        const totalBmsNomeadas = nomesValidos.length;
+        const qtdParaPool = (isBM && totalBmsNomeadas > 0)
+          ? Math.max(0, totalLiquidoEstoque - totalBmsNomeadas)
           : totalLiquidoEstoque;
 
         if (qtdParaPool > 0) {
@@ -460,7 +487,13 @@ function Pagina() {
       }
     },
     onSuccess: () => {
-      toast.success(editando ? "Registro atualizado." : "Produção registrada.");
+      const nomesValidos = nomesBmLista.map((n) => n.trim()).filter((n) => n.length > 0);
+      const qtdBms = nomesValidos.length;
+      if (qtdBms > 1) {
+        toast.success(`✓ ${qtdBms} BMs adicionadas com sucesso à produção e ao estoque!`);
+      } else {
+        toast.success(editando ? "Registro atualizado com sucesso." : "Produção registrada com sucesso.");
+      }
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
@@ -471,6 +504,7 @@ function Pagina() {
       setAberto(false);
       setEditando(null);
       setForm(criarFormVazio());
+      setNomesBmLista([""]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -907,6 +941,7 @@ function Pagina() {
                   <BmOperationalForm
                     data={{
                       nomeBm: form["nome_bm"] || "",
+                      nomesBm: nomesBmLista,
                       limiteBm: form["limite_bm"] || (form["tipo_bm"]?.replace("BM ", "") || "250"),
                       temTemplate: form["tem_template"] === "true",
                       dataCriacao: form["data_criacao"] || form["data_registro"] || iso(new Date()),
@@ -916,7 +951,24 @@ function Pagina() {
                       quantidade: form["quantidade"] || "1",
                     }}
                     onChange={(campo, val) => {
-                      if (campo === "nomeBm") setForm((a) => ({ ...a, nome_bm: val as string }));
+                      if (campo === "nomesBm") {
+                        const lista = (val as string[]) || [""];
+                        setNomesBmLista(lista);
+                        const primeiro = lista[0] || "";
+                        setForm((a) => {
+                          const validos = lista.filter((n) => n.trim().length > 0).length;
+                          const qtdStr = String(Math.max(1, validos || 1));
+                          const bmsCriadasAtual = a["bms_criadas"] || "";
+                          return {
+                            ...a,
+                            nome_bm: primeiro,
+                            nomes_bm: lista.join("\n"),
+                            quantidade: qtdStr,
+                            bms_criadas: bmsCriadasAtual || (validos > 0 ? String(validos) : ""),
+                          };
+                        });
+                      }
+                      else if (campo === "nomeBm") setForm((a) => ({ ...a, nome_bm: val as string }));
                       else if (campo === "limiteBm") {
                         setForm((a) => ({
                           ...a,
@@ -935,6 +987,7 @@ function Pagina() {
                     clientesOptions={consultaClientes.data || []}
                     mostrarQuantidade={true}
                     mostrarCusto={false}
+                    permitirMultiplosNomes={true}
                     datalistSuffix="producao"
                   />
                 </div>

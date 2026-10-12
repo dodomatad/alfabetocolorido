@@ -1,7 +1,8 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -24,6 +25,7 @@ export const STATUS_ENVIO_PADRAO = [
 
 export type BmOperationalData = {
   nomeBm: string;
+  nomesBm?: string[];
   limiteBm: string;
   temTemplate: boolean;
   dataCriacao: string;
@@ -42,6 +44,7 @@ export interface BmOperationalFormProps {
   statusOptions?: { valor: string; rotulo: string }[];
   mostrarQuantidade?: boolean;
   mostrarCusto?: boolean;
+  permitirMultiplosNomes?: boolean;
   datalistSuffix?: string;
 }
 
@@ -53,10 +56,70 @@ export function BmOperationalForm({
   statusOptions = STATUS_ENVIO_PADRAO,
   mostrarQuantidade = true,
   mostrarCusto = false,
+  permitirMultiplosNomes = true,
   datalistSuffix = "bm",
 }: BmOperationalFormProps) {
   const listaRespId = `lista-resp-${datalistSuffix}`;
   const listaDestId = `lista-dest-${datalistSuffix}`;
+
+  // Lista dinâmica de nomes de BMs
+  const listaNomes = React.useMemo(() => {
+    if (data.nomesBm && data.nomesBm.length > 0) {
+      return data.nomesBm;
+    }
+    return [data.nomeBm || ""];
+  }, [data.nomesBm, data.nomeBm]);
+
+  const atualizarListaNomes = (novaLista: string[]) => {
+    const listaLimpa = novaLista.length > 0 ? novaLista : [""];
+    onChange("nomesBm", listaLimpa);
+    onChange("nomeBm", listaLimpa[0] || "");
+    const preenchidos = listaLimpa.filter((n) => n.trim().length > 0).length;
+    onChange("quantidade", String(Math.max(1, preenchidos || 1)));
+  };
+
+  const handleNomeChange = (index: number, valor: string) => {
+    // Se o usuário colou texto com quebras de linha
+    if (valor.includes("\n")) {
+      const linhas = valor.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (linhas.length > 1) {
+        const nova = [...listaNomes];
+        nova.splice(index, 1, ...linhas);
+        atualizarListaNomes(nova);
+        return;
+      }
+    }
+    const nova = [...listaNomes];
+    nova[index] = valor;
+    atualizarListaNomes(nova);
+  };
+
+  const handlePaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
+    const textoColado = e.clipboardData.getData("text");
+    if (textoColado && textoColado.includes("\n")) {
+      e.preventDefault();
+      const linhas = textoColado.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (linhas.length > 0) {
+        const nova = [...listaNomes];
+        nova.splice(index, 1, ...linhas);
+        atualizarListaNomes(nova);
+      }
+    }
+  };
+
+  const adicionarLinhaNome = () => {
+    const nova = [...listaNomes, ""];
+    atualizarListaNomes(nova);
+  };
+
+  const removerLinhaNome = (index: number) => {
+    if (listaNomes.length <= 1) {
+      atualizarListaNomes([""]);
+      return;
+    }
+    const nova = listaNomes.filter((_, i) => i !== index);
+    atualizarListaNomes(nova);
+  };
 
   return (
     <div className="space-y-4 rounded-xl border border-blue-500/20 bg-blue-950/10 p-4">
@@ -67,18 +130,54 @@ export function BmOperationalForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {/* Nome da BM */}
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor={`bm-nome-${datalistSuffix}`} className="text-xs font-medium">
-            Nome da BM
-          </Label>
-          <Input
-            id={`bm-nome-${datalistSuffix}`}
-            placeholder="Ex: BM Matriz 01"
-            value={data.nomeBm}
-            onChange={(e) => onChange("nomeBm", e.target.value)}
-            className="bg-background/60"
-          />
+        {/* Nome da BM - Lista dinâmica com suporte a múltiplos itens */}
+        <div className="space-y-2 sm:col-span-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`bm-nome-${datalistSuffix}-0`} className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+              <span>{listaNomes.length > 1 ? `Nomes das BMs (${listaNomes.length})` : "Nome da BM"}</span>
+              <span className="text-[10px] font-normal text-muted-foreground">(cole múltiplas linhas para lote)</span>
+            </Label>
+            {permitirMultiplosNomes && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={adicionarLinhaNome}
+                className="h-6 px-2 text-[11px] gap-1 bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:text-white"
+                title="Adicionar mais um nome de BM"
+              >
+                <Plus className="size-3" />
+                <span>+ Adicionar BM</span>
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {listaNomes.map((nome, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  id={`bm-nome-${datalistSuffix}-${index}`}
+                  placeholder={listaNomes.length > 1 ? `BM ${index + 1} (Ex: BM Matriz 0${index + 1})` : "Ex: BM Matriz 01"}
+                  value={nome}
+                  onChange={(e) => handleNomeChange(index, e.target.value)}
+                  onPaste={(e) => handlePaste(index, e)}
+                  className="bg-background/60 h-9 text-xs"
+                />
+                {listaNomes.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removerLinhaNome(index)}
+                    className="size-9 shrink-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                    title="Remover este nome"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* STATUS / LIMITE DA BM (Segmented Control / Botões Selecionáveis) */}
