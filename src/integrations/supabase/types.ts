@@ -479,6 +479,77 @@ export type Database = {
           },
         ]
       }
+      historico_envios_estoque: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string
+          conta_id: string | null
+          created_at: string | null
+          data_entrega: string
+          empresa_id: string
+          id: string
+          nome_conta: string
+          status_entrega: string
+          valor_venda: number | null
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          cliente_nome: string
+          conta_id?: string | null
+          created_at?: string | null
+          data_entrega?: string
+          empresa_id: string
+          id?: string
+          nome_conta: string
+          status_entrega?: string
+          valor_venda?: number | null
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          cliente_nome?: string
+          conta_id?: string | null
+          created_at?: string | null
+          data_entrega?: string
+          empresa_id?: string
+          id?: string
+          nome_conta?: string
+          status_entrega?: string
+          valor_venda?: number | null
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_envios_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_envios_estoque_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_envios_estoque_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_envios_estoque_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
@@ -1215,6 +1286,7 @@ export type Database = {
       }
       venda_itens: {
         Row: {
+          conta_id: string | null
           created_at: string
           desconto: number
           id: string
@@ -1225,6 +1297,7 @@ export type Database = {
           venda_id: string
         }
         Insert: {
+          conta_id?: string | null
           created_at?: string
           desconto?: number
           id?: string
@@ -1235,6 +1308,7 @@ export type Database = {
           venda_id: string
         }
         Update: {
+          conta_id?: string | null
           created_at?: string
           desconto?: number
           id?: string

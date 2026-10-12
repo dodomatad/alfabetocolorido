@@ -26,9 +26,14 @@ import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarMoeda } from "@/lib/formatadores";
 
-type Item = { modalidade_id: string; quantidade: string; preco_unitario: string };
+type Item = { 
+  modalidade_id: string; 
+  quantidade: string; 
+  preco_unitario: string;
+  conta_id?: string;
+};
 
-const ITEM_VAZIO: Item = { modalidade_id: "", quantidade: "1", preco_unitario: "0" };
+const ITEM_VAZIO: Item = { modalidade_id: "", quantidade: "1", preco_unitario: "0", conta_id: "" };
 
 const STATUS_INICIAIS = [
   { valor: "rascunho", rotulo: "Rascunho" },
@@ -142,6 +147,7 @@ export function FormularioVenda({
           modalidade_id: i.modalidade_id || "",
           quantidade: i.quantidade?.toString() || "1",
           preco_unitario: i.preco_unitario?.toString() || "0",
+          conta_id: i.conta_id || "",
         })));
       } else {
         setItens([{ ...ITEM_VAZIO }]);
@@ -210,6 +216,26 @@ export function FormularioVenda({
         .order("nome");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  // Consulta de Contas e BMs disponíveis no Estoque para seleção individual
+  const contasEstoqueQuery = useQuery({
+    queryKey: ["estoque-disponivel-venda", empresa?.id],
+    enabled: Boolean(empresa?.id) && aberto,
+    staleTime: 1000 * 60 * 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estoque")
+        .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio")
+        .eq("empresa_id", empresa!.id)
+        .gt("quantidade_disponivel", 0)
+        .order("tipo_ativo");
+      if (error) {
+        console.warn("Aviso ao buscar estoque disponível:", error);
+        return [];
+      }
+      return data || [];
     },
   });
 
@@ -370,7 +396,7 @@ export function FormularioVenda({
         }
       }
 
-      // Insere os novos itens
+      // Insere os novos itens (incluindo conta_id se selecionada)
       const { error: erroItens } = await supabase.from("venda_itens").insert(
         validos.map((i) => ({
           venda_id: vendaSalvaId,
@@ -379,9 +405,23 @@ export function FormularioVenda({
           preco_unitario: numero(i.preco_unitario),
           desconto: 0,
           valor_total: numero(i.quantidade) * numero(i.preco_unitario),
+          ...(i.conta_id ? { conta_id: i.conta_id } : {}),
         })),
       );
-      if (erroItens) throw erroItens;
+      if (erroItens) {
+        // Fallback caso a coluna conta_id não exista ainda no schema remoto de venda_itens
+        const { error: erroItensSemContaId } = await supabase.from("venda_itens").insert(
+          validos.map((i) => ({
+            venda_id: vendaSalvaId,
+            modalidade_id: i.modalidade_id,
+            quantidade: numero(i.quantidade),
+            preco_unitario: numero(i.preco_unitario),
+            desconto: 0,
+            valor_total: numero(i.quantidade) * numero(i.preco_unitario),
+          })),
+        );
+        if (erroItensSemContaId) throw erroItensSemContaId;
+      }
 
       // Baixa automática no estoque para os itens vendidos e registro de histórico se entregue
       for (const itemVenda of validos) {
@@ -389,52 +429,99 @@ export function FormularioVenda({
         const qtdVendida = numero(itemVenda.quantidade);
         const nomeMod = mod?.nome || "BM";
         const codigoMod = mod?.codigo || "";
+        const dataDespacho = dataRealizadaFinal || dataVenda || new Date().toISOString().slice(0, 10);
+        const nomeRespEnvio = (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null;
 
         // Tentar identificar o limite ou nome correspondente no estoque
         const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || codigoMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
 
         try {
-          // 1. Busca itens de estoque disponíveis correspondentes
-          const { data: itensEstoqueDisp } = await supabase
-            .from("estoque")
-            .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
-            .eq("empresa_id", empresa.id)
-            .gt("quantidade_disponivel", 0)
-            .order("quantidade_disponivel", { ascending: true });
+          let estoqueCorrespondente: any = null;
 
-          if (itensEstoqueDisp && itensEstoqueDisp.length > 0) {
-            // Encontra item que melhor corresponde ao limite ou tipo
-            let estoqueCorrespondente = itensEstoqueDisp.find((e) => {
-              const limE = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
-              return limiteAlvo && limE === limiteAlvo;
-            }) || itensEstoqueDisp.find((e) => e.tipo_ativo.toLowerCase().includes(nomeMod.toLowerCase())) || itensEstoqueDisp[0];
+          // 1. Se o usuário selecionou uma conta específica do estoque
+          if (itemVenda.conta_id) {
+            const { data: contaEspecifica } = await supabase
+              .from("estoque")
+              .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
+              .eq("id", itemVenda.conta_id)
+              .maybeSingle();
+            if (contaEspecifica) {
+              estoqueCorrespondente = contaEspecifica;
+            }
+          }
 
-            if (estoqueCorrespondente) {
-              const novaQtd = Math.max(0, Number(estoqueCorrespondente.quantidade_disponivel) - qtdVendida);
-              await supabase
-                .from("estoque")
-                .update({
-                  quantidade_disponivel: novaQtd,
-                  status: novaQtd === 0 ? "esgotado" : "em_estoque",
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", estoqueCorrespondente.id);
+          // 2. Se não selecionou conta específica (modo automático), busca item disponível no pool correspondente
+          if (!estoqueCorrespondente) {
+            const { data: itensEstoqueDisp } = await supabase
+              .from("estoque")
+              .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
+              .eq("empresa_id", empresa.id)
+              .gt("quantidade_disponivel", 0)
+              .order("quantidade_disponivel", { ascending: true });
 
-              // 2. Se a venda ou entrega já for despachada/entregue ou tiver cliente definido, registra em contas_enviadas
-              if (nomeCliente || deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada") {
+            if (itensEstoqueDisp && itensEstoqueDisp.length > 0) {
+              estoqueCorrespondente = itensEstoqueDisp.find((e) => {
+                const limE = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
+                return limiteAlvo && limE === limiteAlvo;
+              }) || itensEstoqueDisp.find((e) => e.tipo_ativo.toLowerCase().includes(nomeMod.toLowerCase())) || itensEstoqueDisp[0];
+            }
+          }
+
+          if (estoqueCorrespondente) {
+            const novaQtd = Math.max(0, Number(estoqueCorrespondente.quantidade_disponivel) - qtdVendida);
+            const statusAtualizadoEstoque = novaQtd === 0 ? "esgotado" : "em_estoque";
+            const statusEnvioEstoque = deliveryStatus === "entregue" ? "enviada" : "reservada";
+
+            // Atualiza saldo e status no estoque
+            await supabase
+              .from("estoque")
+              .update({
+                quantidade_disponivel: novaQtd,
+                status: statusAtualizadoEstoque,
+                status_envio: statusEnvioEstoque,
+                destinatario: nomeCliente || estoqueCorrespondente.destinatario,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", estoqueCorrespondente.id);
+
+            const nomeBMFinal = estoqueCorrespondente.nome_bm || estoqueCorrespondente.tipo_ativo || nomeMod;
+            const limiteBMFinal = estoqueCorrespondente.limite_bm || limiteAlvo || null;
+
+            // 3. Registrar no histórico definitivo 'historico_envios_estoque'
+            if (deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada" || Boolean(nomeCliente)) {
+              try {
+                await supabase.from("historico_envios_estoque").insert({
+                  empresa_id: empresa.id,
+                  conta_id: estoqueCorrespondente.id,
+                  venda_id: vendaSalvaId,
+                  nome_conta: nomeBMFinal,
+                  cliente_id: clienteId || null,
+                  cliente_nome: nomeCliente || "Cliente da Venda",
+                  valor_venda: numero(itemVenda.preco_unitario),
+                  status_entrega: deliveryStatus === "entregue" ? "entregue" : "em_andamento",
+                  data_entrega: dataDespacho,
+                });
+              } catch (errHistEstoque) {
+                console.warn("Aviso ao salvar em historico_envios_estoque:", errHistEstoque);
+              }
+
+              // 4. Manter sincronizado com contas_enviadas
+              try {
                 await supabase.from("contas_enviadas").insert({
                   empresa_id: empresa.id,
                   bm_id: estoqueCorrespondente.id,
                   venda_id: vendaSalvaId,
-                  nome_bm: estoqueCorrespondente.nome_bm || estoqueCorrespondente.tipo_ativo || nomeMod,
-                  limite_bm: estoqueCorrespondente.limite_bm || limiteAlvo || null,
+                  nome_bm: nomeBMFinal,
+                  limite_bm: limiteBMFinal,
                   destinatario_cliente: nomeCliente || "Cliente da Venda",
-                  responsavel_envio: (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null,
-                  data_envio: dataRealizadaFinal || dataVenda || new Date().toISOString().slice(0, 10),
+                  responsavel_envio: nomeRespEnvio,
+                  data_envio: dataDespacho,
                   custo_unitario: estoqueCorrespondente.custo_medio_unitario || 0,
                   valor_venda: numero(itemVenda.preco_unitario),
-                  status_envio: "enviada",
-                } as any);
+                  status_envio: deliveryStatus === "entregue" ? "enviada" : "reservada",
+                });
+              } catch (errContasEnv) {
+                console.warn("Aviso ao salvar em contas_enviadas:", errContasEnv);
               }
             }
           }
@@ -473,6 +560,8 @@ export function FormularioVenda({
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
       void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
+      void queryClient.invalidateQueries({ queryKey: ["historico_envios"] });
+      void queryClient.invalidateQueries({ queryKey: ["historico_envios_estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
@@ -648,6 +737,67 @@ export function FormularioVenda({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* SELEÇÃO ESPECÍFICA DA CONTA / BM EM ESTOQUE */}
+              <div className="space-y-1.5 md:col-span-3">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Conta / BM a Enviar *</span>
+                  <span className="text-[11px] font-normal text-muted-foreground/80 lowercase">
+                    {(() => {
+                      const mod = (modalidades.data ?? []).find((m) => m.id === item.modalidade_id);
+                      const lim = mod?.nome?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "";
+                      return lim ? `filtrado por ${lim}` : "todas em estoque";
+                    })()}
+                  </span>
+                </Label>
+
+                {(() => {
+                  const mod = (modalidades.data ?? []).find((m) => m.id === item.modalidade_id);
+                  const nomeMod = mod?.nome || "";
+                  const limAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
+
+                  const contasFiltradas = (contasEstoqueQuery.data || []).filter((c) => {
+                    if (!limAlvo) return true;
+                    const limC = (c.limite_bm || (c.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
+                    return limC === limAlvo || c.tipo_ativo?.toLowerCase().includes(nomeMod.toLowerCase());
+                  });
+
+                  return (
+                    <Select
+                      value={item.conta_id || "auto"}
+                      onValueChange={(val) =>
+                        setItens((a) =>
+                          a.map((it, x) => (x === indice ? { ...it, conta_id: val === "auto" ? "" : val } : it))
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-10 bg-black/20 border-border/60">
+                        <SelectValue placeholder="Selecione a conta em estoque..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">
+                          ⚡ Automático (Alocar por saldo disponível da modalidade)
+                        </SelectItem>
+                        {contasFiltradas.length === 0 ? (
+                          <SelectItem value="nenhum_disponivel" disabled>
+                            Nenhuma conta específica cadastrada para este tipo (será usado saldo geral)
+                          </SelectItem>
+                        ) : (
+                          contasFiltradas.map((conta) => {
+                            const nomePrincipal = conta.nome_bm || conta.tipo_ativo;
+                            const limiteBadge = conta.limite_bm || (conta.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "BM");
+                            return (
+                              <SelectItem key={conta.id} value={conta.id}>
+                                {nomePrincipal} • BM {limiteBadge} (Saldo: {conta.quantidade_disponivel})
+                              </SelectItem>
+                            );
+                          })
+                        )}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
 
               <div className="space-y-1.5">

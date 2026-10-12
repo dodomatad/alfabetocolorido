@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -17,7 +17,8 @@ import {
   Building2,
   Calendar,
   History,
-  DollarSign
+  DollarSign,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -275,21 +276,21 @@ function PaginaEstoque() {
 
   const [abaAtiva, setAbaAtiva] = useState<string>("estoque");
 
-  // Consulta de Contas Enviadas (Histórico Permanente)
+  // Consulta de Contas Enviadas (Histórico Permanente com número da venda)
   const { data: contasEnviadas, isLoading: carregandoEnvios, refetch: refetchEnvios } = useQuery({
-    queryKey: ["contas_enviadas", empresa?.id],
+    queryKey: ["contas_enviadas", "historico_envios", empresa?.id],
     enabled: !!empresa?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_enviadas")
-        .select("*")
+        .select("*, vendas(id, numero, cliente)")
         .order("data_envio", { ascending: false });
       if (error) {
-        // Fallback silencioso se a tabela ainda estiver sendo criada
-        console.warn("Aviso ao carregar histórico de envios:", error);
-        return [];
+        // Fallback caso a relação vendas não resolva diretamente
+        const res = await supabase.from("contas_enviadas").select("*").order("data_envio", { ascending: false });
+        return (res.data || []) as (ContaEnviada & { vendas?: { id: string; numero: number; cliente?: string | null } | null })[];
       }
-      return (data || []) as ContaEnviada[];
+      return (data || []) as (ContaEnviada & { vendas?: { id: string; numero: number; cliente?: string | null } | null })[];
     },
     staleTime: 1000 * 60 * 1,
   });
@@ -833,60 +834,86 @@ function PaginaEstoque() {
                     <TableRow>
                       <TableHead className="w-[240px]">BM Despachada</TableHead>
                       <TableHead className="w-[90px] text-center">Limite</TableHead>
-                      <TableHead className="min-w-[200px]">Cliente / Destinatário</TableHead>
+                      <TableHead className="min-w-[180px]">Cliente / Destinatário</TableHead>
+                      <TableHead className="w-[140px] text-center">Venda / Pedido</TableHead>
                       <TableHead className="hidden md:table-cell">Responsável pelo Envio</TableHead>
                       <TableHead className="w-[120px] text-center">Data do Envio</TableHead>
                       <TableHead className="w-[100px] text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {contasEnviadas.map((envio) => (
-                      <TableRow key={envio.id} className="hover:bg-muted/40 transition-colors">
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="size-3.5 text-blue-400 shrink-0" />
-                            <span className="font-semibold text-white text-sm">{envio.nome_bm}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {envio.limite_bm ? (
-                            <Badge variant="outline" className="font-bold text-[11px] border-blue-500/30 text-blue-400 bg-blue-500/10">
-                              {envio.limite_bm}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
-                            <Send className="size-3.5 text-emerald-400 shrink-0" />
-                            {envio.destinatario_cliente}
-                          </span>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                          {envio.responsavel_envio ? (
-                            <span className="inline-flex items-center gap-1 text-foreground/80">
-                              <User className="size-3" />
-                              {envio.responsavel_envio}
+                    {contasEnviadas.map((envio) => {
+                      const numVenda = envio.vendas?.numero;
+                      return (
+                        <TableRow key={envio.id} className="hover:bg-muted/40 transition-colors">
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="size-3.5 text-blue-400 shrink-0" />
+                              <span className="font-semibold text-white text-sm">{envio.nome_bm}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {envio.limite_bm ? (
+                              <Badge variant="outline" className="font-bold text-[11px] border-blue-500/30 text-blue-400 bg-blue-500/10">
+                                {envio.limite_bm}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                              <Send className="size-3.5 text-emerald-400 shrink-0" />
+                              {envio.destinatario_cliente}
                             </span>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <Calendar className="size-3" />
-                            {formatarData(envio.data_envio, fuso)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs">
-                            <CheckCircle2 className="size-3 mr-1" />
-                            Enviada
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {numVenda ? (
+                              <Link
+                                to="/vendas"
+                                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 hover:underline font-mono bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded"
+                                title="Ver pedido de venda"
+                              >
+                                #{numVenda}
+                                <ExternalLink className="size-2.5 opacity-70" />
+                              </Link>
+                            ) : envio.venda_id ? (
+                              <Link
+                                to="/vendas"
+                                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 hover:underline font-mono bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded"
+                              >
+                                Venda
+                                <ExternalLink className="size-2.5 opacity-70" />
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Despacho Direto</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                            {envio.responsavel_envio ? (
+                              <span className="inline-flex items-center gap-1 text-foreground/80">
+                                <User className="size-3" />
+                                {envio.responsavel_envio}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="size-3" />
+                              {formatarData(envio.data_envio, fuso)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs">
+                              <CheckCircle2 className="size-3 mr-1" />
+                              Enviada
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
