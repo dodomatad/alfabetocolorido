@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Clock, Plus, Trash2 } from "lucide-react";
+import { Check, CheckCircle2, ChevronsUpDown, Clock, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -21,16 +22,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarMoeda } from "@/lib/formatadores";
+import { cn } from "@/lib/utils";
 
 type Item = { 
   modalidade_id: string; 
   quantidade: string; 
   preco_unitario: string;
   conta_id?: string;
+  contas_ids?: string[];
 };
 
 const ITEM_VAZIO: Item = { modalidade_id: "", quantidade: "1", preco_unitario: "0", conta_id: "" };
@@ -436,22 +452,79 @@ export function FormularioVenda({
         const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || codigoMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
 
         try {
-          let estoqueCorrespondente: any = null;
+          const idsSelecionados: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
+            ? itemVenda.contas_ids
+            : itemVenda.conta_id ? [itemVenda.conta_id] : [];
 
-          // 1. Se o usuário selecionou uma conta específica do estoque
-          if (itemVenda.conta_id) {
-            const { data: contaEspecifica } = await supabase
-              .from("estoque")
-              .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
-              .eq("id", itemVenda.conta_id)
-              .maybeSingle();
-            if (contaEspecifica) {
-              estoqueCorrespondente = contaEspecifica;
+          // 1. Se o usuário selecionou uma ou mais BMs específicas pelo Combobox
+          if (idsSelecionados.length > 0) {
+            for (const cId of idsSelecionados) {
+              const { data: contaEspecifica } = await supabase
+                .from("estoque")
+                .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, destinatario")
+                .eq("id", cId)
+                .maybeSingle();
+
+              if (contaEspecifica) {
+                const novaQtd = Math.max(0, Number(contaEspecifica.quantidade_disponivel || 1) - 1);
+                const statusAtualizadoEstoque = novaQtd === 0 ? "esgotado" : "em_estoque";
+                const statusEnvioEstoque = deliveryStatus === "entregue" ? "enviada" : "reservada";
+
+                // Atualiza status e decrementa no estoque
+                await supabase
+                  .from("estoque")
+                  .update({
+                    quantidade_disponivel: novaQtd,
+                    status: statusAtualizadoEstoque,
+                    status_envio: statusEnvioEstoque,
+                    destinatario: nomeCliente || contaEspecifica.destinatario,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", contaEspecifica.id);
+
+                const nomeBMFinal = contaEspecifica.nome_bm || contaEspecifica.tipo_ativo || nomeMod;
+                const limiteBMFinal = contaEspecifica.limite_bm || limiteAlvo || null;
+
+                // Histórico de envios no estoque
+                if (deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada" || Boolean(nomeCliente)) {
+                  try {
+                    await supabase.from("historico_envios_estoque").insert({
+                      empresa_id: empresa.id,
+                      conta_id: contaEspecifica.id,
+                      venda_id: vendaSalvaId,
+                      nome_conta: nomeBMFinal,
+                      cliente_id: clienteId || null,
+                      cliente_nome: nomeCliente || "Cliente da Venda",
+                      valor_venda: numero(itemVenda.preco_unitario),
+                      status_entrega: deliveryStatus === "entregue" ? "entregue" : "em_andamento",
+                      data_entrega: dataDespacho,
+                    });
+                  } catch (errHistEstoque) {
+                    console.warn("Aviso ao salvar em historico_envios_estoque:", errHistEstoque);
+                  }
+
+                  try {
+                    await supabase.from("contas_enviadas").insert({
+                      empresa_id: empresa.id,
+                      bm_id: contaEspecifica.id,
+                      venda_id: vendaSalvaId,
+                      nome_bm: nomeBMFinal,
+                      limite_bm: limiteBMFinal,
+                      destinatario_cliente: nomeCliente || "Cliente da Venda",
+                      responsavel_envio: nomeRespEnvio,
+                      data_envio: dataDespacho,
+                      custo_unitario: contaEspecifica.custo_medio_unitario || 0,
+                      valor_venda: numero(itemVenda.preco_unitario),
+                      status_envio: deliveryStatus === "entregue" ? "enviada" : "reservada",
+                    });
+                  } catch (errContasEnv) {
+                    console.warn("Aviso ao salvar em contas_enviadas:", errContasEnv);
+                  }
+                }
+              }
             }
-          }
-
-          // 2. Se não selecionou conta específica (modo automático), busca item disponível no pool correspondente
-          if (!estoqueCorrespondente) {
+          } else {
+            // 2. Modo automático (busca do saldo pool correspondente)
             const { data: itensEstoqueDisp } = await supabase
               .from("estoque")
               .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
@@ -459,69 +532,67 @@ export function FormularioVenda({
               .gt("quantidade_disponivel", 0)
               .order("quantidade_disponivel", { ascending: true });
 
+            let estoqueCorrespondente: any = null;
             if (itensEstoqueDisp && itensEstoqueDisp.length > 0) {
               estoqueCorrespondente = itensEstoqueDisp.find((e) => {
                 const limE = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
                 return limiteAlvo && limE === limiteAlvo;
               }) || itensEstoqueDisp.find((e) => e.tipo_ativo.toLowerCase().includes(nomeMod.toLowerCase())) || itensEstoqueDisp[0];
             }
-          }
 
-          if (estoqueCorrespondente) {
-            const novaQtd = Math.max(0, Number(estoqueCorrespondente.quantidade_disponivel) - qtdVendida);
-            const statusAtualizadoEstoque = novaQtd === 0 ? "esgotado" : "em_estoque";
-            const statusEnvioEstoque = deliveryStatus === "entregue" ? "enviada" : "reservada";
+            if (estoqueCorrespondente) {
+              const novaQtd = Math.max(0, Number(estoqueCorrespondente.quantidade_disponivel) - qtdVendida);
+              const statusAtualizadoEstoque = novaQtd === 0 ? "esgotado" : "em_estoque";
+              const statusEnvioEstoque = deliveryStatus === "entregue" ? "enviada" : "reservada";
 
-            // Atualiza saldo e status no estoque
-            await supabase
-              .from("estoque")
-              .update({
-                quantidade_disponivel: novaQtd,
-                status: statusAtualizadoEstoque,
-                status_envio: statusEnvioEstoque,
-                destinatario: nomeCliente || estoqueCorrespondente.destinatario,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", estoqueCorrespondente.id);
+              await supabase
+                .from("estoque")
+                .update({
+                  quantidade_disponivel: novaQtd,
+                  status: statusAtualizadoEstoque,
+                  status_envio: statusEnvioEstoque,
+                  destinatario: nomeCliente || estoqueCorrespondente.destinatario,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", estoqueCorrespondente.id);
 
-            const nomeBMFinal = estoqueCorrespondente.nome_bm || estoqueCorrespondente.tipo_ativo || nomeMod;
-            const limiteBMFinal = estoqueCorrespondente.limite_bm || limiteAlvo || null;
+              const nomeBMFinal = estoqueCorrespondente.nome_bm || estoqueCorrespondente.tipo_ativo || nomeMod;
+              const limiteBMFinal = estoqueCorrespondente.limite_bm || limiteAlvo || null;
 
-            // 3. Registrar no histórico definitivo 'historico_envios_estoque'
-            if (deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada" || Boolean(nomeCliente)) {
-              try {
-                await supabase.from("historico_envios_estoque").insert({
-                  empresa_id: empresa.id,
-                  conta_id: estoqueCorrespondente.id,
-                  venda_id: vendaSalvaId,
-                  nome_conta: nomeBMFinal,
-                  cliente_id: clienteId || null,
-                  cliente_nome: nomeCliente || "Cliente da Venda",
-                  valor_venda: numero(itemVenda.preco_unitario),
-                  status_entrega: deliveryStatus === "entregue" ? "entregue" : "em_andamento",
-                  data_entrega: dataDespacho,
-                });
-              } catch (errHistEstoque) {
-                console.warn("Aviso ao salvar em historico_envios_estoque:", errHistEstoque);
-              }
+              if (deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada" || Boolean(nomeCliente)) {
+                try {
+                  await supabase.from("historico_envios_estoque").insert({
+                    empresa_id: empresa.id,
+                    conta_id: estoqueCorrespondente.id,
+                    venda_id: vendaSalvaId,
+                    nome_conta: nomeBMFinal,
+                    cliente_id: clienteId || null,
+                    cliente_nome: nomeCliente || "Cliente da Venda",
+                    valor_venda: numero(itemVenda.preco_unitario),
+                    status_entrega: deliveryStatus === "entregue" ? "entregue" : "em_andamento",
+                    data_entrega: dataDespacho,
+                  });
+                } catch (errHistEstoque) {
+                  console.warn("Aviso ao salvar em historico_envios_estoque:", errHistEstoque);
+                }
 
-              // 4. Manter sincronizado com contas_enviadas
-              try {
-                await supabase.from("contas_enviadas").insert({
-                  empresa_id: empresa.id,
-                  bm_id: estoqueCorrespondente.id,
-                  venda_id: vendaSalvaId,
-                  nome_bm: nomeBMFinal,
-                  limite_bm: limiteBMFinal,
-                  destinatario_cliente: nomeCliente || "Cliente da Venda",
-                  responsavel_envio: nomeRespEnvio,
-                  data_envio: dataDespacho,
-                  custo_unitario: estoqueCorrespondente.custo_medio_unitario || 0,
-                  valor_venda: numero(itemVenda.preco_unitario),
-                  status_envio: deliveryStatus === "entregue" ? "enviada" : "reservada",
-                });
-              } catch (errContasEnv) {
-                console.warn("Aviso ao salvar em contas_enviadas:", errContasEnv);
+                try {
+                  await supabase.from("contas_enviadas").insert({
+                    empresa_id: empresa.id,
+                    bm_id: estoqueCorrespondente.id,
+                    venda_id: vendaSalvaId,
+                    nome_bm: nomeBMFinal,
+                    limite_bm: limiteBMFinal,
+                    destinatario_cliente: nomeCliente || "Cliente da Venda",
+                    responsavel_envio: nomeRespEnvio,
+                    data_envio: dataDespacho,
+                    custo_unitario: estoqueCorrespondente.custo_medio_unitario || 0,
+                    valor_venda: numero(itemVenda.preco_unitario),
+                    status_envio: deliveryStatus === "entregue" ? "enviada" : "reservada",
+                  });
+                } catch (errContasEnv) {
+                  console.warn("Aviso ao salvar em contas_enviadas:", errContasEnv);
+                }
               }
             }
           }
@@ -562,6 +633,8 @@ export function FormularioVenda({
       void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios_estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
@@ -739,15 +812,18 @@ export function FormularioVenda({
                 </Select>
               </div>
 
-              {/* SELEÇÃO ESPECÍFICA DA CONTA / BM EM ESTOQUE */}
+              {/* SELEÇÃO VISUAL E PESQUISÁVEL DE "NOME DA BM" (COMBOBOX COM SUPORTE A TAGS / MULTI-SELEÇÃO) */}
               <div className="space-y-1.5 md:col-span-3">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                  <span>Conta / BM a Enviar *</span>
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="size-3 text-blue-400" />
+                    <span>Nome da BM *</span>
+                  </span>
                   <span className="text-[11px] font-normal text-muted-foreground/80 lowercase">
                     {(() => {
                       const mod = (modalidades.data ?? []).find((m) => m.id === item.modalidade_id);
                       const lim = mod?.nome?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "";
-                      return lim ? `filtrado por ${lim}` : "todas em estoque";
+                      return lim ? `filtrado por ${lim}` : "ativas e prontas em estoque";
                     })()}
                   </span>
                 </Label>
@@ -757,45 +833,169 @@ export function FormularioVenda({
                   const nomeMod = mod?.nome || "";
                   const limAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
 
+                  // Filtra apenas ativos disponíveis ou prontos para envio correspondentes à modalidade
                   const contasFiltradas = (contasEstoqueQuery.data || []).filter((c) => {
+                    const st = (c.status_envio || c.status || "").toLowerCase();
+                    // Deve estar disponível ou pronta para envio
+                    const statusValido = st === "disponivel" || st === "pronta_envio" || st === "em_estoque";
+                    if (!statusValido && Number(c.quantidade_disponivel || 0) <= 0) return false;
+
                     if (!limAlvo) return true;
                     const limC = (c.limite_bm || (c.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
                     return limC === limAlvo || c.tipo_ativo?.toLowerCase().includes(nomeMod.toLowerCase());
                   });
 
+                  // Array de IDs selecionados no item (suporte a seleção múltipla)
+                  const selecionados: string[] = item.contas_ids && item.contas_ids.length > 0
+                    ? item.contas_ids
+                    : item.conta_id ? [item.conta_id] : [];
+
+                  const alternarSelecaoConta = (contaId: string) => {
+                    let novosIds: string[];
+                    if (selecionados.includes(contaId)) {
+                      novosIds = selecionados.filter((id) => id !== contaId);
+                    } else {
+                      novosIds = [...selecionados, contaId];
+                    }
+
+                    const novaQtd = novosIds.length > 0 ? String(novosIds.length) : (item.quantidade || "1");
+
+                    setItens((prev) =>
+                      prev.map((it, x) =>
+                        x === indice
+                          ? {
+                              ...it,
+                              contas_ids: novosIds,
+                              conta_id: novosIds[0] || "",
+                              quantidade: novosIds.length > 0 ? novaQtd : it.quantidade,
+                            }
+                          : it,
+                      ),
+                    );
+                  };
+
+                  const limparSelecao = () => {
+                    setItens((prev) =>
+                      prev.map((it, x) =>
+                        x === indice
+                          ? { ...it, contas_ids: [], conta_id: "" }
+                          : it,
+                      ),
+                    );
+                  };
+
                   return (
-                    <Select
-                      value={item.conta_id || "auto"}
-                      onValueChange={(val) =>
-                        setItens((a) =>
-                          a.map((it, x) => (x === indice ? { ...it, conta_id: val === "auto" ? "" : val } : it))
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-10 bg-black/20 border-border/60">
-                        <SelectValue placeholder="Selecione a conta em estoque..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="auto">
-                          ⚡ Automático (Alocar por saldo disponível da modalidade)
-                        </SelectItem>
-                        {contasFiltradas.length === 0 ? (
-                          <SelectItem value="nenhum_disponivel" disabled>
-                            Nenhuma conta específica cadastrada para este tipo (será usado saldo geral)
-                          </SelectItem>
-                        ) : (
-                          contasFiltradas.map((conta) => {
-                            const nomePrincipal = conta.nome_bm || conta.tipo_ativo;
-                            const limiteBadge = conta.limite_bm || (conta.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "BM");
-                            return (
-                              <SelectItem key={conta.id} value={conta.id}>
-                                {nomePrincipal} • BM {limiteBadge} (Saldo: {conta.quantidade_disponivel})
-                              </SelectItem>
-                            );
-                          })
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between h-auto min-h-10 bg-black/20 border-border/60 hover:bg-black/30 font-normal text-xs px-3 py-2"
+                          >
+                            <div className="flex flex-wrap items-center gap-1.5 flex-1 text-left">
+                              {selecionados.length === 0 ? (
+                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                  <span>Selecione ou busque a BM disponível...</span>
+                                </span>
+                              ) : (
+                                selecionados.map((id) => {
+                                  const c = (contasEstoqueQuery.data || []).find((x) => x.id === id);
+                                  const n = c?.nome_bm || c?.tipo_ativo || "BM Selecionada";
+                                  const lim = c?.limite_bm || "250";
+                                  return (
+                                    <Badge
+                                      key={id}
+                                      variant="secondary"
+                                      className="gap-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] py-0.5 px-2"
+                                    >
+                                      <span>{n} • {lim}</span>
+                                      <span
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          alternarSelecaoConta(id);
+                                        }}
+                                        className="hover:text-white cursor-pointer ml-0.5"
+                                      >
+                                        <X className="size-3" />
+                                      </span>
+                                    </Badge>
+                                  );
+                                })
+                              )}
+                            </div>
+                            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[420px] max-w-[95vw] p-0 bg-popover border-border/60 shadow-xl" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar por nome da BM ou limite..." className="text-xs" />
+                            <CommandList className="max-h-60 overflow-y-auto">
+                              <CommandEmpty className="p-3 text-xs text-center text-muted-foreground">
+                                {contasFiltradas.length === 0
+                                  ? "Nenhuma BM disponível encontrada para esta modalidade."
+                                  : "Nenhuma BM encontrada com este termo."}
+                              </CommandEmpty>
+                              <CommandGroup heading="Ativos Disponíveis (Produção / Estoque)">
+                                {contasFiltradas.map((conta) => {
+                                  const nomePrincipal = conta.nome_bm || conta.tipo_ativo;
+                                  const limiteBadge = conta.limite_bm || (conta.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "250");
+                                  const estaMarcada = selecionados.includes(conta.id);
+                                  const statusTexto = conta.status_envio === "pronta_envio" ? "Pronta para Envio" : "Disponível";
+
+                                  return (
+                                    <CommandItem
+                                      key={conta.id}
+                                      value={`${nomePrincipal} ${limiteBadge} ${conta.id}`}
+                                      onSelect={() => alternarSelecaoConta(conta.id)}
+                                      className="flex items-center justify-between text-xs py-2 px-2.5 cursor-pointer"
+                                    >
+                                      <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                        <div className={cn(
+                                          "flex size-4 items-center justify-center rounded border transition-colors",
+                                          estaMarcada ? "bg-blue-600 border-blue-500 text-white" : "border-muted-foreground/40 bg-background/50"
+                                        )}>
+                                          {estaMarcada && <Check className="size-3" />}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                          <span className="font-semibold text-foreground truncate">
+                                            {nomePrincipal}
+                                          </span>
+                                          <span className="text-[10px] text-muted-foreground">
+                                            Limite: <strong className="text-blue-400">{limiteBadge}</strong> • Saldo: {conta.quantidade_disponivel}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] shrink-0 font-medium">
+                                        {statusTexto}
+                                      </Badge>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+
+                      {selecionados.length > 0 && (
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                          <span className="text-blue-400 font-medium">
+                            ✓ {selecionados.length} BM{selecionados.length > 1 ? "s" : ""} selecionada{selecionados.length > 1 ? "s" : ""} (quantidade sincronizada)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={limparSelecao}
+                            className="text-xs text-muted-foreground hover:text-destructive underline"
+                          >
+                            Limpar seleção
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })()}
               </div>
