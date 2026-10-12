@@ -170,6 +170,76 @@ export type Database = {
           },
         ]
       }
+      contas_enviadas: {
+        Row: {
+          bm_id: string | null
+          created_at: string | null
+          custo_unitario: number | null
+          data_envio: string
+          destinatario_cliente: string
+          empresa_id: string
+          id: string
+          limite_bm: string | null
+          nome_bm: string
+          responsavel_envio: string | null
+          status_envio: string
+          valor_venda: number | null
+          venda_id: string | null
+        }
+        Insert: {
+          bm_id?: string | null
+          created_at?: string | null
+          custo_unitario?: number | null
+          data_envio?: string
+          destinatario_cliente: string
+          empresa_id: string
+          id?: string
+          limite_bm?: string | null
+          nome_bm: string
+          responsavel_envio?: string | null
+          status_envio?: string
+          valor_venda?: number | null
+          venda_id?: string | null
+        }
+        Update: {
+          bm_id?: string | null
+          created_at?: string | null
+          custo_unitario?: number | null
+          data_envio?: string
+          destinatario_cliente?: string
+          empresa_id?: string
+          id?: string
+          limite_bm?: string | null
+          nome_bm?: string
+          responsavel_envio?: string | null
+          status_envio?: string
+          valor_venda?: number | null
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_enviadas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_enviadas_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: false
+            referencedRelation: "estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_enviadas_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativo: boolean
@@ -350,31 +420,52 @@ export type Database = {
       estoque: {
         Row: {
           custo_medio_unitario: number | null
+          data_criacao: string | null
+          destinatario: string | null
           empresa_id: string
           id: string
+          limite_bm: string | null
+          nome_bm: string | null
           quantidade_disponivel: number
           quantidade_reservada: number
+          responsavel: string | null
           status: string
+          status_envio: string | null
+          tem_template: boolean | null
           tipo_ativo: string
           updated_at: string | null
         }
         Insert: {
           custo_medio_unitario?: number | null
+          data_criacao?: string | null
+          destinatario?: string | null
           empresa_id: string
           id?: string
+          limite_bm?: string | null
+          nome_bm?: string | null
           quantidade_disponivel?: number
           quantidade_reservada?: number
+          responsavel?: string | null
           status?: string
+          status_envio?: string | null
+          tem_template?: boolean | null
           tipo_ativo: string
           updated_at?: string | null
         }
         Update: {
           custo_medio_unitario?: number | null
+          data_criacao?: string | null
+          destinatario?: string | null
           empresa_id?: string
           id?: string
+          limite_bm?: string | null
+          nome_bm?: string | null
           quantidade_disponivel?: number
           quantidade_reservada?: number
+          responsavel?: string | null
           status?: string
+          status_envio?: string | null
+          tem_template?: boolean | null
           tipo_ativo?: string
           updated_at?: string | null
         }

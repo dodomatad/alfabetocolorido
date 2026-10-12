@@ -15,7 +15,9 @@ import {
   User,
   Send,
   Building2,
-  Calendar
+  Calendar,
+  History,
+  DollarSign
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -96,6 +99,22 @@ type ItemEstoque = {
   custo_medio_unitario: number | null;
   status: string;
   updated_at?: string;
+};
+
+type ContaEnviada = {
+  id: string;
+  empresa_id: string;
+  bm_id?: string | null;
+  venda_id?: string | null;
+  nome_bm: string;
+  limite_bm?: string | null;
+  destinatario_cliente: string;
+  responsavel_envio?: string | null;
+  data_envio: string;
+  custo_unitario?: number | null;
+  valor_venda?: number | null;
+  status_envio: string;
+  created_at?: string;
 };
 
 const LIMITES_BM = ["250", "2K", "10K", "100K"] as const;
@@ -254,6 +273,27 @@ function PaginaEstoque() {
     staleTime: 1000 * 60 * 1,
   });
 
+  const [abaAtiva, setAbaAtiva] = useState<string>("estoque");
+
+  // Consulta de Contas Enviadas (Histórico Permanente)
+  const { data: contasEnviadas, isLoading: carregandoEnvios, refetch: refetchEnvios } = useQuery({
+    queryKey: ["contas_enviadas", empresa?.id],
+    enabled: !!empresa?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_enviadas")
+        .select("*")
+        .order("data_envio", { ascending: false });
+      if (error) {
+        // Fallback silencioso se a tabela ainda estiver sendo criada
+        console.warn("Aviso ao carregar histórico de envios:", error);
+        return [];
+      }
+      return (data || []) as ContaEnviada[];
+    },
+    staleTime: 1000 * 60 * 1,
+  });
+
   // Identifica se o Tipo de Ativo atual é uma BM
   const isBM = useMemo(() => {
     return tipoAtivo.trim().toUpperCase().startsWith("BM");
@@ -332,6 +372,8 @@ function PaginaEstoque() {
         updated_at: new Date().toISOString(),
       };
 
+      let estoqueSalvoId: string = itemEditando?.id || "";
+
       if (itemEditando) {
         // UPDATE
         let { error } = await supabase
@@ -346,26 +388,80 @@ function PaginaEstoque() {
           error = res.error;
         }
         if (error) throw error;
+        estoqueSalvoId = itemEditando.id;
       } else {
-        // INSERT
-        let { error } = await supabase
+        // INSERT (com tratamento inteligente de constraint de unicidade caso a migração ainda não tenha rodado)
+        let { data: inserido, error } = await supabase
           .from("estoque")
-          .insert(payloadBase);
+          .insert(payloadBase)
+          .select("id")
+          .maybeSingle();
+
+        // Se houver conflito de duplicidade (uq_estoque_empresa_tipo), faz merge somando quantidade
+        if (error && (error.code === "23505" || error.message?.includes("uq_estoque_empresa_tipo"))) {
+          // Busca registro existente daquele tipo de ativo
+          const { data: itemExistente } = await supabase
+            .from("estoque")
+            .select("id, quantidade_disponivel, quantidade_reservada")
+            .eq("empresa_id", empresa.id)
+            .eq("tipo_ativo", tipoAtivoFinal)
+            .maybeSingle();
+
+          if (itemExistente) {
+            const novaQtd = Number(itemExistente.quantidade_disponivel || 0) + Number(payloadBase.quantidade_disponivel || 0);
+            const { error: errUpdate } = await supabase
+              .from("estoque")
+              .update({
+                ...payloadBase,
+                quantidade_disponivel: novaQtd,
+                status: novaQtd > 0 ? "em_estoque" : "esgotado",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", itemExistente.id);
+            if (errUpdate) throw errUpdate;
+            estoqueSalvoId = itemExistente.id;
+            error = null;
+          }
+        }
 
         // Fallback caso alguma coluna nova não esteja no cache remoto ainda
         if (error && (error.message?.includes("nome_bm") || (error as any).code === "PGRST204")) {
           const { nome_bm, limite_bm, tem_template, data_criacao, responsavel, destinatario, status_envio, ...payloadFallback } = payloadBase;
-          const res = await supabase.from("estoque").insert(payloadFallback);
+          const res = await supabase.from("estoque").insert(payloadFallback).select("id").maybeSingle();
+          if (res.data?.id) estoqueSalvoId = res.data.id;
           error = res.error;
         }
+
         if (error) throw error;
+        if (inserido?.id) estoqueSalvoId = inserido.id;
+      }
+
+      // Se o status for "enviada" ou tiver preenchido destinatário, registra no histórico de contas enviadas
+      const ehEnviada = statusEnvio === "enviada" || (isBM && Boolean(destinatario.trim()) && statusEnvio !== "disponivel");
+      if (ehEnviada) {
+        try {
+          await supabase.from("contas_enviadas").insert({
+            empresa_id: empresa.id,
+            bm_id: estoqueSalvoId || null,
+            nome_bm: nomeDigitado || tipoAtivoFinal,
+            limite_bm: limiteEscolhido,
+            destinatario_cliente: destinatario.trim() || "Cliente não informado",
+            responsavel_envio: responsavel.trim() || null,
+            data_envio: dataCriacao || new Date().toISOString().slice(0, 10),
+            custo_unitario: Number(custoMedio.replace(",", ".")) || 0,
+            status_envio: "enviada",
+          } as any);
+        } catch (errHist) {
+          console.warn("Aviso ao registrar histórico de conta enviada:", errHist);
+        }
       }
     },
     onSuccess: () => {
-      toast.success(itemEditando ? "Ativo atualizado com sucesso!" : "Ativo adicionado ao estoque!");
+      toast.success(itemEditando ? "✓ Ativo atualizado com sucesso!" : "✓ Item salvo no estoque com sucesso!");
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setModalAberto(false);
@@ -485,221 +581,319 @@ function PaginaEstoque() {
         </div>
       </div>
 
-      {/* Tabela de Itens em Estoque */}
-      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-6">
-            <CarregandoTabela colunas={7} />
-          </div>
-        ) : isError ? (
-          <div className="p-8 text-center space-y-3">
-            <AlertCircle className="size-8 text-destructive mx-auto" />
-            <p className="text-sm text-destructive font-medium">Erro ao carregar estoque: {(error as Error).message}</p>
-            <Button variant="outline" size="sm" onClick={() => void refetch()}>
-              Tentar novamente
-            </Button>
-          </div>
-        ) : itensFiltrados.length === 0 ? (
-          <div className="p-8">
-            <EstadoVazio
-              titulo="Nenhum item em estoque encontrado"
-              descricao={busca ? "Tente ajustar os filtros ou termo de busca." : "Adicione novas BMs ou ativos para gerenciar a esteira de estoque."}
-              acao={
-                temPermissao("estoque", "criar") ? (
-                  <Button size="sm" onClick={() => abrirModal()}>
-                    <Plus className="mr-1.5 size-4" />
-                    Adicionar primeiro item
-                  </Button>
-                ) : undefined
-              }
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[260px]">Ativo / Nome da BM</TableHead>
-                  <TableHead className="w-[90px] text-center">Limite</TableHead>
-                  <TableHead className="w-[120px] text-center">Template</TableHead>
-                  <TableHead className="hidden lg:table-cell">Criador / Resp.</TableHead>
-                  <TableHead className="hidden md:table-cell">Destinatário / Cliente</TableHead>
-                  <TableHead className="text-center w-[90px]">Disponível</TableHead>
-                  <TableHead className="w-[130px] text-center">Status / Envio</TableHead>
-                  <TableHead className="w-[90px] text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {itensFiltrados.map((item) => {
-                  const ehBm = item.tipo_ativo?.toUpperCase().startsWith("BM") || Boolean(item.nome_bm) || Boolean(item.limite_bm);
-                  const { nome, limite } = extrairInfoBM(item);
-                  
-                  return (
-                    <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
-                      {/* Nome do Ativo */}
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-sm text-foreground flex items-center gap-2 flex-wrap">
-                            {ehBm ? (
-                              <>
-                                <Sparkles className="size-3.5 text-blue-400 shrink-0" />
-                                <span className="font-bold text-white tracking-tight">{nome}</span>
-                                {limite && (
-                                  <Badge 
-                                    variant="outline"
-                                    className={`
-                                      font-bold text-[10px] px-1.5 py-0 h-4.5
-                                      ${limite === "250" ? "border-sky-500/40 text-sky-400 bg-sky-500/10" : ""}
-                                      ${limite === "2K" ? "border-amber-500/40 text-amber-400 bg-amber-500/10" : ""}
-                                      ${limite === "10K" ? "border-purple-500/40 text-purple-400 bg-purple-500/10" : ""}
-                                      ${limite === "100K" ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : ""}
-                                    `}
-                                  >
-                                    {limite}
-                                  </Badge>
+      {/* Abas de Navegação: Estoque Ativo vs Histórico de Envios */}
+      <Tabs value={abaAtiva} onValueChange={setAbaAtiva} className="w-full space-y-4">
+        <TabsList className="bg-muted/40 p-1 border border-border/40">
+          <TabsTrigger value="estoque" className="gap-2 text-xs">
+            <Package className="size-3.5" />
+            Itens em Estoque ({itensFiltrados.length})
+          </TabsTrigger>
+          <TabsTrigger value="envios" className="gap-2 text-xs">
+            <History className="size-3.5 text-blue-400" />
+            Histórico de Envios ({(contasEnviadas || []).length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="estoque" className="space-y-4 mt-0">
+          {/* Tabela de Itens em Estoque */}
+          <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+            {isLoading ? (
+              <div className="p-6">
+                <CarregandoTabela colunas={7} />
+              </div>
+            ) : isError ? (
+              <div className="p-8 text-center space-y-3">
+                <AlertCircle className="size-8 text-destructive mx-auto" />
+                <p className="text-sm text-destructive font-medium">Erro ao carregar estoque: {(error as Error).message}</p>
+                <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : itensFiltrados.length === 0 ? (
+              <div className="p-8">
+                <EstadoVazio
+                  titulo="Nenhum item em estoque encontrado"
+                  descricao={busca ? "Tente ajustar os filtros ou termo de busca." : "Adicione novas BMs ou ativos para gerenciar a esteira de estoque."}
+                  acao={
+                    temPermissao("estoque", "criar") ? (
+                      <Button size="sm" onClick={() => abrirModal()}>
+                        <Plus className="mr-1.5 size-4" />
+                        Adicionar primeiro item
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[260px]">Ativo / Nome da BM</TableHead>
+                      <TableHead className="w-[90px] text-center">Limite</TableHead>
+                      <TableHead className="w-[120px] text-center">Template</TableHead>
+                      <TableHead className="hidden lg:table-cell">Criador / Resp.</TableHead>
+                      <TableHead className="hidden md:table-cell">Destinatário / Cliente</TableHead>
+                      <TableHead className="text-center w-[90px]">Disponível</TableHead>
+                      <TableHead className="w-[130px] text-center">Status / Envio</TableHead>
+                      <TableHead className="w-[90px] text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itensFiltrados.map((item) => {
+                      const ehBm = item.tipo_ativo?.toUpperCase().startsWith("BM") || Boolean(item.nome_bm) || Boolean(item.limite_bm);
+                      const { nome, limite } = extrairInfoBM(item);
+                      
+                      return (
+                        <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
+                          {/* Nome do Ativo */}
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-sm text-foreground flex items-center gap-2 flex-wrap">
+                                {ehBm ? (
+                                  <>
+                                    <Sparkles className="size-3.5 text-blue-400 shrink-0" />
+                                    <span className="font-bold text-white tracking-tight">{nome}</span>
+                                    {limite && (
+                                      <Badge 
+                                        variant="outline"
+                                        className={`
+                                          font-bold text-[10px] px-1.5 py-0 h-4.5
+                                          ${limite === "250" ? "border-sky-500/40 text-sky-400 bg-sky-500/10" : ""}
+                                          ${limite === "2K" ? "border-amber-500/40 text-amber-400 bg-amber-500/10" : ""}
+                                          ${limite === "10K" ? "border-purple-500/40 text-purple-400 bg-purple-500/10" : ""}
+                                          ${limite === "100K" ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : ""}
+                                        `}
+                                      >
+                                        {limite}
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span>{item.tipo_ativo}</span>
                                 )}
-                              </>
-                            ) : (
-                              <span>{item.tipo_ativo}</span>
-                            )}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                            {item.data_criacao && (
-                              <span className="flex items-center gap-0.5">
-                                <Calendar className="size-3 text-muted-foreground/60" />
-                                {formatarData(item.data_criacao, fuso)}
                               </span>
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                                {item.data_criacao && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Calendar className="size-3 text-muted-foreground/60" />
+                                    {formatarData(item.data_criacao, fuso)}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          {/* Tag de Limite */}
+                          <TableCell className="text-center">
+                            {limite ? (
+                              <Badge 
+                                variant="outline"
+                                className={`
+                                  font-bold text-[11px] px-2 py-0.5
+                                  ${limite === "250" ? "border-sky-500/40 text-sky-400 bg-sky-500/10" : ""}
+                                  ${limite === "2K" ? "border-amber-500/40 text-amber-400 bg-amber-500/10" : ""}
+                                  ${limite === "10K" ? "border-purple-500/40 text-purple-400 bg-purple-500/10" : ""}
+                                  ${limite === "100K" ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : ""}
+                                `}
+                              >
+                                {limite}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
                             )}
-                          </span>
-                        </div>
-                      </TableCell>
+                          </TableCell>
 
-                      {/* Tag de Limite */}
-                      <TableCell className="text-center">
-                        {limite ? (
-                          <Badge 
-                            variant="outline"
-                            className={`
-                              font-bold text-[11px] px-2 py-0.5
-                              ${limite === "250" ? "border-sky-500/40 text-sky-400 bg-sky-500/10" : ""}
-                              ${limite === "2K" ? "border-amber-500/40 text-amber-400 bg-amber-500/10" : ""}
-                              ${limite === "10K" ? "border-purple-500/40 text-purple-400 bg-purple-500/10" : ""}
-                              ${limite === "100K" ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : ""}
-                            `}
-                          >
-                            {limite}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                      </TableCell>
+                          {/* Template */}
+                          <TableCell className="text-center">
+                            {ehBm ? (
+                              item.tem_template ? (
+                                <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] gap-1 px-1.5">
+                                  <Layers className="size-3 text-emerald-400" />
+                                  Com Template
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground/60 text-[11px]">Sem Template</span>
+                              )
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </TableCell>
 
-                      {/* Template */}
-                      <TableCell className="text-center">
-                        {ehBm ? (
-                          item.tem_template ? (
-                            <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] gap-1 px-1.5">
-                              <Layers className="size-3 text-emerald-400" />
-                              Com Template
+                          {/* Responsável */}
+                          <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                            {item.responsavel ? (
+                              <span className="inline-flex items-center gap-1 text-foreground/90 font-medium">
+                                <User className="size-3 text-muted-foreground" />
+                                {item.responsavel}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+
+                          {/* Destinatário */}
+                          <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                            {item.destinatario ? (
+                              <span className="inline-flex items-center gap-1 text-foreground/90 font-medium">
+                                <Send className="size-3 text-blue-400" />
+                                {item.destinatario}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+
+                          {/* Quantidade Disponível */}
+                          <TableCell className="text-center font-bold text-sm">
+                            {item.quantidade_disponivel}
+                          </TableCell>
+
+                          {/* Status / Envio */}
+                          <TableCell className="text-center">
+                            {(() => {
+                              const st = (item.status_envio || item.status || "disponivel").toLowerCase();
+                              if (st.includes("enviada") || st.includes("esgotado") || Number(item.quantidade_disponivel) === 0) {
+                                return (
+                                  <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs">
+                                    {Number(item.quantidade_disponivel) === 0 ? "Esgotado" : "Enviada"}
+                                  </Badge>
+                                );
+                              }
+                              if (st.includes("reservada") || st.includes("baixo_estoque")) {
+                                return (
+                                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-400 text-xs">
+                                    Reservada
+                                  </Badge>
+                                );
+                              }
+                              return (
+                                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs">
+                                  Disponível
+                                </Badge>
+                              );
+                            })()}
+                          </TableCell>
+
+                          {/* Ações */}
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {temPermissao("estoque", "editar") && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-muted-foreground hover:text-white hover:bg-white/10"
+                                  onClick={() => abrirModal(item)}
+                                  title="Editar ativo"
+                                >
+                                  <Pencil className="size-3.5" />
+                                </Button>
+                              )}
+                              {temPermissao("estoque", "excluir") && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setItemParaExcluir(item)}
+                                  title="Excluir item"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="envios" className="space-y-4 mt-0">
+          {/* Tabela de Histórico de Envios */}
+          <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+            {carregandoEnvios ? (
+              <div className="p-6">
+                <CarregandoTabela colunas={6} />
+              </div>
+            ) : (!contasEnviadas || contasEnviadas.length === 0) ? (
+              <div className="p-8">
+                <EstadoVazio
+                  titulo="Nenhum registro de conta enviada"
+                  descricao="Quando uma BM for despachada para um cliente ou enviada via vendas, o histórico permanente ficará registrado aqui."
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[240px]">BM Despachada</TableHead>
+                      <TableHead className="w-[90px] text-center">Limite</TableHead>
+                      <TableHead className="min-w-[200px]">Cliente / Destinatário</TableHead>
+                      <TableHead className="hidden md:table-cell">Responsável pelo Envio</TableHead>
+                      <TableHead className="w-[120px] text-center">Data do Envio</TableHead>
+                      <TableHead className="w-[100px] text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contasEnviadas.map((envio) => (
+                      <TableRow key={envio.id} className="hover:bg-muted/40 transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="size-3.5 text-blue-400 shrink-0" />
+                            <span className="font-semibold text-white text-sm">{envio.nome_bm}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {envio.limite_bm ? (
+                            <Badge variant="outline" className="font-bold text-[11px] border-blue-500/30 text-blue-400 bg-blue-500/10">
+                              {envio.limite_bm}
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground/60 text-[11px]">Sem Template</span>
-                          )
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                      </TableCell>
-
-                      {/* Responsável */}
-                      <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                        {item.responsavel ? (
-                          <span className="inline-flex items-center gap-1 text-foreground/90 font-medium">
-                            <User className="size-3 text-muted-foreground" />
-                            {item.responsavel}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-
-                      {/* Destinatário */}
-                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                        {item.destinatario ? (
-                          <span className="inline-flex items-center gap-1 text-foreground/90 font-medium">
-                            <Send className="size-3 text-blue-400" />
-                            {item.destinatario}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-
-                      {/* Quantidade Disponível */}
-                      <TableCell className="text-center font-bold text-sm">
-                        {item.quantidade_disponivel}
-                      </TableCell>
-
-                      {/* Status / Envio */}
-                      <TableCell className="text-center">
-                        {(() => {
-                          const st = (item.status_envio || item.status || "disponivel").toLowerCase();
-                          if (st.includes("enviada") || st.includes("esgotado")) {
-                            return (
-                              <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs">
-                                Enviada
-                              </Badge>
-                            );
-                          }
-                          if (st.includes("reservada") || st.includes("baixo_estoque")) {
-                            return (
-                              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-400 text-xs">
-                                Reservada
-                              </Badge>
-                            );
-                          }
-                          return (
-                            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs">
-                              Disponível
-                            </Badge>
-                          );
-                        })()}
-                      </TableCell>
-
-                      {/* Ações */}
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {temPermissao("estoque", "editar") && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 text-muted-foreground hover:text-white hover:bg-white/10"
-                              onClick={() => abrirModal(item)}
-                              title="Editar ativo"
-                            >
-                              <Pencil className="size-3.5" />
-                            </Button>
+                            <span className="text-muted-foreground text-xs">—</span>
                           )}
-                          {temPermissao("estoque", "excluir") && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setItemParaExcluir(item)}
-                              title="Excluir item"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                            <Send className="size-3.5 text-emerald-400 shrink-0" />
+                            {envio.destinatario_cliente}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                          {envio.responsavel_envio ? (
+                            <span className="inline-flex items-center gap-1 text-foreground/80">
+                              <User className="size-3" />
+                              {envio.responsavel_envio}
+                            </span>
+                          ) : (
+                            "—"
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell className="text-center text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="size-3" />
+                            {formatarData(envio.data_envio, fuso)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs">
+                            <CheckCircle2 className="size-3 mr-1" />
+                            Enviada
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Modal / Dialog de Cadastro e Edição de Ativo no Estoque */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>

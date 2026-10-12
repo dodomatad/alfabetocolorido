@@ -324,20 +324,45 @@ function PaginaEntregas() {
       const novoStatus = statusAtual === "entregue" ? "pendente" : "entregue";
       const dataRealizada = novoStatus === "entregue" ? new Date().toISOString().slice(0, 10) : null;
 
-      const { error } = await supabase
+      const { data: entData, error } = await supabase
         .from("entregas")
         .update({
           status: novoStatus,
           data_realizada: dataRealizada,
           atualizado_por: session?.user.id ?? null,
         } as any)
-        .eq("id", id);
+        .eq("id", id)
+        .select("*, vendas(id, cliente, cliente_id, clientes(nome)), clientes(nome)")
+        .maybeSingle();
+
       if (error) throw error;
+
+      // Se virou entregue, registra no histórico permanente de contas enviadas
+      if (novoStatus === "entregue" && entData) {
+        const dest = entData.destinatario || (entData.clientes as any)?.nome || (entData.vendas as any)?.cliente || "Cliente";
+        try {
+          await supabase.from("contas_enviadas").insert({
+            empresa_id: empresa?.id,
+            venda_id: entData.venda_id || null,
+            nome_bm: "BM Despachada (Entrega)",
+            destinatario_cliente: dest,
+            responsavel_envio: session?.user.email || null,
+            data_envio: dataRealizada || new Date().toISOString().slice(0, 10),
+            status_envio: "enviada",
+          } as any);
+        } catch (eH) {
+          console.warn("Aviso ao registrar histórico de entrega em contas_enviadas:", eH);
+        }
+      }
+
       return novoStatus;
     },
     onSuccess: (novoStatus) => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       toast.success(
         novoStatus === "entregue"
           ? "Entrega marcada como Concluída!"
@@ -350,19 +375,42 @@ function PaginaEntregas() {
   const marcarEntregue = useMutation({
     mutationFn: async (id: string) => {
       const hoje = new Date().toISOString().slice(0, 10);
-      const { error } = await supabase
+      const { data: entData, error } = await supabase
         .from("entregas")
         .update({
           status: "entregue",
           data_realizada: hoje,
           atualizado_por: session?.user.id ?? null,
         } as any)
-        .eq("id", id);
+        .eq("id", id)
+        .select("*, vendas(id, cliente, cliente_id, clientes(nome)), clientes(nome)")
+        .maybeSingle();
+
       if (error) throw error;
+
+      if (entData) {
+        const dest = entData.destinatario || (entData.clientes as any)?.nome || (entData.vendas as any)?.cliente || "Cliente";
+        try {
+          await supabase.from("contas_enviadas").insert({
+            empresa_id: empresa?.id,
+            venda_id: entData.venda_id || null,
+            nome_bm: "BM Despachada (Entrega)",
+            destinatario_cliente: dest,
+            responsavel_envio: session?.user.email || null,
+            data_envio: hoje,
+            status_envio: "enviada",
+          } as any);
+        } catch (eH) {
+          console.warn("Aviso ao registrar histórico de entrega em contas_enviadas:", eH);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       toast.success("Entrega confirmada com sucesso (OK)!");
     },
     onError: (err: Error) => toast.error(`Erro ao confirmar entrega: ${err.message}`),

@@ -383,6 +383,66 @@ export function FormularioVenda({
       );
       if (erroItens) throw erroItens;
 
+      // Baixa automática no estoque para os itens vendidos e registro de histórico se entregue
+      for (const itemVenda of validos) {
+        const mod = (modalidades.data ?? []).find((m) => m.id === itemVenda.modalidade_id);
+        const qtdVendida = numero(itemVenda.quantidade);
+        const nomeMod = mod?.nome || "BM";
+        const codigoMod = mod?.codigo || "";
+
+        // Tentar identificar o limite ou nome correspondente no estoque
+        const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || codigoMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
+
+        try {
+          // 1. Busca itens de estoque disponíveis correspondentes
+          const { data: itensEstoqueDisp } = await supabase
+            .from("estoque")
+            .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
+            .eq("empresa_id", empresa.id)
+            .gt("quantidade_disponivel", 0)
+            .order("quantidade_disponivel", { ascending: true });
+
+          if (itensEstoqueDisp && itensEstoqueDisp.length > 0) {
+            // Encontra item que melhor corresponde ao limite ou tipo
+            let estoqueCorrespondente = itensEstoqueDisp.find((e) => {
+              const limE = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
+              return limiteAlvo && limE === limiteAlvo;
+            }) || itensEstoqueDisp.find((e) => e.tipo_ativo.toLowerCase().includes(nomeMod.toLowerCase())) || itensEstoqueDisp[0];
+
+            if (estoqueCorrespondente) {
+              const novaQtd = Math.max(0, Number(estoqueCorrespondente.quantidade_disponivel) - qtdVendida);
+              await supabase
+                .from("estoque")
+                .update({
+                  quantidade_disponivel: novaQtd,
+                  status: novaQtd === 0 ? "esgotado" : "em_estoque",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", estoqueCorrespondente.id);
+
+              // 2. Se a venda ou entrega já for despachada/entregue ou tiver cliente definido, registra em contas_enviadas
+              if (nomeCliente || deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada") {
+                await supabase.from("contas_enviadas").insert({
+                  empresa_id: empresa.id,
+                  bm_id: estoqueCorrespondente.id,
+                  venda_id: vendaSalvaId,
+                  nome_bm: estoqueCorrespondente.nome_bm || estoqueCorrespondente.tipo_ativo || nomeMod,
+                  limite_bm: estoqueCorrespondente.limite_bm || limiteAlvo || null,
+                  destinatario_cliente: nomeCliente || "Cliente da Venda",
+                  responsavel_envio: (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null,
+                  data_envio: dataRealizadaFinal || dataVenda || new Date().toISOString().slice(0, 10),
+                  custo_unitario: estoqueCorrespondente.custo_medio_unitario || 0,
+                  valor_venda: numero(itemVenda.preco_unitario),
+                  status_envio: "enviada",
+                } as any);
+              }
+            }
+          }
+        } catch (errEstoque) {
+          console.warn("Aviso ao dar baixa automática no estoque:", errEstoque);
+        }
+      }
+
       // Só gerar lançamento financeiro se for uma NOVA venda (para evitar duplicidade na edição)
       const valorComissao = (subtotal * numero(percentualComissao)) / 100;
       if (!vendaId && funcionarioId && valorComissao > 0) {
@@ -409,6 +469,10 @@ export function FormularioVenda({
       toast.success("Venda registrada com sucesso.");
       void queryClient.invalidateQueries({ queryKey: ["vendas"] });
       void queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
