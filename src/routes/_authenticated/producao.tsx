@@ -26,6 +26,9 @@ import {
   TrendingUp,
   ChevronRight,
   Info,
+  CheckCircle2,
+  Clock,
+  Boxes,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { BmOperationalForm } from "@/components/comum/bm-operational-form";
@@ -139,6 +142,16 @@ function limiteInferior(periodo: string): { de?: string; ate?: string } {
   return { de: iso(de), ate: iso(hoje) };
 }
 
+export const normalizeLimite = (v?: string | null): string => {
+  if (!v) return "250";
+  const str = v.trim().toLowerCase();
+  if (str.includes("100k")) return "100k";
+  if (str.includes("10k")) return "10k";
+  if (str.includes("2k")) return "2k";
+  if (str.includes("250")) return "250";
+  return str.replace("bm", "").trim() || "250";
+};
+
 const rotuloMotivo = (m: string | null) =>
   MOTIVOS.find((x) => x.valor === m)?.rotulo ?? "—";
 
@@ -196,6 +209,45 @@ function Pagina() {
       return data || [];
     },
   });
+
+  const bmsEstoqueQuery = useQuery({
+    queryKey: ["bms-producao-estoque", empresa?.id],
+    enabled: Boolean(empresa?.id),
+    staleTime: 1000 * 30,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estoque")
+        .select("*")
+        .eq("empresa_id", empresa!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const resumoPorTipo = useMemo(() => {
+    const contadores: Record<string, number> = {
+      "250": 0,
+      "2k": 0,
+      "10k": 0,
+      "100k": 0,
+    };
+
+    (bmsEstoqueQuery.data || []).forEach((item: any) => {
+      const st = (item.status || "").toLowerCase();
+      const stEnvio = (item.status_envio || "").toLowerCase();
+      const estaDisponivel = (st === "disponivel" || st === "em_estoque" || stEnvio === "disponivel" || stEnvio === "pronta_envio") && Number(item.quantidade_disponivel || 0) > 0;
+      
+      if (estaDisponivel) {
+        const lim = normalizeLimite(item.limite_bm || item.tipo_ativo);
+        if (contadores[lim] !== undefined) {
+          contadores[lim] += Number(item.quantidade_disponivel || 1);
+        }
+      }
+    });
+
+    return contadores;
+  }, [bmsEstoqueQuery.data]);
 
   const registros = useMemo(() => {
     const { de, ate } = limiteInferior(periodo);
@@ -429,7 +481,7 @@ function Pagina() {
 
         // Cadastra individualmente no Estoque para CADA nome de BM preenchido
         if (isBM && nomesValidos.length > 0) {
-          const limite = dadosBM.limite_bm || dadosProducao.tipo_bm.replace("BM ", "");
+          const limite = normalizeLimite(dadosBM.limite_bm || dadosProducao.tipo_bm);
           const statusEnvioAlvo = dadosBM.status_envio || "disponivel";
           const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
           const estaReservada = statusEnvioAlvo === "reservada";
@@ -451,7 +503,7 @@ function Pagina() {
               status_envio: statusEnvioAlvo,
               quantidade_disponivel: estaDisponivel ? 1 : 0,
               quantidade_reservada: estaReservada ? 1 : 0,
-              status: statusEnvioAlvo === "enviada" ? "esgotado" : estaReservada ? "baixo_estoque" : "em_estoque",
+              status: estaDisponivel ? "disponivel" : statusEnvioAlvo === "enviada" ? "vendida" : "baixo_estoque",
               custo_medio_unitario: 0,
               origem: "producao",
               producao_id: producaoId,
@@ -517,9 +569,11 @@ function Pagina() {
       }
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["producao"] });
+      void queryClient.invalidateQueries({ queryKey: ["bms-producao-estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["contingencia"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["stock"] });
@@ -589,6 +643,43 @@ function Pagina() {
             </div>
           }
         />
+
+        {/* RESUMO RÁPIDO: BMS DISPONÍVEIS POR TIPO (250, 2k, 10k, 100k) */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Boxes className="size-3.5 text-blue-400" />
+              <span>BMs Disponíveis em Estoque (Produção)</span>
+            </h2>
+            <span className="text-[11px] text-muted-foreground">
+              Total disponível: <strong className="text-blue-400 font-bold">{Object.values(resumoPorTipo).reduce((a, b) => a + b, 0)}</strong> contas
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { tipo: "250", rotulo: "250", cor: "border-blue-500/30 text-blue-400" },
+              { tipo: "2k", rotulo: "2k", cor: "border-emerald-500/30 text-emerald-400" },
+              { tipo: "10k", rotulo: "10k", cor: "border-purple-500/30 text-purple-400" },
+              { tipo: "100k", rotulo: "100k", cor: "border-amber-500/30 text-amber-400" },
+            ].map(({ tipo, rotulo, cor }) => {
+              const qtd = resumoPorTipo[tipo] || 0;
+              return (
+                <div
+                  key={tipo}
+                  className={`rounded-xl border bg-[#141417] p-3.5 flex items-center justify-between shadow-sm ${cor}`}
+                >
+                  <div>
+                    <span className="text-xs font-bold text-muted-foreground uppercase">{rotulo}</span>
+                    <p className="text-xl font-black text-white mt-0.5">{qtd}</p>
+                  </div>
+                  <Badge variant="outline" className={`text-[10px] font-bold ${qtd > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-muted/40 text-muted-foreground border-border/50"}`}>
+                    {qtd > 0 ? `${qtd} disp.` : "0 disp."}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
           <CartaoKpi
@@ -893,6 +984,91 @@ function Pagina() {
                               <Trash2 className="size-4 text-destructive" aria-hidden="true" />
                             </Button>
                           </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </section>
+
+        {/* LISTAGEM DE BMS EM ESTOQUE & HISTÓRICO DE VENDAS */}
+        <section className="rounded-xl border bg-card p-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <Boxes className="size-4 text-blue-400" />
+                <span>Inventário de BMs Produzidas & Histórico de Vendas</span>
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Acompanhe o status de cada BM individual (Disponível ou Vendida) cadastrada na operação.
+              </p>
+            </div>
+          </div>
+
+          {bmsEstoqueQuery.isLoading ? (
+            <CarregandoTabela colunas={5} />
+          ) : (bmsEstoqueQuery.data || []).length === 0 ? (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              Nenhuma BM cadastrada individualmente no estoque ainda. Cadastre acima em "Registrar Produção Diária".
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome da BM</TableHead>
+                    <TableHead>Limite / Tipo</TableHead>
+                    <TableHead>Responsável</TableHead>
+                    <TableHead>Data Criação</TableHead>
+                    <TableHead>Destinatário / Cliente</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(bmsEstoqueQuery.data || []).map((bm: any) => {
+                    const st = (bm.status || "").toLowerCase();
+                    const stEnvio = (bm.status_envio || "").toLowerCase();
+                    const isVendida = st === "vendida" || st === "esgotado" || stEnvio === "enviada" || stEnvio === "entregue" || Boolean(bm.venda_id);
+                    const limite = normalizeLimite(bm.limite_bm || bm.tipo_ativo);
+                    const nome = bm.nome_bm || bm.tipo_ativo;
+
+                    return (
+                      <TableRow key={bm.id} className="hover:bg-muted/20">
+                        <TableCell className="font-semibold text-white">
+                          {nome}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-bold border-blue-500/30 text-blue-400 bg-blue-500/10">
+                            {limite}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {bm.responsavel || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {bm.data_criacao ? formatarData(bm.data_criacao, fuso) : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {bm.destinatario ? (
+                            <span className="text-emerald-400 font-medium">{bm.destinatario}</span>
+                          ) : (
+                            <span className="text-muted-foreground/40 italic">Aguardando venda</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isVendida ? (
+                            <Badge className="bg-zinc-800 text-zinc-400 border border-zinc-700/60 font-bold gap-1 text-[11px]">
+                              <span>VENDIDA</span>
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold gap-1 text-[11px]">
+                              <CheckCircle2 className="size-3" />
+                              <span>DISPONÍVEL</span>
+                            </Badge>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

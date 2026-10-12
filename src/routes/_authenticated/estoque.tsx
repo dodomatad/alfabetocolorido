@@ -351,7 +351,14 @@ function PaginaEstoque() {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
 
       const nomeDigitado = nomeBm.trim();
-      const limiteEscolhido = limiteBm || "2K";
+      const rawLimite = limiteBm || "2k";
+      const limiteEscolhido = rawLimite.toLowerCase().includes("100k")
+        ? "100k"
+        : rawLimite.toLowerCase().includes("10k")
+        ? "10k"
+        : rawLimite.toLowerCase().includes("2k")
+        ? "2k"
+        : "250";
 
       // Se for BM e o usuário forneceu um nome customizado, NUNCA substitua pelo tipo/limite genérico
       let tipoAtivoFinal = tipoAtivo;
@@ -365,6 +372,7 @@ function PaginaEstoque() {
         }
       }
 
+      const estaDisponivel = statusEnvio === "disponivel" || statusEnvio === "pronta_envio";
       const payloadBase: any = {
         empresa_id: empresa.id,
         tipo_ativo: tipoAtivoFinal,
@@ -379,7 +387,7 @@ function PaginaEstoque() {
         quantidade_reservada: Number(qtdReservada) || 0,
         custo_medio_unitario: Number(custoMedio.replace(",", ".")) || 0,
         status: isBM 
-          ? (statusEnvio === "disponivel" ? "em_estoque" : statusEnvio === "reservada" ? "baixo_estoque" : "esgotado")
+          ? (estaDisponivel ? "disponivel" : statusEnvio === "reservada" ? "baixo_estoque" : "vendida")
           : statusGenerico,
         updated_at: new Date().toISOString(),
       };

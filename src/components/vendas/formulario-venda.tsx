@@ -289,6 +289,40 @@ export function FormularioVenda({
       const validos = itens.filter((i) => i.modalidade_id && numero(i.quantidade) > 0);
       if (validos.length === 0) throw new Error("Adicione ao menos um item com modalidade e quantidade.");
 
+      // Validação estrita de estoque antes de qualquer persistência
+      for (const itemVenda of validos) {
+        const mod = (modalidades.data ?? []).find((m) => m.id === itemVenda.modalidade_id);
+        const qtdPedida = numero(itemVenda.quantidade);
+        const nomeMod = mod?.nome || "BM";
+        const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toLowerCase();
+
+        const idsSelecionados: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
+          ? itemVenda.contas_ids
+          : itemVenda.conta_id ? [itemVenda.conta_id] : [];
+
+        // Total de contas disponíveis no estoque para esta modalidade
+        const contasDisponiveis = (contasEstoqueQuery.data || []).filter((c) => {
+          const st = (c.status || "").toLowerCase();
+          const stEnvio = (c.status_envio || "").toLowerCase();
+          const estaDisponivel = (st === "disponivel" || st === "em_estoque" || stEnvio === "disponivel" || stEnvio === "pronta_envio") && Number(c.quantidade_disponivel || 0) > 0;
+          if (!estaDisponivel) return false;
+          if (!limiteAlvo) return true;
+          const limC = (c.limite_bm || c.tipo_ativo || "").toLowerCase();
+          return limC.includes(limiteAlvo);
+        });
+
+        const totalDisponivelSaldo = contasDisponiveis.reduce((acc, curr) => acc + Number(curr.quantidade_disponivel || 1), 0);
+
+        if (totalDisponivelSaldo < qtdPedida) {
+          throw new Error(`Estoque insuficiente para ${nomeMod}: você solicitou ${qtdPedida}, mas restam apenas ${totalDisponivelSaldo} disponível(is).`);
+        }
+
+        // Se o usuário selecionou BMs específicas, validar quantidade selecionada vs pedida
+        if (idsSelecionados.length > 0 && idsSelecionados.length !== qtdPedida) {
+          throw new Error(`Quantidade divergente para ${nomeMod}: você selecionou ${idsSelecionados.length} BM(s) específica(s), mas o item pede ${qtdPedida}. Ajuste a seleção.`);
+        }
+      }
+
       let vendaSalvaId: string = vendaId || "";
       const nomeCliente = (clientes.data ?? []).find((c) => c.id === clienteId)?.nome || null;
       const statusFinalEntrega = deliveryStatus === "entregue" ? "entregue" : "pendente";
@@ -439,7 +473,7 @@ export function FormularioVenda({
         if (erroItensSemContaId) throw erroItensSemContaId;
       }
 
-      // Baixa automática no estoque para os itens vendidos e registro de histórico se entregue
+      // Baixa automática no estoque para os itens vendidos e registro de histórico
       for (const itemVenda of validos) {
         const mod = (modalidades.data ?? []).find((m) => m.id === itemVenda.modalidade_id);
         const qtdVendida = numero(itemVenda.quantidade);
@@ -448,156 +482,134 @@ export function FormularioVenda({
         const dataDespacho = dataRealizadaFinal || dataVenda || new Date().toISOString().slice(0, 10);
         const nomeRespEnvio = (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null;
 
-        // Tentar identificar o limite ou nome correspondente no estoque
-        const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || codigoMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
+        // Tentar identificar o limite ou nome correspondente no estoque (normalizado para 250, 2k, 10k, 100k)
+        const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || codigoMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toLowerCase();
 
-        try {
-          const idsSelecionados: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
-            ? itemVenda.contas_ids
-            : itemVenda.conta_id ? [itemVenda.conta_id] : [];
+        let idsParaBaixar: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
+          ? itemVenda.contas_ids
+          : itemVenda.conta_id ? [itemVenda.conta_id] : [];
 
-          // 1. Se o usuário selecionou uma ou mais BMs específicas pelo Combobox
-          if (idsSelecionados.length > 0) {
-            for (const cId of idsSelecionados) {
-              const { data: contaEspecifica } = await supabase
-                .from("estoque")
-                .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, destinatario")
-                .eq("id", cId)
-                .maybeSingle();
+        // Se não selecionou BMs específicas manualmente, busca automaticamente as primeiras N BMs disponíveis deste limite
+        if (idsParaBaixar.length === 0) {
+          const { data: bmsAuto } = await supabase
+            .from("estoque")
+            .select("id, limite_bm, tipo_ativo")
+            .eq("empresa_id", empresa.id)
+            .eq("status", "disponivel")
+            .gt("quantidade_disponivel", 0)
+            .order("created_at", { ascending: true })
+            .limit(qtdVendida * 2);
 
-              if (contaEspecifica) {
-                const novaQtd = Math.max(0, Number(contaEspecifica.quantidade_disponivel || 1) - 1);
-                const statusAtualizadoEstoque = novaQtd === 0 ? "esgotado" : "em_estoque";
-                const statusEnvioEstoque = deliveryStatus === "entregue" ? "enviada" : "reservada";
+          const compativeis = (bmsAuto || []).filter((b) => {
+            if (!limiteAlvo) return true;
+            const limB = (b.limite_bm || b.tipo_ativo || "").toLowerCase();
+            return limB.includes(limiteAlvo);
+          });
 
-                // Atualiza status e decrementa no estoque
-                await supabase
-                  .from("estoque")
-                  .update({
-                    quantidade_disponivel: novaQtd,
-                    status: statusAtualizadoEstoque,
-                    status_envio: statusEnvioEstoque,
-                    destinatario: nomeCliente || contaEspecifica.destinatario,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("id", contaEspecifica.id);
+          idsParaBaixar = compativeis.slice(0, qtdVendida).map((b) => b.id);
+        }
 
-                const nomeBMFinal = contaEspecifica.nome_bm || contaEspecifica.tipo_ativo || nomeMod;
-                const limiteBMFinal = contaEspecifica.limite_bm || limiteAlvo || null;
+        if (idsParaBaixar.length > 0) {
+          // 1. Tentar execução via RPC transacional no Supabase
+          let rpcSucesso = false;
+          try {
+            const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("baixar_bms_venda", {
+              p_empresa_id: empresa.id,
+              p_venda_id: vendaSalvaId,
+              p_cliente_id: clienteId || null,
+              p_destinatario: nomeCliente,
+              p_bms_ids: idsParaBaixar,
+            });
 
-                // Histórico de envios no estoque
-                if (deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada" || Boolean(nomeCliente)) {
-                  try {
-                    await supabase.from("historico_envios_estoque").insert({
-                      empresa_id: empresa.id,
-                      conta_id: contaEspecifica.id,
-                      venda_id: vendaSalvaId,
-                      nome_conta: nomeBMFinal,
-                      cliente_id: clienteId || null,
-                      cliente_nome: nomeCliente || "Cliente da Venda",
-                      valor_venda: numero(itemVenda.preco_unitario),
-                      status_entrega: deliveryStatus === "entregue" ? "entregue" : "em_andamento",
-                      data_entrega: dataDespacho,
-                    });
-                  } catch (errHistEstoque) {
-                    console.warn("Aviso ao salvar em historico_envios_estoque:", errHistEstoque);
-                  }
-
-                  try {
-                    await supabase.from("contas_enviadas").insert({
-                      empresa_id: empresa.id,
-                      bm_id: contaEspecifica.id,
-                      venda_id: vendaSalvaId,
-                      nome_bm: nomeBMFinal,
-                      limite_bm: limiteBMFinal,
-                      destinatario_cliente: nomeCliente || "Cliente da Venda",
-                      responsavel_envio: nomeRespEnvio,
-                      data_envio: dataDespacho,
-                      custo_unitario: contaEspecifica.custo_medio_unitario || 0,
-                      valor_venda: numero(itemVenda.preco_unitario),
-                      status_envio: deliveryStatus === "entregue" ? "enviada" : "reservada",
-                    });
-                  } catch (errContasEnv) {
-                    console.warn("Aviso ao salvar em contas_enviadas:", errContasEnv);
-                  }
-                }
-              }
+            if (!rpcErr && rpcRes?.sucesso) {
+              rpcSucesso = true;
+            } else if (rpcErr) {
+              console.warn("Aviso na RPC baixar_bms_venda, executando fallback atômico:", rpcErr);
             }
-          } else {
-            // 2. Modo automático (busca do saldo pool correspondente)
-            const { data: itensEstoqueDisp } = await supabase
+          } catch (eRpc) {
+            console.warn("RPC indisponível, usando fallback seguro:", eRpc);
+          }
+
+          // 2. Fallback seguro: UPDATE com WHERE id = ANY(ids) AND status = 'disponivel' conferindo ROW_COUNT
+          if (!rpcSucesso) {
+            // Conferir se todas ainda estão com status='disponivel'
+            const { data: bmsDisponiveisAgora } = await supabase
               .from("estoque")
-              .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario")
+              .select("id, nome_bm, tipo_ativo, limite_bm")
+              .in("id", idsParaBaixar)
               .eq("empresa_id", empresa.id)
-              .gt("quantidade_disponivel", 0)
-              .order("quantidade_disponivel", { ascending: true });
+              .eq("status", "disponivel")
+              .gt("quantidade_disponivel", 0);
 
-            let estoqueCorrespondente: any = null;
-            if (itensEstoqueDisp && itensEstoqueDisp.length > 0) {
-              estoqueCorrespondente = itensEstoqueDisp.find((e) => {
-                const limE = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
-                return limiteAlvo && limE === limiteAlvo;
-              }) || itensEstoqueDisp.find((e) => e.tipo_ativo.toLowerCase().includes(nomeMod.toLowerCase())) || itensEstoqueDisp[0];
+            const qtdDisponiveisAgora = bmsDisponiveisAgora?.length || 0;
+            if (qtdDisponiveisAgora < idsParaBaixar.length) {
+              throw new Error(`Concorrência detectada: uma ou mais BMs selecionadas acabaram de ser vendidas ou não estão mais disponíveis.`);
             }
 
-            if (estoqueCorrespondente) {
-              const novaQtd = Math.max(0, Number(estoqueCorrespondente.quantidade_disponivel) - qtdVendida);
-              const statusAtualizadoEstoque = novaQtd === 0 ? "esgotado" : "em_estoque";
-              const statusEnvioEstoque = deliveryStatus === "entregue" ? "enviada" : "reservada";
+            const { data: bmsAfetadas, error: errUpdate } = await supabase
+              .from("estoque")
+              .update({
+                status: "vendida",
+                quantidade_disponivel: 0,
+                status_envio: "entregue",
+                venda_id: vendaSalvaId,
+                cliente_id: clienteId || null,
+                destinatario: nomeCliente,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .in("id", idsParaBaixar)
+              .eq("empresa_id", empresa.id)
+              .eq("status", "disponivel")
+              .select("id");
 
-              await supabase
-                .from("estoque")
-                .update({
-                  quantidade_disponivel: novaQtd,
-                  status: statusAtualizadoEstoque,
-                  status_envio: statusEnvioEstoque,
-                  destinatario: nomeCliente || estoqueCorrespondente.destinatario,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", estoqueCorrespondente.id);
+            if (errUpdate) throw errUpdate;
 
-              const nomeBMFinal = estoqueCorrespondente.nome_bm || estoqueCorrespondente.tipo_ativo || nomeMod;
-              const limiteBMFinal = estoqueCorrespondente.limite_bm || limiteAlvo || null;
-
-              if (deliveryStatus === "entregue" || status === "efetuada" || status === "confirmada" || Boolean(nomeCliente)) {
-                try {
-                  await supabase.from("historico_envios_estoque").insert({
-                    empresa_id: empresa.id,
-                    conta_id: estoqueCorrespondente.id,
-                    venda_id: vendaSalvaId,
-                    nome_conta: nomeBMFinal,
-                    cliente_id: clienteId || null,
-                    cliente_nome: nomeCliente || "Cliente da Venda",
-                    valor_venda: numero(itemVenda.preco_unitario),
-                    status_entrega: deliveryStatus === "entregue" ? "entregue" : "em_andamento",
-                    data_entrega: dataDespacho,
-                  });
-                } catch (errHistEstoque) {
-                  console.warn("Aviso ao salvar em historico_envios_estoque:", errHistEstoque);
-                }
-
-                try {
-                  await supabase.from("contas_enviadas").insert({
-                    empresa_id: empresa.id,
-                    bm_id: estoqueCorrespondente.id,
-                    venda_id: vendaSalvaId,
-                    nome_bm: nomeBMFinal,
-                    limite_bm: limiteBMFinal,
-                    destinatario_cliente: nomeCliente || "Cliente da Venda",
-                    responsavel_envio: nomeRespEnvio,
-                    data_envio: dataDespacho,
-                    custo_unitario: estoqueCorrespondente.custo_medio_unitario || 0,
-                    valor_venda: numero(itemVenda.preco_unitario),
-                    status_envio: deliveryStatus === "entregue" ? "enviada" : "reservada",
-                  });
-                } catch (errContasEnv) {
-                  console.warn("Aviso ao salvar em contas_enviadas:", errContasEnv);
-                }
-              }
+            const rowCountAfetadas = bmsAfetadas?.length || 0;
+            if (rowCountAfetadas < idsParaBaixar.length) {
+              throw new Error(`Falha de integridade ao dar baixa: esperava atualizar ${idsParaBaixar.length} BM(s), mas apenas ${rowCountAfetadas} estavam disponíveis.`);
             }
           }
-        } catch (errEstoque) {
-          console.warn("Aviso ao dar baixa automática no estoque:", errEstoque);
+
+          // Grava histórico de contas enviadas/entregues para cada BM
+          for (const bmId of idsParaBaixar) {
+            const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
+            const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
+            const limiteBMFinal = contaRef?.limite_bm || limiteAlvo || null;
+
+            try {
+              await supabase.from("historico_envios_estoque").insert({
+                empresa_id: empresa.id,
+                conta_id: bmId,
+                venda_id: vendaSalvaId,
+                nome_conta: nomeBMFinal,
+                cliente_id: clienteId || null,
+                cliente_nome: nomeCliente || "Cliente da Venda",
+                valor_venda: numero(itemVenda.preco_unitario),
+                status_entrega: "entregue",
+                data_entrega: dataDespacho,
+              });
+            } catch (errHist) {
+              console.warn("Aviso em historico_envios_estoque:", errHist);
+            }
+
+            try {
+              await supabase.from("contas_enviadas").insert({
+                empresa_id: empresa.id,
+                bm_id: bmId,
+                venda_id: vendaSalvaId,
+                nome_bm: nomeBMFinal,
+                limite_bm: limiteBMFinal,
+                destinatario_cliente: nomeCliente || "Cliente da Venda",
+                responsavel_envio: nomeRespEnvio,
+                data_envio: dataDespacho,
+                custo_unitario: contaRef?.custo_medio_unitario || 0,
+                valor_venda: numero(itemVenda.preco_unitario),
+                status_envio: "enviada",
+              });
+            } catch (errContas) {
+              console.warn("Aviso em contas_enviadas:", errContas);
+            }
+          }
         }
       }
 

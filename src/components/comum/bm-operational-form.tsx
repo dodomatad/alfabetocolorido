@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const LIMITES_BM_PADRAO = ["250", "2K", "10K", "100K"] as const;
+export const LIMITES_BM_PADRAO = ["250", "2k", "10k", "100k"] as const;
 
 export const STATUS_ENVIO_PADRAO = [
   { valor: "disponivel", rotulo: "Disponível" },
@@ -187,7 +187,7 @@ export function BmOperationalForm({
           </Label>
           <div className="grid grid-cols-4 gap-2">
             {LIMITES_BM_PADRAO.map((lim) => {
-              const ativo = data.limiteBm === lim;
+              const ativo = (data.limiteBm || "").toLowerCase() === lim.toLowerCase();
               return (
                 <button
                   key={lim}
