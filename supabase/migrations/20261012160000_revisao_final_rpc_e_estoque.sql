@@ -1,14 +1,16 @@
 -- ==============================================================================
--- MIGRATION DE REVISÃO E CORREÇÃO FINAL: RPC BAIXAR_BMS_VENDA E ESTRUTURA
+-- MIGRATION CONSOLIDADA DE CORREÇÃO DO ESTOQUE E RPC: SCA
 -- Projeto Supabase: cyyxrobdcyzosxlgdweu
 -- Migration: 20261012160000_revisao_final_rpc_e_estoque.sql
 -- ==============================================================================
 
 -- 1. DESATIVAR / AJUSTAR CONSTRAINT RESTRIFICA EM ESTOQUE
--- Permite cadastrar múltiplos registros individuais/seriais para a mesma empresa
+-- Justificativa técnica: a constraint antiga UNIQUE (empresa_id, tipo_ativo)
+-- impede o cadastro de múltiplas BMs individuais com o mesmo tipo (ex: duas "BM 2K"
+-- com nomes diferentes para a mesma empresa). O modelo serializado exige essa remoção.
 ALTER TABLE public.estoque DROP CONSTRAINT IF EXISTS uq_estoque_empresa_tipo;
 
--- 2. GARANTIR COLUNAS EM public.estoque (INCLUINDO cliente_id)
+-- 2. GARANTIR COLUNAS EM public.estoque COM TIPOS E DEFAULTS IDEMPOTENTES
 ALTER TABLE public.estoque ADD COLUMN IF NOT EXISTS limite_bm TEXT;
 ALTER TABLE public.estoque ADD COLUMN IF NOT EXISTS nome_bm TEXT;
 ALTER TABLE public.estoque ADD COLUMN IF NOT EXISTS status_envio TEXT DEFAULT 'disponivel';
@@ -89,7 +91,119 @@ TO authenticated
 USING (empresa_id = internal.empresa_atual())
 WITH CHECK (empresa_id = internal.empresa_atual());
 
--- 5. NORMALIZAÇÃO SEGURA E NÃO-DESTRUTIVA DOS LIMITES EM public.estoque
+-- 5. ATUALIZAR O TRIGGER DE SINCRONIZAÇÃO DE PRODUÇÃO PARA NÃO DEPENDER DE uq_estoque_empresa_tipo
+CREATE OR REPLACE FUNCTION public.handle_sync_producao_para_estoque()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, internal, pg_temp
+AS $$ 
+DECLARE 
+    _tipo TEXT; 
+    _qtd_adicionar INTEGER; 
+    _estoque_id UUID;
+    _qtd_existente INTEGER;
+BEGIN 
+    _tipo := COALESCE(NEW.tipo_bm, NEW.tipo_ativo, 'BM 250'); 
+    _qtd_adicionar := COALESCE(NEW.contas_viradas, NEW.prontas_estoque, NEW.bms_criadas, 0); 
+
+    IF (TG_OP = 'INSERT' AND _qtd_adicionar > 0) THEN 
+        -- Localiza se já existe um registro genérico/agregado (sem nome_bm específico)
+        SELECT id, quantidade_disponivel INTO _estoque_id, _qtd_existente
+        FROM public.estoque
+        WHERE empresa_id = NEW.empresa_id 
+          AND tipo_ativo = _tipo 
+          AND (nome_bm IS NULL OR nome_bm = '')
+        LIMIT 1;
+
+        IF _estoque_id IS NOT NULL THEN
+            UPDATE public.estoque
+            SET quantidade_disponivel = _qtd_existente + _qtd_adicionar,
+                status = 'em_estoque',
+                updated_at = NOW()
+            WHERE id = _estoque_id;
+        ELSE
+            INSERT INTO public.estoque (
+                empresa_id, 
+                tipo_ativo, 
+                limite_bm, 
+                quantidade_disponivel, 
+                quantidade_reservada, 
+                status, 
+                origem, 
+                producao_id, 
+                updated_at
+            ) VALUES (
+                NEW.empresa_id, 
+                _tipo, 
+                REPLACE(_tipo, 'BM ', ''), 
+                _qtd_adicionar, 
+                0, 
+                'em_estoque', 
+                'producao', 
+                NEW.id, 
+                NOW()
+            );
+        END IF;
+
+    ELSIF (TG_OP = 'UPDATE') THEN 
+        DECLARE 
+            _diferenca INTEGER; 
+            _qtd_nova INTEGER;
+            _qtd_antiga INTEGER;
+        BEGIN 
+            _qtd_nova := COALESCE(NEW.contas_viradas, NEW.prontas_estoque, NEW.bms_criadas, 0);
+            _qtd_antiga := COALESCE(OLD.contas_viradas, OLD.prontas_estoque, OLD.bms_criadas, 0);
+            _diferenca := _qtd_nova - _qtd_antiga; 
+                         
+            IF (_diferenca <> 0) THEN 
+                SELECT id, quantidade_disponivel INTO _estoque_id, _qtd_existente
+                FROM public.estoque
+                WHERE empresa_id = NEW.empresa_id 
+                  AND tipo_ativo = _tipo 
+                  AND (nome_bm IS NULL OR nome_bm = '')
+                LIMIT 1;
+
+                IF _estoque_id IS NOT NULL THEN
+                    UPDATE public.estoque
+                    SET quantidade_disponivel = GREATEST(0, _qtd_existente + _diferenca),
+                        status = CASE WHEN (_qtd_existente + _diferenca) > 0 THEN 'em_estoque' ELSE 'esgotado' END,
+                        updated_at = NOW()
+                    WHERE id = _estoque_id;
+                ELSE
+                    IF _diferenca > 0 THEN
+                        INSERT INTO public.estoque (
+                            empresa_id, 
+                            tipo_ativo, 
+                            limite_bm, 
+                            quantidade_disponivel, 
+                            quantidade_reservada, 
+                            status, 
+                            origem, 
+                            producao_id, 
+                            updated_at
+                        ) VALUES (
+                            NEW.empresa_id, 
+                            _tipo, 
+                            REPLACE(_tipo, 'BM ', ''), 
+                            _diferenca, 
+                            0, 
+                            'em_estoque', 
+                            'producao', 
+                            NEW.id, 
+                            NOW()
+                        );
+                    END IF;
+                END IF;
+            END IF; 
+        END; 
+    END IF; 
+
+    RETURN NEW; 
+END; 
+$$;
+
+-- 6. NORMALIZAÇÃO NÃO-DESTRUTIVA DOS LIMITES EM public.estoque
 UPDATE public.estoque
 SET limite_bm = CASE
     WHEN limite_bm ILIKE '%100k%' OR tipo_ativo ILIKE '%100k%' THEN '100k'
@@ -106,15 +220,7 @@ WHERE (limite_bm IS NOT NULL OR tipo_ativo IS NOT NULL)
       limite_bm ILIKE '%250%'  OR tipo_ativo ILIKE '%250%'
   );
 
--- 6. FUNÇÃO RPC TRANSACIONAL public.baixar_bms_venda
--- Correções implementadas:
--- a) Bloqueio SQL com PERFORM ... FOR UPDATE (sem agregação inválida)
--- b) Desduplicação de IDs recebidos em p_bms_ids
--- c) Validação prévia de tenant, venda e cliente
--- d) Verificação de disponibilidade e contagem exata (abort se afetadas != esperadas)
--- e) Parâmetro p_status_envio dinâmico (padrão 'entregue')
-
--- Remover versão legada com 5 parâmetros para evitar sobrecarga confusa
+-- 7. FUNÇÃO RPC TRANSACIONAL public.baixar_bms_venda
 DROP FUNCTION IF EXISTS public.baixar_bms_venda(UUID, UUID, UUID, TEXT, UUID[]);
 DROP FUNCTION IF EXISTS public.baixar_bms_venda(UUID, UUID, UUID, TEXT, UUID[], TEXT);
 
@@ -151,10 +257,10 @@ BEGIN
         RETURN jsonb_build_object('sucesso', true, 'afetadas', 0, 'mensagem', 'Nenhuma BM informada para baixa.');
     END IF;
 
-    -- [Desduplicação 3]: Obter lista única de IDs para garantir contagem consistente
-    SELECT COALESCE(array_agg(DISTINCT id), '{}'::UUID[])
+    -- [Desduplicação 3]: Obter lista única de IDs para garantir integridade matemática
+    SELECT COALESCE(array_agg(DISTINCT elem), '{}'::UUID[])
     INTO v_bms_unicos
-    FROM unnest(p_bms_ids) AS id;
+    FROM unnest(p_bms_ids) AS t(elem);
 
     v_total_esperado := COALESCE(array_length(v_bms_unicos, 1), 0);
     IF v_total_esperado = 0 THEN
@@ -182,7 +288,7 @@ BEGIN
       AND empresa_id = p_empresa_id
     FOR UPDATE;
 
-    -- [Validação 7]: Verificar se todos os IDs requisitados existem nesta empresa
+    -- [Validação 7]: Confirmar existência de todas as BMs para esta empresa
     SELECT count(*)
     INTO v_total_encontrado
     FROM public.estoque
@@ -206,9 +312,9 @@ BEGIN
         RAISE EXCEPTION 'As seguintes BMs não estão mais disponíveis para venda: %', array_to_string(v_bms_indisponiveis, ', ');
     END IF;
 
-    -- [Execução 9]: Baixa atômica e atribuição de venda/cliente/destinatário
     v_status_envio_final := COALESCE(NULLIF(TRIM(p_status_envio), ''), 'entregue');
 
+    -- [Execução 9]: Baixa atômica e atribuição de venda/cliente/destinatário
     UPDATE public.estoque
     SET 
         status = 'vendida',
@@ -242,5 +348,5 @@ $$;
 GRANT EXECUTE ON FUNCTION public.baixar_bms_venda(UUID, UUID, UUID, TEXT, UUID[], TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.baixar_bms_venda(UUID, UUID, UUID, TEXT, UUID[], TEXT) TO service_role;
 
--- 7. NOTIFICAR O POSTGREST PARA RECARREGAR O SCHEMA CACHE
+-- 8. NOTIFICAR O POSTGREST PARA RECARREGAR O SCHEMA CACHE
 NOTIFY pgrst, 'reload schema';
