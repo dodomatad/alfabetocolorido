@@ -531,6 +531,7 @@ function Pagina() {
           const { data: estoqueAtual } = await supabase
             .from("estoque")
             .select("id, quantidade_disponivel")
+            .eq("empresa_id", empresa.id)
             .eq("tipo_ativo", dadosProducao.tipo_bm)
             .is("nome_bm", null)
             .maybeSingle();

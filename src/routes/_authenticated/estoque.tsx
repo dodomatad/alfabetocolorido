@@ -171,7 +171,8 @@ function DashboardEstoque() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("estoque")
-        .select("*");
+        .select("*")
+        .eq("empresa_id", empresa!.id);
       if (error) throw error;
       return (data || []) as any[];
     },
@@ -181,6 +182,10 @@ function DashboardEstoque() {
   const getQtd = (tipo: string) => {
     return (estoque || [])
       .filter((e) => {
+        const st = (e.status_envio || e.status || "").toLowerCase();
+        const estaDisponivel = st === "disponivel" || st === "em_estoque" || st === "pronta_envio";
+        if (!estaDisponivel && Number(e.quantidade_disponivel || 0) <= 0) return false;
+
         const lim = (e.limite_bm || (e.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
         if (tipo === "BM 250") return lim === "250" || e.tipo_ativo?.includes("250");
         if (tipo === "BM 2K") return lim === "2K" || e.tipo_ativo?.includes("2K") || e.tipo_ativo === "BM 2K";
@@ -278,6 +283,7 @@ function PaginaEstoque() {
       const { data, error } = await supabase
         .from("estoque")
         .select("*")
+        .eq("empresa_id", empresa!.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data || []) as ItemEstoque[];
@@ -295,10 +301,15 @@ function PaginaEstoque() {
       const { data, error } = await supabase
         .from("contas_enviadas")
         .select("*, vendas(id, numero, cliente)")
+        .eq("empresa_id", empresa!.id)
         .order("data_envio", { ascending: false });
       if (error) {
         // Fallback caso a relação vendas não resolva diretamente
-        const res = await supabase.from("contas_enviadas").select("*").order("data_envio", { ascending: false });
+        const res = await supabase
+          .from("contas_enviadas")
+          .select("*")
+          .eq("empresa_id", empresa!.id)
+          .order("data_envio", { ascending: false });
         return (res.data || []) as (ContaEnviada & { vendas?: { id: string; numero: number; cliente?: string | null } | null })[];
       }
       return (data || []) as (ContaEnviada & { vendas?: { id: string; numero: number; cliente?: string | null } | null })[];
