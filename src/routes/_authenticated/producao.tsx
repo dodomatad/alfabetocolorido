@@ -73,6 +73,7 @@ import {
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarData } from "@/lib/formatadores";
+import type { ProducaoDiaria, MotivoQuedaProducao } from "@/types/production";
 
 export const Route = createFileRoute("/_authenticated/producao")({
   head: () => ({
@@ -94,8 +95,8 @@ export const Route = createFileRoute("/_authenticated/producao")({
   component: Pagina,
 });
 
-type Registro = Database["public"]["Tables"]["producao_diaria"]["Row"];
-type MotivoQueda = Database["public"]["Enums"]["motivo_queda"];
+type Registro = ProducaoDiaria;
+type MotivoQueda = MotivoQuedaProducao;
 
 
 const MOTIVOS: Array<{ valor: MotivoQueda; rotulo: string }> = [
@@ -314,22 +315,42 @@ function Pagina() {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
       if (!form["operador"]?.trim()) throw new Error("Selecione a funcionária/operador.");
       const n = (c: string) => Number(form[c] || 0) || 0;
+      const criadasNum = n("bms_criadas");
+      const viradasNum = n("contas_viradas");
+      const bloqueiosNum = n("bloqueios");
+      const fornecedorNum = n("recebidas_fornecedor");
+      const aproveitamentoCalc = criadasNum > 0 ? (viradasNum / criadasNum) * 100 : 0;
+      const unidadesLiquidas = viradasNum > 0
+        ? viradasNum
+        : Math.max(0, criadasNum - bloqueiosNum);
+      const prontasEstoqueCalc = unidadesLiquidas + fornecedorNum;
 
-      // Payload sanitizado exclusivo para a tabela producao_diaria
+      const dataRegistroVal = form["data_registro"] || new Date().toISOString().split("T")[0];
+      const dataCriacaoVal = form["data_criacao"] || new Date().toISOString();
+      const operadorVal = form["operador"] || "";
+      const tipoAtivoVal = form["tipo_bm"] || "BM 250";
+
+      // Payload sanitizado e alinhado com todas as colunas de producao_diaria
       const dadosProducao = {
         empresa_id: empresa.id,
-        data_registro: form["data_registro"] || form["data_criacao"] || iso(new Date()),
-        operador: form["operador"],
-        tipo_bm: form["tipo_bm"] || "BM 250",
-        bms_criadas: n("bms_criadas"),
+        data_registro: dataRegistroVal,
+        data_criacao: dataCriacaoVal,
+        funcionario_id: null,
+        funcionario_nome: operadorVal,
+        operador: operadorVal,
+        tipo_ativo: tipoAtivoVal,
+        tipo_bm: tipoAtivoVal,
+        recebidas_fornecedor: fornecedorNum,
+        bms_criadas: criadasNum,
+        contas_viradas: viradasNum,
+        bloqueios: bloqueiosNum,
+        prontas_estoque: prontasEstoqueCalc,
+        aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
+        motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
+        observacoes: form["observacoes"]?.trim() || null,
         bms_aquecidas: 0,
         contas_subidas: 0,
-        contas_viradas: n("contas_viradas"),
-        bloqueios: n("bloqueios"),
-        recebidas_fornecedor: n("recebidas_fornecedor"),
-        motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
         meta_diaria: 10,
-        observacoes: form["observacoes"] || null,
         atualizado_por: session?.user.id ?? null,
       };
 
@@ -338,19 +359,14 @@ function Pagina() {
         nome_bm: form["nome_bm"] || null,
         limite_bm: form["limite_bm"] || null,
         tem_template: form["tem_template"] === "true",
-        data_criacao: form["data_criacao"] || form["data_registro"] || iso(new Date()),
+        data_criacao: dataCriacaoVal,
         destinatario: form["destinatario"] || null,
         status_envio: form["status_envio"] || "disponivel",
         quantidade: n("quantidade") || 1,
       };
 
       const isBM = (dadosProducao.tipo_bm || "").startsWith("BM");
-
-      // Ativos líquidos prontos para disponibilidade imediata no Estoque
-      const unidadesLiquidas = dadosProducao.contas_viradas > 0
-        ? dadosProducao.contas_viradas
-        : Math.max(0, dadosProducao.bms_criadas - dadosProducao.bloqueios);
-      const totalLiquidoEstoque = unidadesLiquidas + (dadosProducao.recebidas_fornecedor || 0);
+      const totalLiquidoEstoque = prontasEstoqueCalc;
 
       if (editando) {
         const { error } = await tabela().update(dadosProducao as any).eq("id", editando.id);
@@ -497,7 +513,7 @@ function Pagina() {
       if (qtdBms > 1) {
         toast.success(`✓ ${qtdBms} BMs adicionadas com sucesso à produção e ao estoque!`);
       } else {
-        toast.success(editando ? "✓ Registro atualizado com sucesso!" : "✓ Produção diária salva com sucesso!");
+        toast.success(editando ? "✓ Registro atualizado e sincronizado com sucesso!" : "✓ Produção diária registrada e sincronizada com sucesso!");
       }
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["producao"] });
