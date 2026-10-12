@@ -315,9 +315,10 @@ function Pagina() {
       if (!form["operador"]?.trim()) throw new Error("Selecione a funcionária/operador.");
       const n = (c: string) => Number(form[c] || 0) || 0;
 
-      const dados = {
+      // Payload sanitizado exclusivo para a tabela producao_diaria
+      const dadosProducao = {
         empresa_id: empresa.id,
-        data_registro: form["data_registro"] || iso(new Date()),
+        data_registro: form["data_registro"] || form["data_criacao"] || iso(new Date()),
         operador: form["operador"],
         tipo_bm: form["tipo_bm"] || "BM 250",
         bms_criadas: n("bms_criadas"),
@@ -330,6 +331,10 @@ function Pagina() {
         meta_diaria: 10,
         observacoes: form["observacoes"] || null,
         atualizado_por: session?.user.id ?? null,
+      };
+
+      // Metadados específicos de BM para persistência no Estoque
+      const dadosBM = {
         nome_bm: form["nome_bm"] || null,
         limite_bm: form["limite_bm"] || null,
         tem_template: form["tem_template"] === "true",
@@ -339,16 +344,16 @@ function Pagina() {
         quantidade: n("quantidade") || 1,
       };
 
-      const isBM = (dados.tipo_bm || "").startsWith("BM");
+      const isBM = (dadosProducao.tipo_bm || "").startsWith("BM");
 
       // Ativos líquidos prontos para disponibilidade imediata no Estoque
-      const unidadesLiquidas = dados.contas_viradas > 0
-        ? dados.contas_viradas
-        : Math.max(0, dados.bms_criadas - dados.bloqueios);
-      const totalLiquidoEstoque = unidadesLiquidas + (dados.recebidas_fornecedor || 0);
+      const unidadesLiquidas = dadosProducao.contas_viradas > 0
+        ? dadosProducao.contas_viradas
+        : Math.max(0, dadosProducao.bms_criadas - dadosProducao.bloqueios);
+      const totalLiquidoEstoque = unidadesLiquidas + (dadosProducao.recebidas_fornecedor || 0);
 
       if (editando) {
-        const { error } = await tabela().update(dados as any).eq("id", editando.id);
+        const { error } = await tabela().update(dadosProducao as any).eq("id", editando.id);
         if (error) throw error;
         
         // Atualiza estoque com a diferença líquida (delta)
@@ -363,7 +368,7 @@ function Pagina() {
           const { data: estoqueAtual } = await supabase
             .from("estoque")
             .select("id, quantidade_disponivel")
-            .eq("tipo_ativo", dados.tipo_bm)
+            .eq("tipo_ativo", dadosProducao.tipo_bm)
             .is("nome_bm", null)
             .maybeSingle();
 
@@ -379,8 +384,8 @@ function Pagina() {
           } else if (diffTotal > 0) {
             await supabase.from("estoque").insert({
               empresa_id: empresa.id,
-              tipo_ativo: dados.tipo_bm,
-              limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
+              tipo_ativo: dadosProducao.tipo_bm,
+              limite_bm: dadosBM.limite_bm || dadosProducao.tipo_bm.replace("BM ", ""),
               quantidade_disponivel: diffTotal,
               quantidade_reservada: 0,
               status: "em_estoque",
@@ -389,7 +394,7 @@ function Pagina() {
         }
       } else {
         const { data: novoReg, error } = await tabela().insert({
-          ...dados,
+          ...dadosProducao,
           criado_por: session?.user.id ?? null,
         } as any).select("id").maybeSingle();
         if (error) throw error;
@@ -401,15 +406,15 @@ function Pagina() {
           .map((n) => n.trim())
           .filter((n) => n.length > 0);
         
-        // Se a lista estiver vazia mas tiver dados.nome_bm, usa ele
-        if (nomesValidos.length === 0 && dados.nome_bm?.trim()) {
-          nomesValidos.push(dados.nome_bm.trim());
+        // Se a lista estiver vazia mas tiver dadosBM.nome_bm, usa ele
+        if (nomesValidos.length === 0 && dadosBM.nome_bm?.trim()) {
+          nomesValidos.push(dadosBM.nome_bm.trim());
         }
 
         // Cadastra individualmente no Estoque para CADA nome de BM preenchido
         if (isBM && nomesValidos.length > 0) {
-          const limite = dados.limite_bm || dados.tipo_bm.replace("BM ", "");
-          const statusEnvioAlvo = dados.status_envio || "disponivel";
+          const limite = dadosBM.limite_bm || dadosProducao.tipo_bm.replace("BM ", "");
+          const statusEnvioAlvo = dadosBM.status_envio || "disponivel";
           const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
           const estaReservada = statusEnvioAlvo === "reservada";
 
@@ -423,10 +428,10 @@ function Pagina() {
               tipo_ativo: tipoAtivoFinal,
               nome_bm: nomeClean,
               limite_bm: limite,
-              tem_template: dados.tem_template,
-              data_criacao: dados.data_criacao,
-              responsavel: dados.operador,
-              destinatario: dados.destinatario,
+              tem_template: dadosBM.tem_template,
+              data_criacao: dadosBM.data_criacao,
+              responsavel: dadosProducao.operador,
+              destinatario: dadosBM.destinatario,
               status_envio: statusEnvioAlvo,
               quantidade_disponivel: estaDisponivel ? 1 : 0,
               quantidade_reservada: estaReservada ? 1 : 0,
@@ -458,7 +463,7 @@ function Pagina() {
           const { data: estoqueAtual } = await supabase
             .from("estoque")
             .select("id, quantidade_disponivel")
-            .eq("tipo_ativo", dados.tipo_bm)
+            .eq("tipo_ativo", dadosProducao.tipo_bm)
             .is("nome_bm", null)
             .maybeSingle();
 
@@ -474,8 +479,8 @@ function Pagina() {
           } else {
             await supabase.from("estoque").insert({
               empresa_id: empresa.id,
-              tipo_ativo: dados.tipo_bm,
-              limite_bm: dados.limite_bm || dados.tipo_bm.replace("BM ", ""),
+              tipo_ativo: dadosProducao.tipo_bm,
+              limite_bm: dadosBM.limite_bm || dadosProducao.tipo_bm.replace("BM ", ""),
               quantidade_disponivel: qtdParaPool,
               quantidade_reservada: 0,
               status: "em_estoque",
@@ -492,9 +497,10 @@ function Pagina() {
       if (qtdBms > 1) {
         toast.success(`✓ ${qtdBms} BMs adicionadas com sucesso à produção e ao estoque!`);
       } else {
-        toast.success(editando ? "Registro atualizado com sucesso." : "Produção registrada com sucesso.");
+        toast.success(editando ? "✓ Registro atualizado com sucesso!" : "✓ Produção diária salva com sucesso!");
       }
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
