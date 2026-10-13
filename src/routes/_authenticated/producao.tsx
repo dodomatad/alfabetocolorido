@@ -1,62 +1,29 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  LabelList,
-  Legend,
-  ResponsiveContainer,
-  Tooltip as TooltipRecharts,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  AlertTriangle,
-  Factory,
-  PackageCheck,
-  Pencil,
-  Plus,
-  Target,
-  Trash2,
-  TrendingDown,
-  TrendingUp,
-  ChevronRight,
-  Info,
-  CheckCircle2,
-  Clock,
   Boxes,
+  Plus,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
+  Calendar,
+  Layers,
+  Sparkles,
+  Info,
+  Clock,
+  UserCheck,
+  Search,
+  Filter,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { BmOperationalForm } from "@/components/comum/bm-operational-form";
-
 import { toast } from "sonner";
-import {
-  listarProducaoLocal,
-  salvarProducaoLocal,
-  excluirProducaoLocal,
-  listarEstoqueLocal,
-  listarOperadoresLocal,
-} from "@/lib/estoque.functions";
 
-
-import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
-import { CarregandoTabela, EstadoErro, EstadoVazio } from "@/components/comum/estados";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -65,6 +32,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -72,181 +47,89 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
+import { CarregandoTabela } from "@/components/comum/estados";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarData } from "@/lib/formatadores";
-import type { ProducaoDiaria, MotivoQuedaProducao } from "@/types/production";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/producao")({
   head: () => ({
     meta: [
-      { title: "Produção & Contingência | Gestão BMs" },
+      { title: "Produção & Estoque de BMs | Gestão Central" },
       {
         name: "description",
-        content: "Desempenho da equipe e controle operacional de BMs.",
+        content: "Controle de criação, viragem de BMs e entrada direta no Estoque.",
       },
-      { property: "og:title", content: "Produção & Contingência | Gestão BMs" },
-      {
-        property: "og:description",
-        content: "Desempenho da equipe e controle operacional de BMs.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Pagina,
+  component: PaginaProducao,
 });
 
-type Registro = ProducaoDiaria;
-type MotivoQueda = MotivoQuedaProducao;
+const LIMITES_DISPONIVEIS = [
+  { valor: "250", rotulo: "BM 250" },
+  { valor: "2k", rotulo: "BM 2K" },
+  { valor: "10k", rotulo: "BM 10K" },
+  { valor: "100k", rotulo: "BM 100K" },
+  { valor: "Ilimitada", rotulo: "BM Ilimitada" },
+];
 
-
-const MOTIVOS: Array<{ valor: MotivoQueda; rotulo: string }> = [
-  { valor: "erro_cartao", rotulo: "Erro de Cartão" },
-  { valor: "checkpoint_identidade", rotulo: "Checkpoint de Identidade" },
-  { valor: "bloqueio_ip", rotulo: "Bloqueio de IP/Proxy" },
+const MOTIVOS_QUEDA = [
+  { valor: "nenhum", rotulo: "Nenhum (Sucesso Total)" },
   { valor: "restricao_imediata", rotulo: "Restrição Imediata" },
+  { valor: "checkpoint_identidade", rotulo: "Checkpoint de Identidade" },
+  { valor: "erro_cartao", rotulo: "Erro de Cartão" },
+  { valor: "bloqueio_ip", rotulo: "Bloqueio de IP / Proxy" },
   { valor: "outros", rotulo: "Outros" },
 ];
 
-const PERIODOS = [
-  { valor: "hoje", rotulo: "Hoje" },
-  { valor: "ontem", rotulo: "Ontem" },
-  { valor: "7", rotulo: "Últimos 7 dias" },
-  { valor: "30", rotulo: "Últimos 30 dias" },
-  { valor: "tudo", rotulo: "Todo o período" },
-];
-
-const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const AZUL = "#3B82F6";
-const VERDE = "#10B981";
-
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-
-function limiteInferior(periodo: string): { de?: string; ate?: string } {
-  const hoje = new Date();
-  if (periodo === "hoje") return { de: iso(hoje), ate: iso(hoje) };
-  if (periodo === "ontem") {
-    const o = new Date(hoje);
-    o.setDate(o.getDate() - 1);
-    return { de: iso(o), ate: iso(o) };
-  }
-  if (periodo === "tudo") return {};
-  const dias = Number(periodo);
-  const de = new Date(hoje);
-  de.setDate(de.getDate() - (dias - 1));
-  return { de: iso(de), ate: iso(hoje) };
+function normalizeLimite(val: string | null | undefined): string {
+  if (!val) return "250";
+  const s = val.toLowerCase();
+  if (s.includes("100k")) return "100k";
+  if (s.includes("10k")) return "10k";
+  if (s.includes("2k")) return "2k";
+  if (s.includes("ilimitada")) return "Ilimitada";
+  return "250";
 }
 
-export const normalizeLimite = (v?: string | null): string => {
-  if (!v) return "250";
-  const str = v.trim().toLowerCase();
-  if (str.includes("100k")) return "100k";
-  if (str.includes("10k")) return "10k";
-  if (str.includes("2k")) return "2k";
-  if (str.includes("250")) return "250";
-  return str.replace("bm", "").trim() || "250";
-};
-
-const rotuloMotivo = (m: string | null) =>
-  MOTIVOS.find((x) => x.valor === m)?.rotulo ?? "—";
-
-function Pagina() {
-  const { empresa, session, fuso, temPermissao, permissoes } = useSessao();
+function PaginaProducao() {
+  const { empresa, session, fuso, temPermissao } = useSessao();
   const queryClient = useQueryClient();
-  const [operador, setOperador] = useState("todos");
-  const [periodo, setPeriodo] = useState("7");
-  const [aberto, setAberto] = useState(false);
-  const [editando, setEditando] = useState<Registro | null>(null);
 
-  const consulta = useQuery({
-    queryKey: ["producao_diaria", empresa?.id],
+  // Estados dos Filtros
+  const [busca, setBusca] = useState("");
+  const [filtroLimite, setFiltroLimite] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+
+  // Estado do Modal de Registro
+  const [modalAberto, setModalAberto] = useState(false);
+
+  // Campos do Formulário de Produção & Estoque
+  const [operador, setOperador] = useState("");
+  const [dataVirada, setDataVirada] = useState(() => new Date().toISOString().slice(0, 10));
+  const [limiteBm, setLimiteBm] = useState("250");
+  const [nomesBmTexto, setNomesBmTexto] = useState("");
+  const [bmsCriadas, setBmsCriadas] = useState("1");
+  const [contasViradas, setContasViradas] = useState("1");
+  const [bloqueios, setBloqueios] = useState("0");
+  const [motivoQueda, setMotivoQueda] = useState("nenhum");
+  const [observacoes, setObservacoes] = useState("");
+
+  // 1. Carrega Operadores da Equipe
+  const equipeQuery = useQuery({
+    queryKey: ["equipe-producao", empresa?.id],
     enabled: Boolean(empresa?.id),
-    staleTime: 1000 * 60,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       if (!empresa?.id) return [];
-      const isAmbienteRemoto = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1");
-      let data: any[] = [];
-      if (!isAmbienteRemoto) {
-        try {
-          data = (await listarProducaoLocal({ data: { empresa_id: empresa.id } })) || [];
-        } catch (errLocal) {
-          console.warn("Aviso ao buscar produção local, buscando via Supabase:", errLocal);
-        }
-      }
-      if (data.length === 0) {
-        try {
-          const { data: remoteData } = await supabase
-            .from("producao_diaria")
-            .select("*")
-            .eq("empresa_id", empresa.id)
-            .order("data_registro", { ascending: false });
-          data = remoteData || [];
-        } catch {
-          data = [];
-        }
-      }
-
-      const p = permissoes.find((x) => x.modulo === "producao");
-      if (session?.user && p?.ocultar_valores) {
-        return (data || []).filter((r) => r.criado_por === session.user.id);
-      }
-      return (data as unknown as Registro[]) ?? [];
-    },
-  });
-
-  const equipe = useQuery({
-    queryKey: ["perfis-producao", empresa?.id],
-    enabled: Boolean(empresa?.id),
-    staleTime: 1000 * 60 * 5,
-    queryFn: async () => {
-      let perfis: { id: string; nome: string }[] = [];
       try {
-        const { data } = await supabase.from("perfis").select("id, nome").limit(200);
-        if (data) perfis = data;
-      } catch {
-        // Fallback offline
-      }
-
-      // Adiciona operadores já conhecidos da base de produção local
-      if (empresa?.id) {
-        try {
-          const opsLocais = await listarOperadoresLocal({ data: { empresa_id: empresa.id } });
-          const nomesExistentes = new Set(perfis.map((p) => p.nome.toLowerCase()));
-          for (const op of opsLocais) {
-            if (!nomesExistentes.has(op.toLowerCase())) {
-              perfis.push({ id: `local-${op}`, nome: op });
-              nomesExistentes.add(op.toLowerCase());
-            }
-          }
-        } catch {
-          // Ignora caso falhe
-        }
-      }
-
-      return perfis;
-    },
-  });
-
-  const consultaClientes = useQuery({
-    queryKey: ["clientes-producao", empresa?.id],
-    enabled: Boolean(empresa?.id) && aberto,
-    staleTime: 1000 * 60 * 5,
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("clientes")
+        const { data } = await supabase
+          .from("perfis")
           .select("id, nome")
-          .eq("ativo", true)
+          .eq("empresa_id", empresa.id)
           .order("nome");
-        if (error) return [];
         return data || [];
       } catch {
         return [];
@@ -254,973 +137,542 @@ function Pagina() {
     },
   });
 
+  // 2. Carrega as BMs do Estoque cadastradas / produzidas
   const bmsEstoqueQuery = useQuery({
-    queryKey: ["bms-producao-estoque", empresa?.id],
+    queryKey: ["estoque-producao-bms", empresa?.id],
     enabled: Boolean(empresa?.id),
     staleTime: 1000 * 30,
     queryFn: async () => {
       if (!empresa?.id) return [];
-      const isAmbienteRemoto = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1");
-      if (!isAmbienteRemoto) {
-        try {
-          const data = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
-          if (data && data.length > 0) return data;
-        } catch (errLocal) {
-          console.warn("Aviso ao buscar estoque local, buscando via Supabase:", errLocal);
-        }
-      }
       try {
-        const { data: remoteData } = await supabase
+        const { data, error } = await supabase
           .from("estoque")
           .select("*")
           .eq("empresa_id", empresa.id)
-          .order("updated_at", { ascending: false });
-        return remoteData || [];
-      } catch {
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.warn("Aviso ao carregar BMs do estoque:", err);
         return [];
       }
     },
   });
 
-  const resumoPorTipo = useMemo(() => {
-    const contadores: Record<string, number> = {
-      "250": 0,
-      "2k": 0,
-      "10k": 0,
-      "100k": 0,
+  // 3. Resumo por Limite (BM 250, 2k, 10k, 100k, etc.)
+  const resumoLimites = useMemo(() => {
+    const contadores: Record<string, { disponivel: number; vendida: number }> = {
+      "250": { disponivel: 0, vendida: 0 },
+      "2k": { disponivel: 0, vendida: 0 },
+      "10k": { disponivel: 0, vendida: 0 },
+      "100k": { disponivel: 0, vendida: 0 },
+      "Ilimitada": { disponivel: 0, vendida: 0 },
     };
 
     (bmsEstoqueQuery.data || []).forEach((item: any) => {
-      const st = (item.status || "").toLowerCase();
-      const stEnvio = (item.status_envio || "").toLowerCase();
-      const estaDisponivel = (st === "disponivel" || st === "em_estoque" || stEnvio === "disponivel" || stEnvio === "pronta_envio") && Number(item.quantidade_disponivel || 0) > 0;
-      
+      const lim = normalizeLimite(item.limite_bm || item.tipo_ativo);
+      const st = (item.status_envio || item.status || "").toLowerCase();
+      const estaDisponivel = (st === "disponivel" || st === "em_estoque" || st === "pronta_envio") && Number(item.quantidade_disponivel || 0) > 0;
+
+      if (!contadores[lim]) {
+        contadores[lim] = { disponivel: 0, vendida: 0 };
+      }
+
       if (estaDisponivel) {
-        const lim = normalizeLimite(item.limite_bm || item.tipo_ativo);
-        if (contadores[lim] !== undefined) {
-          contadores[lim] += Number(item.quantidade_disponivel || 1);
-        }
+        contadores[lim].disponivel += Number(item.quantidade_disponivel || 1);
+      } else {
+        contadores[lim].vendida += 1;
       }
     });
 
     return contadores;
   }, [bmsEstoqueQuery.data]);
 
-  const registros = useMemo(() => {
-    const { de, ate } = limiteInferior(periodo);
-    return (consulta.data ?? []).filter((r) => {
-      if (operador !== "todos" && r.operador !== operador) return false;
-      if (de && r.data_registro < de) return false;
-      if (ate && r.data_registro > ate) return false;
-      return true;
-    });
-  }, [consulta.data, operador, periodo]);
+  // Totais Gerais
+  const totalDisponiveis = useMemo(() => {
+    return Object.values(resumoLimites).reduce((acc, curr) => acc + curr.disponivel, 0);
+  }, [resumoLimites]);
 
-  const soma = (chave: keyof Registro) =>
-    registros.reduce((s, r) => s + (Number(r[chave]) || 0), 0);
+  const totalVendidas = useMemo(() => {
+    return Object.values(resumoLimites).reduce((acc, curr) => acc + curr.vendida, 0);
+  }, [resumoLimites]);
 
-  const ocultarValores = useMemo(() => {
-    return permissoes.find(p => p.modulo === 'producao')?.ocultar_valores === true;
-  }, [permissoes]);
-
-  const criadas = soma("bms_criadas");
-  const viradas = soma("contas_viradas");
-  const bloqueios = soma("bloqueios");
-  const recebidasFornecedor = soma("recebidas_fornecedor" as keyof Registro);
-  const aproveitamento = criadas > 0 ? (viradas / criadas) * 100 : 0;
-  const perda = criadas > 0 ? (bloqueios / criadas) * 100 : 0;
-
-  const fmtNumero = (v: number | string) => (ocultarValores ? "***" : v);
-  const fmtPercentual = (v: number) => (ocultarValores ? "***%" : `${v.toFixed(1)}%`);
-
-  const porDia = useMemo(() => {
-    const base = DIAS.map((dia) => ({ dia, criadas: 0, viradas: 0 }));
-    for (const r of registros) {
-      const d = new Date(`${r.data_registro}T12:00:00Z`);
-      const i = d.getUTCDay();
-      base[i]!.criadas += Number(r.bms_criadas) || 0;
-      base[i]!.viradas += Number(r.contas_viradas) || 0;
-    }
-    return [...base.slice(1), base[0]!];
-  }, [registros]);
-
-  const { etapas, maiorQueda } = useMemo(() => {
-    const et = [
-      { etapa: "BMs Criadas", valor: criadas },
-      { etapa: "Contas Viradas", valor: viradas },
-    ].map((e, i, arr) => ({
-      ...e,
-      percentual: criadas > 0 ? (e.valor / criadas) * 100 : 0,
-      queda: i === 0 ? 0 : (arr[i - 1]!.valor || 0) - e.valor,
-    }));
-    const mq = Math.max(0, ...et.map((e) => e.queda));
-    return { etapas: et, maiorQueda: mq };
-  }, [criadas, viradas]);
-
-  const criarFormVazio = () => ({
-    operador: "",
-    data_registro: iso(new Date()),
-    tipo_bm: "BM 250",
-    bms_criadas: "",
-    contas_viradas: "",
-    bloqueios: "",
-    motivo_queda: "",
-    recebidas_fornecedor: "0",
-    observacoes: "",
-    nome_bm: "",
-    nomes_bm: "",
-    limite_bm: "250",
-    tem_template: "false",
-    data_criacao: iso(new Date()),
-    destinatario: "",
-    status_envio: "disponivel",
-    quantidade: "1",
-  });
-  const [form, setForm] = useState<Record<string, string>>(criarFormVazio);
-  const [nomesBmLista, setNomesBmLista] = useState<string[]>([""]);
-
-  useEffect(() => {
-    if (!aberto && !editando) {
-      setForm(criarFormVazio());
-      setNomesBmLista([""]);
-    }
-  }, [aberto, editando]);
-
-  const abrirNovo = () => {
-    setEditando(null);
-    setForm(criarFormVazio());
-    setNomesBmLista([""]);
-    setAberto(true);
+  // Resetar formulário
+  const resetForm = () => {
+    setOperador("");
+    setDataVirada(new Date().toISOString().slice(0, 10));
+    setLimiteBm("250");
+    setNomesBmTexto("");
+    setBmsCriadas("1");
+    setContasViradas("1");
+    setBloqueios("0");
+    setMotivoQueda("nenhum");
+    setObservacoes("");
   };
 
-  const abrirEdicao = (r: Registro) => {
-    setEditando(r);
-    const nomeOriginal = (r as any).nome_bm ?? "";
-    setNomesBmLista(nomeOriginal ? [nomeOriginal] : [""]);
-    setForm({
-      operador: r.operador,
-      data_registro: r.data_registro,
-      tipo_bm: (r as any).tipo_bm || "BM 250",
-      bms_criadas: String(r.bms_criadas),
-      contas_viradas: String(r.contas_viradas),
-      bloqueios: String(r.bloqueios),
-      recebidas_fornecedor: String((r as any).recebidas_fornecedor || 0),
-      motivo_queda: r.motivo_queda ?? "",
-      observacoes: r.observacoes ?? "",
-      nome_bm: nomeOriginal,
-      nomes_bm: nomeOriginal,
-      limite_bm: (r as any).limite_bm ?? "250",
-      tem_template: String((r as any).tem_template ?? false),
-      data_criacao: (r as any).data_criacao ?? r.data_registro ?? iso(new Date()),
-      destinatario: (r as any).destinatario ?? "",
-      status_envio: (r as any).status_envio ?? "disponivel",
-      quantidade: String((r as any).quantidade ?? 1),
-    });
-    setAberto(true);
+  const abrirModalNovo = () => {
+    resetForm();
+    setModalAberto(true);
   };
 
-  const salvar = useMutation({
+  // 4. Salvar Produção & Inserir BMs Nominais no Estoque
+  const salvarProducaoMutation = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      if (!form["operador"]?.trim()) throw new Error("Selecione a funcionária/operador.");
-      if (!form["data_registro"]?.trim()) throw new Error("Informe a data do registro.");
+      if (!operador.trim()) throw new Error("Selecione quem realizou a viragem/criação da BM.");
+      if (!dataVirada) throw new Error("Informe a data em que a BM virou.");
 
-      const n = (c: string) => Number(form[c] || 0) || 0;
-      const criadasNum = n("bms_criadas");
-      const viradasNum = n("contas_viradas");
-      const bloqueiosNum = n("bloqueios");
-      const fornecedorNum = n("recebidas_fornecedor");
-      const aproveitamentoCalc = criadasNum > 0 ? (viradasNum / criadasNum) * 100 : 0;
-      const unidadesLiquidas = viradasNum > 0
-        ? viradasNum
-        : Math.max(0, criadasNum - bloqueiosNum);
-      const prontasEstoqueCalc = unidadesLiquidas + fornecedorNum;
-
-      const dataRegistroVal = form["data_registro"] || new Date().toISOString().split("T")[0];
-      const dataCriacaoVal = form["data_criacao"] || new Date().toISOString();
-      const operadorVal = form["operador"]?.trim() || "";
-      const tipoAtivoVal = form["tipo_bm"] || "BM 250";
-
-      const nomesValidos = nomesBmLista
+      // Parse dos nomes das BMs (aceita linha por linha ou separado por vírgula)
+      const linhas = nomesBmTexto
+        .split(/[\n,]+/)
         .map((n) => n.trim())
         .filter((n) => n.length > 0);
-      if (nomesValidos.length === 0 && form["nome_bm"]?.trim()) {
-        nomesValidos.push(form["nome_bm"].trim());
-      }
 
-      const isAmbienteRemoto = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1");
+      const nomesValidos = linhas.length > 0 ? linhas : [`BM-${limiteBm.toUpperCase()}-${Date.now().toString().slice(-4)}`];
 
-      if (!isAmbienteRemoto) {
-        try {
-          return await salvarProducaoLocal({
-            data: {
-              id: editando ? editando.id : undefined,
-              empresa_id: empresa.id,
-              data_registro: dataRegistroVal,
-              data_criacao: dataCriacaoVal,
-              funcionario_id: null,
-              funcionario_nome: operadorVal,
-              operador: operadorVal,
-              tipo_ativo: tipoAtivoVal,
-              tipo_bm: tipoAtivoVal,
-              recebidas_fornecedor: fornecedorNum,
-              bms_criadas: criadasNum,
-              contas_viradas: viradasNum,
-              bloqueios: bloqueiosNum,
-              prontas_estoque: prontasEstoqueCalc,
-              aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
-              motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
-              observacoes: form["observacoes"]?.trim() || null,
-              bms_aquecidas: 0,
-              contas_subidas: 0,
-              meta_diaria: 10,
-              criado_por: session?.user?.id ?? null,
-              atualizado_por: session?.user?.id ?? null,
-              nome_bm: form["nome_bm"]?.trim() || null,
-              nomes_bm_lote: nomesValidos,
-              limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
-              tem_template: form["tem_template"] === "true",
-              destinatario: form["destinatario"]?.trim() || null,
-              status_envio: form["status_envio"] || "disponivel",
-              quantidade: n("quantidade") || 1,
-            },
-          });
-        } catch (errLocal: any) {
-          console.warn("Aviso: persistência local falhou, tentando via Supabase:", errLocal);
-        }
-      }
+      const criadasNum = Number(bmsCriadas) || nomesValidos.length;
+      const viradasNum = Number(contasViradas) || nomesValidos.length;
+      const bloqueiosNum = Number(bloqueios) || 0;
 
-      // Persistência em nuvem (Lovable / Cloudflare Edge ou fallback)
-        
-        // Schema oficial remoto de producao_diaria:
-        // empresa_id, data_registro, operador, bms_criadas, bms_aquecidas, contas_subidas,
-        // contas_viradas, bloqueios, motivo_queda, meta_diaria, observacoes, tipo_bm, criado_por, atualizado_por
+      // 1. Registra a linha diária de produção (schema limpo oficial)
+      let producaoId: string | null = null;
+      try {
         const payloadProducao: any = {
           empresa_id: empresa.id,
-          data_registro: dataRegistroVal,
-          operador: operadorVal,
-          tipo_bm: tipoAtivoVal,
+          data_registro: dataVirada,
+          operador: operador.trim(),
+          tipo_bm: `BM ${limiteBm.toUpperCase()}`,
           bms_criadas: criadasNum,
           contas_viradas: viradasNum,
           bloqueios: bloqueiosNum,
-          motivo_queda: form["motivo_queda"] || null,
-          observacoes: form["observacoes"]?.trim() || null,
-          bms_aquecidas: 0,
-          contas_subidas: 0,
+          motivo_queda: motivoQueda === "nenhum" ? null : motivoQueda,
+          observacoes: observacoes.trim() || null,
           meta_diaria: 10,
+          criado_por: session?.user?.id ?? null,
           atualizado_por: session?.user?.id ?? null,
         };
 
-        if (editando) {
-          const { error: errUpdate } = await supabase
-            .from("producao_diaria")
-            .update(payloadProducao)
-            .eq("id", editando.id);
-          if (errUpdate) throw errUpdate;
-          return { id: editando.id, sucesso: true };
-        } else {
-          payloadProducao.criado_por = session?.user?.id ?? null;
-          const { data: novoReg, error: errInsert } = await supabase
-            .from("producao_diaria")
-            .insert(payloadProducao)
-            .select("id")
-            .maybeSingle();
-          if (errInsert) throw errInsert;
-
-          const producaoId = novoReg?.id;
-          const limite = form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250");
-          const statusEnvioAlvo = form["status_envio"] || "disponivel";
-          const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
-          const estaReservada = statusEnvioAlvo === "reservada";
-
-          // Cadastra BMs nomeadas no estoque
-          if (nomesValidos.length > 0) {
-            const recordsEstoque = nomesValidos.map((nomeBm) => ({
-              empresa_id: empresa.id,
-              tipo_ativo: nomeBm.toLowerCase().includes(limite.toLowerCase()) ? nomeBm : `${nomeBm} [${limite}]`,
-              nome_bm: nomeBm,
-              limite_bm: limite,
-              status_envio: statusEnvioAlvo,
-              tem_template: form["tem_template"] === "true",
-              data_criacao: dataRegistroVal,
-              responsavel: operadorVal,
-              destinatario: form["destinatario"]?.trim() || null,
-              origem: "producao",
-              producao_id: producaoId,
-              quantidade_disponivel: estaDisponivel ? 1 : 0,
-              quantidade_reservada: estaReservada ? 1 : 0,
-              status: estaDisponivel ? "disponivel" : "baixo_estoque",
-              custo_medio_unitario: 0,
-            }));
-            await supabase.from("estoque").insert(recordsEstoque as any);
-          }
-
-          return { id: producaoId, sucesso: true };
-        }
-    },
-    onSuccess: () => {
-      const nomesValidos = nomesBmLista.map((n) => n.trim()).filter((n) => n.length > 0);
-      const qtdBms = nomesValidos.length;
-      if (qtdBms > 1) {
-        toast.success(`✓ ${qtdBms} BMs adicionadas com sucesso à produção e ao estoque!`);
-      } else {
-        toast.success(editando ? "✓ Registro de produção atualizado com sucesso!" : "✓ Produção diária registrada com sucesso!");
-      }
-      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["producao"] });
-      void queryClient.invalidateQueries({ queryKey: ["bms-producao-estoque"] });
-      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
-      void queryClient.invalidateQueries({ queryKey: ["contingencia"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      void queryClient.invalidateQueries({ queryKey: ["stock"] });
-      void queryClient.invalidateQueries({ queryKey: ["perfis-producao"] });
-      setAberto(false);
-      setEditando(null);
-      setForm(criarFormVazio());
-      setNomesBmLista([""]);
-    },
-    onError: (e: Error) => {
-      toast.error(e.message || "Erro ao salvar produção diária.");
-    },
-  });
-
-  const excluir = useMutation({
-    mutationFn: async (id: string) => {
-      if (!empresa?.id) throw new Error("Empresa não identificada.");
-      try {
-        await excluirProducaoLocal({ data: { id, empresa_id: empresa.id } });
-      } catch (errLocal) {
-        console.warn("Aviso ao excluir localmente, excluindo via Supabase:", errLocal);
-        const { error } = await supabase
+        const { data: novaProd } = await supabase
           .from("producao_diaria")
-          .delete()
-          .eq("id", id)
-          .eq("empresa_id", empresa.id);
-        if (error) throw error;
+          .insert(payloadProducao)
+          .select("id")
+          .maybeSingle();
+
+        producaoId = novaProd?.id ?? null;
+      } catch (errProd) {
+        console.warn("Aviso ao registrar producao_diaria:", errProd);
       }
+
+      // 2. Insere CADA BM nominal individualmente no Estoque com o limite escolhido
+      const recordsEstoque = nomesValidos.map((nome) => ({
+        empresa_id: empresa.id,
+        nome_bm: nome,
+        limite_bm: limiteBm,
+        tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
+        status_envio: "disponivel",
+        status: "disponivel",
+        quantidade_disponivel: 1,
+        quantidade_reservada: 0,
+        responsavel: operador.trim(),
+        data_criacao: dataVirada,
+        origem: "producao",
+        producao_id: producaoId,
+        custo_medio_unitario: 0,
+      }));
+
+      const { error: erroEstoque } = await supabase
+        .from("estoque")
+        .insert(recordsEstoque as any);
+
+      if (erroEstoque) {
+        throw new Error(`Erro ao adicionar BMs ao Estoque: ${erroEstoque.message}`);
+      }
+
+      return { totalBms: nomesValidos.length };
+    },
+    onSuccess: (res) => {
+      toast.success(`✓ ${res.totalBms} BM(s) adicionada(s) ao Estoque com limite ${limiteBm.toUpperCase()}!`);
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      setModalAberto(false);
+      resetForm();
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao salvar produção.");
+    },
+  });
+
+  // 5. Exclusão de BM do Estoque
+  const excluirBmMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("estoque").delete().eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Registro de produção excluído.");
-      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["bms-producao-estoque"] });
+      toast.success("BM removida do estoque.");
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Erro ao excluir registro de produção."),
+    onError: (err: Error) => {
+      toast.error(`Erro ao excluir: ${err.message}`);
+    },
   });
+
+  // BMs Filtradas para a Tabela
+  const bmsFiltradas = useMemo(() => {
+    return (bmsEstoqueQuery.data || []).filter((bm: any) => {
+      const nome = (bm.nome_bm || bm.tipo_ativo || "").toLowerCase();
+      const resp = (bm.responsavel || "").toLowerCase();
+      const dest = (bm.destinatario || "").toLowerCase();
+      const termo = busca.toLowerCase();
+
+      if (termo && !nome.includes(termo) && !resp.includes(termo) && !dest.includes(termo)) {
+        return false;
+      }
+
+      const lim = normalizeLimite(bm.limite_bm || bm.tipo_ativo);
+      if (filtroLimite !== "todos" && lim.toLowerCase() !== filtroLimite.toLowerCase()) {
+        return false;
+      }
+
+      const st = (bm.status_envio || bm.status || "").toLowerCase();
+      const estaDisponivel = (st === "disponivel" || st === "em_estoque" || st === "pronta_envio") && Number(bm.quantidade_disponivel || 0) > 0;
+
+      if (filtroStatus === "disponivel" && !estaDisponivel) return false;
+      if (filtroStatus === "vendida" && estaDisponivel) return false;
+
+      return true;
+    });
+  }, [bmsEstoqueQuery.data, busca, filtroLimite, filtroStatus]);
 
   return (
-    <TooltipProvider>
-      <div className="space-y-6">
-        <CabecalhoPagina
-          modulo="producao"
-          titulo="Produção & Contingência"
-          descricao="Desempenho da equipe e controle operacional de BMs"
+    <div className="space-y-6">
+      <CabecalhoPagina
+        modulo="producao"
+        titulo="Produção & Estoque de BMs"
+        descricao="Cadastre as BMs que viraram e acompanhe a disponibilidade nominal no estoque"
+        acoes={
+          temPermissao("producao", "criar") && (
+            <Button onClick={abrirModalNovo} className="gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20">
+              <Plus className="size-4" />
+              Lançar BM Virada / Produção
+            </Button>
+          )
+        }
+      />
 
-          acoes={
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={operador} onValueChange={setOperador}>
-                <SelectTrigger className="w-48" aria-label="Funcionária/Operador">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os operadores</SelectItem>
-                  <SelectItem value="Fornecedor CIRO">🔧 Fornecedor CIRO</SelectItem>
-                  {(equipe.data ?? []).map((p) => (
-                    <SelectItem key={p.id} value={p.nome}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={periodo} onValueChange={setPeriodo}>
-                <SelectTrigger className="w-44" aria-label="Período">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIODOS.map((p) => (
-                    <SelectItem key={p.valor} value={p.valor}>
-                      {p.rotulo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {temPermissao('producao', 'criar') && (
-                <Button onClick={abrirNovo}>
-                  <Plus className="size-4" aria-hidden="true" />
-                  Registrar Produção Diária
-                </Button>
-              )}
+      {/* CARDS COM RESUMO DOS LIMITES DISPONÍVEIS NO ESTOQUE */}
+      <section className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <div className="rounded-xl border border-blue-500/20 bg-blue-950/20 p-4 shadow-sm backdrop-blur">
+          <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Total Disponível</p>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-2xl font-black text-white">{totalDisponiveis}</span>
+            <Boxes className="size-5 text-blue-400/60" />
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">{totalVendidas} já enviadas/vendidas</p>
+        </div>
 
+        {LIMITES_DISPONIVEIS.map((lim) => {
+          const stats = resumoLimites[lim.valor] || { disponivel: 0, vendida: 0 };
+          return (
+            <div key={lim.valor} className="rounded-xl border border-border/50 bg-card/60 p-4 shadow-sm backdrop-blur transition hover:border-blue-500/40">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase">{lim.rotulo}</span>
+                <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px] font-bold">
+                  {lim.valor.toUpperCase()}
+                </Badge>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-2xl font-black text-white">{stats.disponivel}</span>
+                <span className="text-[11px] text-emerald-400 font-semibold">prontas</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">{stats.vendida} vendidas</p>
             </div>
-          }
-        />
+          );
+        })}
+      </section>
 
-        {/* RESUMO RÁPIDO: BMS DISPONÍVEIS POR TIPO (250, 2k, 10k, 100k) */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Boxes className="size-3.5 text-blue-400" />
-              <span>BMs Disponíveis em Estoque (Produção)</span>
+      {/* FILTROS E BUSCA */}
+      <section className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome da BM, operador ou cliente..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="pl-9 h-9 text-xs bg-card/50"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Select value={filtroLimite} onValueChange={setFiltroLimite}>
+            <SelectTrigger className="w-[140px] h-9 text-xs">
+              <SelectValue placeholder="Limite" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Limites</SelectItem>
+              <SelectItem value="250">Limite 250</SelectItem>
+              <SelectItem value="2k">Limite 2K</SelectItem>
+              <SelectItem value="10k">Limite 10K</SelectItem>
+              <SelectItem value="100k">Limite 100K</SelectItem>
+              <SelectItem value="ilimitada">Ilimitada</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+            <SelectTrigger className="w-[140px] h-9 text-xs">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Status</SelectItem>
+              <SelectItem value="disponivel">Disponível</SelectItem>
+              <SelectItem value="vendida">Vendida / Enviada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
+
+      {/* TABELA DE BMS PRODUZIDAS & DISPONIBILIDADE NO ESTOQUE */}
+      <section className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-border/40 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <Boxes className="size-4 text-blue-400" />
+              Inventário de BMs Produzidas (Prontas para Venda)
             </h2>
-            <span className="text-[11px] text-muted-foreground">
-              Total disponível: <strong className="text-blue-400 font-bold">{Object.values(resumoPorTipo).reduce((a, b) => a + b, 0)}</strong> contas
-            </span>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Cada BM possui seu nome único e limite específico. Ao vender, selecione-a para saber exatamente qual foi entregue.
+            </p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { tipo: "250", rotulo: "250", cor: "border-blue-500/30 text-blue-400" },
-              { tipo: "2k", rotulo: "2k", cor: "border-emerald-500/30 text-emerald-400" },
-              { tipo: "10k", rotulo: "10k", cor: "border-purple-500/30 text-purple-400" },
-              { tipo: "100k", rotulo: "100k", cor: "border-amber-500/30 text-amber-400" },
-            ].map(({ tipo, rotulo, cor }) => {
-              const qtd = resumoPorTipo[tipo] || 0;
-              return (
-                <div
-                  key={tipo}
-                  className={`rounded-xl border bg-[#141417] p-3.5 flex items-center justify-between shadow-sm ${cor}`}
-                >
-                  <div>
-                    <span className="text-xs font-bold text-muted-foreground uppercase">{rotulo}</span>
-                    <p className="text-xl font-black text-white mt-0.5">{qtd}</p>
-                  </div>
-                  <Badge variant="outline" className={`text-[10px] font-bold ${qtd > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-muted/40 text-muted-foreground border-border/50"}`}>
-                    {qtd > 0 ? `${qtd} disp.` : "0 disp."}
-                  </Badge>
-                </div>
-              );
-            })}
+          <span className="text-xs font-semibold text-muted-foreground">
+            {bmsFiltradas.length} item(ns)
+          </span>
+        </div>
+
+        {bmsEstoqueQuery.isLoading ? (
+          <div className="p-6">
+            <CarregandoTabela colunas={6} />
           </div>
-        </section>
-
-        <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-          <CartaoKpi
-            rotulo="Fornecedor (Recebidas)"
-            valor={fmtNumero(recebidasFornecedor)}
-            icone={Factory}
-            corIcone="text-purple-500"
-            detalhe={ocultarValores ? "" : "Enviadas pelo fornecedor"}
-          />
-          <CartaoKpi
-            rotulo="BMs Criadas"
-            valor={fmtNumero(criadas)}
-            icone={Factory}
-            detalhe={ocultarValores ? "" : "Criação da equipe"}
-            destaque
-          />
-          <CartaoKpi
-            rotulo="Contas Viradas"
-            valor={fmtNumero(viradas)}
-            icone={Target}
-            corValor="text-emerald-400"
-          />
-          <CartaoKpi
-            rotulo="Prontas p/ Estoque"
-            valor={fmtNumero(Math.max(0, viradas > 0 ? viradas : criadas - bloqueios) + recebidasFornecedor)}
-            icone={PackageCheck}
-            corIcone="text-cyan-400"
-            corValor="text-cyan-400"
-            detalhe={ocultarValores ? "" : "Disponível para venda/entrega"}
-          />
-          <CartaoKpi
-            rotulo="Bloqueios"
-            valor={fmtNumero(bloqueios)}
-            icone={AlertTriangle}
-            corValor="text-red-500"
-            detalhe={ocultarValores ? "" : `${perda.toFixed(1)}% de perda`}
-          />
-          <CartaoKpi
-            rotulo="Aproveitamento"
-            valor={fmtPercentual(aproveitamento)}
-            icone={aproveitamento >= 50 ? TrendingUp : TrendingDown}
-            corValor={
-              ocultarValores ? "text-white" :
-              aproveitamento >= 50
-                ? "text-emerald-400"
-                : aproveitamento < 30
-                ? "text-red-500"
-                : "text-amber-500"
-            }
-            detalhe={ocultarValores ? "" : "Viradas / Criadas"}
-          />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-xl border bg-card p-6 shadow-panel">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-200">Produção Diária vs. Viradas</h2>
-                <p className="text-xs text-muted-foreground">Volume de criação e ativação por dia</p>
-              </div>
-            </div>
-            
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={porDia} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorCriadas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={AZUL} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={AZUL} stopOpacity={0.2}/>
-                    </linearGradient>
-                    <linearGradient id="colorViradas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={VERDE} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={VERDE} stopOpacity={0.2}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#242429" vertical={false} />
-                  <XAxis 
-                    dataKey="dia" 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tick={{ fill: "#AAAAAA", fontSize: 12 }} 
-                  />
-                  <YAxis 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tick={{ fill: "#AAAAAA", fontSize: 12 }} 
-                    allowDecimals={false} 
-                  />
-                  <TooltipRecharts
-                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                    contentStyle={{
-                      background: "#141417",
-                      border: "1px solid #242429",
-                      borderRadius: 12,
-                      color: "#fff",
-                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
-                    }}
-                  />
-                  <Legend 
-                    verticalAlign="top" 
-                    align="right" 
-                    wrapperStyle={{ fontSize: 12, paddingBottom: 20 }} 
-                  />
-                  <Bar 
-                    dataKey="criadas" 
-                    name="BMs Criadas" 
-                    fill="url(#colorCriadas)" 
-                    radius={[4, 4, 0, 0]} 
-                    isAnimationActive={false} 
-                    minPointSize={2} 
-                  />
-                  <Bar 
-                    dataKey="viradas" 
-                    name="Contas Viradas" 
-                    fill="url(#colorViradas)" 
-                    radius={[4, 4, 0, 0]} 
-                    isAnimationActive={false} 
-                    minPointSize={2} 
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        ) : bmsFiltradas.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <Boxes className="size-10 text-muted-foreground/30 mx-auto" />
+            <p className="text-sm font-medium text-slate-300">Nenhuma BM encontrada com esses filtros.</p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Clique em "Lançar BM Virada / Produção" para cadastrar novas BMs no estoque.
+            </p>
           </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent">
+                  <TableHead>Nome da BM</TableHead>
+                  <TableHead>Limite Virado</TableHead>
+                  <TableHead>Quem Virou (Operador)</TableHead>
+                  <TableHead>Data em que Virou</TableHead>
+                  <TableHead>Destinatário / Enviado Para</TableHead>
+                  <TableHead className="text-center">Status no Estoque</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bmsFiltradas.map((bm: any) => {
+                  const st = (bm.status_envio || bm.status || "").toLowerCase();
+                  const estaDisponivel = (st === "disponivel" || st === "em_estoque" || st === "pronta_envio") && Number(bm.quantidade_disponivel || 0) > 0;
+                  const limite = normalizeLimite(bm.limite_bm || bm.tipo_ativo);
+                  const nome = bm.nome_bm || bm.tipo_ativo;
 
-          <div className="rounded-xl border bg-card p-6 shadow-panel">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-200">Funil da Esteira de Contingência</h2>
-                <p className="text-xs text-muted-foreground">Taxa de sobrevivência entre etapas</p>
-              </div>
-            </div>
-
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={etapas} margin={{ top: 30, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorFunil" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={AZUL} stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor={AZUL} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <TooltipRecharts
-                    contentStyle={{
-                      background: "#141417",
-                      border: "1px solid #242429",
-                      borderRadius: 12,
-                      color: "#fff",
-                    }}
-                    formatter={(v: number, name: string) => [
-                      name === "percentual" ? `${v.toFixed(1)}%` : v,
-                      name === "percentual" ? "Aproveitamento" : "Volume"
-                    ]}
-                  />
-                  <XAxis 
-                    dataKey="etapa" 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tick={{ fill: "#AAAAAA", fontSize: 11 }} 
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="percentual"
-                    stroke={AZUL}
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorFunil)"
-                    isAnimationActive={false}
-                  >
-                    <LabelList
-                      dataKey="valor"
-                      position="top"
-                      offset={15}
-                      style={{ fill: "#ffffff", fontSize: 12, fontWeight: "bold" }}
-                    />
-                  </Area>
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              {etapas.slice(1).map((e) => (
-                <div key={e.etapa} className="rounded-lg bg-muted/30 p-3 border border-border/50">
-                  <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    <span>Queda {e.etapa}</span>
-                    {e.queda === maiorQueda && <Badge className="h-4 px-1 text-[9px] bg-destructive/20 text-destructive border-none">Gargalo</Badge>}
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-slate-200">{e.queda}</span>
-                    <span className="text-xs text-muted-foreground">contas perdidas</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-xl border bg-card">
-          {consulta.isLoading ? (
-            <div className="p-4">
-              <CarregandoTabela colunas={6} />
-            </div>
-          ) : consulta.isError ? (
-            <div className="p-4">
-              <EstadoErro
-                descricao={(consulta.error as Error).message}
-                aoTentarNovamente={() => void consulta.refetch()}
-              />
-            </div>
-          ) : registros.length === 0 ? (
-            <div className="p-4">
-              <EstadoVazio
-                titulo="Nenhum registro de produção"
-                descricao="Lance a produção diária da equipe para acompanhar a esteira de contingência."
-                className="border-0"
-                acao={<Button onClick={abrirNovo}>Registrar Produção Diária</Button>}
-              />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Funcionária / Operador</TableHead>
-                    <TableHead className="text-right">Criadas</TableHead>
-                    <TableHead className="text-right">Viradas</TableHead>
-                    <TableHead>Quedas / Motivo</TableHead>
-                    <TableHead className="text-right">Taxa</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {registros.map((r) => {
-                    const taxa = r.bms_criadas > 0 ? (r.contas_viradas / r.bms_criadas) * 100 : 0;
-                    const sucesso = r.contas_viradas > 0;
-                    
-                    return (
-                      <TableRow key={r.id} className="group hover:bg-muted/30 transition-colors">
-                        <TableCell className="num font-medium text-white">{formatarData(r.data_registro, fuso)}</TableCell>
-                        <TableCell className="font-semibold text-white/90">{r.operador}</TableCell>
-                        <TableCell className="num text-right font-bold text-white">{r.bms_criadas}</TableCell>
-                        <TableCell className="num text-right">
-                          <Badge 
-                            className={cn(
-                              "border-none font-bold px-3 py-1 rounded-md",
-                              sucesso ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20" : "bg-emerald-500/10 text-emerald-400"
-                            )}
-                          >
-                            {r.contas_viradas}
+                  return (
+                    <TableRow key={bm.id} className="border-border/30 hover:bg-muted/30 transition-colors">
+                      <TableCell className="font-bold text-white">
+                        {nome}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-blue-500/40 text-blue-400 bg-blue-500/10 font-bold text-xs">
+                          BM {limite.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-300">
+                        {bm.responsavel || "—"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {bm.data_criacao ? formatarData(bm.data_criacao, fuso) : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {bm.destinatario ? (
+                          <span className="text-emerald-400 font-semibold">{bm.destinatario}</span>
+                        ) : (
+                          <span className="text-muted-foreground/50 italic">Aguardando venda</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {estaDisponivel ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[11px] gap-1">
+                            <CheckCircle2 className="size-3" />
+                            DISPONÍVEL
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {r.bloqueios > 0 ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge className="bg-red-500/10 text-red-500 border-none cursor-default font-bold rounded-md px-2">
-                                  {r.bloqueios} · {rotuloMotivo(r.motivo_queda)}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs text-xs">
-                                {r.observacoes || `Motivo principal: ${rotuloMotivo(r.motivo_queda)}`}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="text-muted-foreground/30 text-xs italic">Nenhuma perda</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="num text-right">
-                          <span className={cn(
-                            "text-sm font-black",
-                            taxa >= 50 ? "text-emerald-500" : taxa < 30 ? "text-red-500" : "text-amber-500"
-                          )}>
-                            {taxa.toFixed(0)}%
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={cn(
-                            "border-none font-bold rounded-md px-2",
-                            sucesso ? "bg-emerald-500/10 text-emerald-500" : "bg-muted/50 text-muted-foreground"
-                          )}>
-                            {sucesso ? "Viradas" : "Em Produção"}
+                        ) : (
+                          <Badge className="bg-zinc-800 text-zinc-400 border border-zinc-700/60 font-bold text-[11px]">
+                            VENDIDA / ENVIADA
                           </Badge>
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="Editar registro"
-                              onClick={() => abrirEdicao(r)}
-                            >
-                              <Pencil className="size-4" aria-hidden="true" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="Excluir registro"
-                              onClick={() => excluir.mutate(r.id)}
-                            >
-                              <Trash2 className="size-4 text-destructive" aria-hidden="true" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </section>
-
-        {/* LISTAGEM DE BMS EM ESTOQUE & HISTÓRICO DE VENDAS */}
-        <section className="rounded-xl border bg-card p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <Boxes className="size-4 text-blue-400" />
-                <span>Inventário de BMs Produzidas & Histórico de Vendas</span>
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Acompanhe o status de cada BM individual (Disponível ou Vendida) cadastrada na operação.
-              </p>
-            </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-red-400"
+                          onClick={() => {
+                            if (window.confirm(`Deseja remover a BM "${nome}" do estoque?`)) {
+                              excluirBmMutation.mutate(bm.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
+        )}
+      </section>
 
-          {bmsEstoqueQuery.isLoading ? (
-            <CarregandoTabela colunas={5} />
-          ) : (bmsEstoqueQuery.data || []).length === 0 ? (
-            <div className="p-4 text-center text-xs text-muted-foreground">
-              Nenhuma BM cadastrada individualmente no estoque ainda. Cadastre acima em "Registrar Produção Diária".
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome da BM</TableHead>
-                    <TableHead>Limite / Tipo</TableHead>
-                    <TableHead>Responsável</TableHead>
-                    <TableHead>Data Criação</TableHead>
-                    <TableHead>Destinatário / Cliente</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(bmsEstoqueQuery.data || []).map((bm: any) => {
-                    const st = (bm.status || "").toLowerCase();
-                    const stEnvio = (bm.status_envio || "").toLowerCase();
-                    const isVendida = st === "vendida" || st === "esgotado" || stEnvio === "enviada" || stEnvio === "entregue" || Boolean(bm.venda_id);
-                    const limite = normalizeLimite(bm.limite_bm || bm.tipo_ativo);
-                    const nome = bm.nome_bm || bm.tipo_ativo;
+      {/* MODAL: LANÇAR BM VIRADA / PRODUÇÃO */}
+      <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Sparkles className="size-5 text-blue-400" />
+              Lançar BM Virada para o Estoque
+            </DialogTitle>
+            <DialogDescription>
+              Cadastre as BMs que viraram hoje. Elas entrarão automaticamente como disponíveis no estoque prontas para venda.
+            </DialogDescription>
+          </DialogHeader>
 
-                    return (
-                      <TableRow key={bm.id} className="hover:bg-muted/20">
-                        <TableCell className="font-semibold text-white">
-                          {nome}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-bold border-blue-500/30 text-blue-400 bg-blue-500/10">
-                            {limite}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {bm.responsavel || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {bm.data_criacao ? formatarData(bm.data_criacao, fuso) : "—"}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {bm.destinatario ? (
-                            <span className="text-emerald-400 font-medium">{bm.destinatario}</span>
-                          ) : (
-                            <span className="text-muted-foreground/40 italic">Aguardando venda</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {isVendida ? (
-                            <Badge className="bg-zinc-800 text-zinc-400 border border-zinc-700/60 font-bold gap-1 text-[11px]">
-                              <span>VENDIDA</span>
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold gap-1 text-[11px]">
-                              <CheckCircle2 className="size-3" />
-                              <span>DISPONÍVEL</span>
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </section>
-
-        <Dialog open={aberto} onOpenChange={setAberto}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editando ? "Editar produção diária" : "Registrar Produção Diária"}
-              </DialogTitle>
-              <DialogDescription>
-                Lance os números da esteira de contingência do dia.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* OPERADOR */}
               <div className="space-y-1.5">
-                <Label htmlFor="operador">Funcionária / Operador</Label>
-                <Select
-                  value={form['operador'] ?? ""}
-                  onValueChange={(v) => setForm((a) => ({ ...a, operador: v }))}
-                >
-                  <SelectTrigger id="operador">
-                    <SelectValue placeholder="Selecione" />
+                <Label htmlFor="op" className="text-xs font-semibold">Quem virou a BM? *</Label>
+                <Select value={operador} onValueChange={setOperador}>
+                  <SelectTrigger id="op" className="h-9 text-xs">
+                    <SelectValue placeholder="Selecione a operadora" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Fornecedor CIRO">🔧 Fornecedor CIRO</SelectItem>
-                    {(equipe.data ?? []).map((p) => (
-                      <SelectItem key={p.id} value={p.nome}>
-                        {p.nome}
+                    {(equipeQuery.data || []).map((m) => (
+                      <SelectItem key={m.id} value={m.nome}>
+                        {m.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Campo id="data_registro" rotulo="Data do registro" tipo="date" form={form} setForm={setForm} />
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="tipo_bm">Tipo de Ativo (BM / Perfil)</Label>
-                <Select
-                  value={form['tipo_bm'] ?? "BM 250"}
-                  onValueChange={(v) => {
-                    const lim = v.startsWith("BM ") ? v.replace("BM ", "") : "250";
-                    setForm((a) => ({ ...a, tipo_bm: v, limite_bm: lim }));
-                  }}
-                >
-                  <SelectTrigger id="tipo_bm">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BM 250">BM 250</SelectItem>
-                    <SelectItem value="BM 2K">BM 2K</SelectItem>
-                    <SelectItem value="BM 10K">BM 10K</SelectItem>
-                    <SelectItem value="BM 100K">BM 100K</SelectItem>
-                    <SelectItem value="BM Ilimitada">BM Ilimitada</SelectItem>
-                    <SelectItem value="Perfil Farmado">Perfil Farmado</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              {/* DATA */}
+              <div className="space-y-1.5">
+                <Label htmlFor="dt" className="text-xs font-semibold">Data em que virou *</Label>
+                <Input
+                  id="dt"
+                  type="date"
+                  value={dataVirada}
+                  onChange={(e) => setDataVirada(e.target.value)}
+                  className="h-9 text-xs"
+                />
               </div>
+            </div>
 
-              {(form['tipo_bm'] ?? "").startsWith("BM") && (
-                <div className="sm:col-span-2">
-                  <BmOperationalForm
-                    data={{
-                      nomeBm: form["nome_bm"] || "",
-                      nomesBm: nomesBmLista,
-                      limiteBm: form["limite_bm"] || (form["tipo_bm"]?.replace("BM ", "") || "250"),
-                      temTemplate: form["tem_template"] === "true",
-                      dataCriacao: form["data_criacao"] || form["data_registro"] || iso(new Date()),
-                      responsavel: form["operador"] || "",
-                      destinatario: form["destinatario"] || "",
-                      statusEnvio: form["status_envio"] || "disponivel",
-                      quantidade: form["quantidade"] || "1",
-                    }}
-                    onChange={(campo, val) => {
-                      if (campo === "nomesBm") {
-                        const lista = (val as string[]) || [""];
-                        setNomesBmLista(lista);
-                        const primeiro = lista[0] || "";
-                        setForm((a) => {
-                          const validos = lista.filter((n) => n.trim().length > 0).length;
-                          const qtdStr = String(Math.max(1, validos || 1));
-                          const bmsCriadasAtual = a["bms_criadas"] || "";
-                          return {
-                            ...a,
-                            nome_bm: primeiro,
-                            nomes_bm: lista.join("\n"),
-                            quantidade: qtdStr,
-                            bms_criadas: bmsCriadasAtual || (validos > 0 ? String(validos) : ""),
-                          };
-                        });
-                      }
-                      else if (campo === "nomeBm") setForm((a) => ({ ...a, nome_bm: val as string }));
-                      else if (campo === "limiteBm") {
-                        setForm((a) => ({
-                          ...a,
-                          limite_bm: val as string,
-                          tipo_bm: `BM ${val}`,
-                        }));
-                      }
-                      else if (campo === "temTemplate") setForm((a) => ({ ...a, tem_template: String(val) }));
-                      else if (campo === "dataCriacao") setForm((a) => ({ ...a, data_criacao: val as string }));
-                      else if (campo === "responsavel") setForm((a) => ({ ...a, operador: val as string }));
-                      else if (campo === "destinatario") setForm((a) => ({ ...a, destinatario: val as string }));
-                      else if (campo === "statusEnvio") setForm((a) => ({ ...a, status_envio: val as string }));
-                      else if (campo === "quantidade") setForm((a) => ({ ...a, quantidade: String(val) }));
-                    }}
-                    equipeOptions={equipe.data || []}
-                    clientesOptions={consultaClientes.data || []}
-                    mostrarQuantidade={true}
-                    mostrarCusto={false}
-                    permitirMultiplosNomes={true}
-                    datalistSuffix="producao"
-                  />
-                </div>
-              )}
+            {/* LIMITE PARA O QUAL VIROU */}
+            <div className="space-y-1.5">
+              <Label htmlFor="lim" className="text-xs font-semibold">Para qual limite virou? *</Label>
+              <Select value={limiteBm} onValueChange={setLimiteBm}>
+                <SelectTrigger id="lim" className="h-9 text-xs font-bold text-blue-400">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LIMITES_DISPONIVEIS.map((l) => (
+                    <SelectItem key={l.valor} value={l.valor}>
+                      {l.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <Campo id="recebidas_fornecedor" rotulo="Recebidas do Fornecedor" form={form} setForm={setForm} />
-              <Campo id="bms_criadas" rotulo="BMs criadas" form={form} setForm={setForm} />
-              <Campo id="contas_viradas" rotulo="Contas viradas" form={form} setForm={setForm} />
-              <Campo id="bloqueios" rotulo="Bloqueios" form={form} setForm={setForm} />
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="motivo_queda">Motivo principal das quedas</Label>
-                <Select
-                  value={form['motivo_queda'] ?? ""}
-                  onValueChange={(v) => setForm((a) => ({ ...a, motivo_queda: v }))}
-                >
-                  <SelectTrigger id="motivo_queda">
-                    <SelectValue placeholder="Selecione" />
+            {/* NOMES DAS BMS */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nomes" className="text-xs font-semibold">Nome(s) da(s) BM(s) *</Label>
+                <span className="text-[11px] text-muted-foreground">1 nome por linha para cadastrar em lote</span>
+              </div>
+              <Textarea
+                id="nomes"
+                placeholder="Exemplo:&#10;BM-2K-ALPHA&#10;BM-2K-BETA&#10;BM-2K-GAMMA"
+                value={nomesBmTexto}
+                onChange={(e) => {
+                  setNomesBmTexto(e.target.value);
+                  const linhas = e.target.value.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+                  if (linhas.length > 0) {
+                    setBmsCriadas(String(linhas.length));
+                    setContasViradas(String(linhas.length));
+                  }
+                }}
+                className="font-mono text-xs min-h-[90px]"
+              />
+            </div>
+
+            {/* MÉTRICAS OPERACIONAIS */}
+            <div className="grid grid-cols-3 gap-3 border-t border-border/40 pt-3">
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">BMs Criadas</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={bmsCriadas}
+                  onChange={(e) => setBmsCriadas(e.target.value)}
+                  className="h-8 text-xs font-bold"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-emerald-400 font-semibold">Contas Viradas</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={contasViradas}
+                  onChange={(e) => setContasViradas(e.target.value)}
+                  className="h-8 text-xs font-bold text-emerald-400"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-red-400 font-semibold">Bloqueios / Quedas</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={bloqueios}
+                  onChange={(e) => setBloqueios(e.target.value)}
+                  className="h-8 text-xs font-bold text-red-400"
+                />
+              </div>
+            </div>
+
+            {Number(bloqueios) > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-red-400">Motivo principal da queda</Label>
+                <Select value={motivoQueda} onValueChange={setMotivoQueda}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {MOTIVOS.map((m) => (
+                    {MOTIVOS_QUEDA.map((m) => (
                       <SelectItem key={m.valor} value={m.valor}>
                         {m.rotulo}
                       </SelectItem>
@@ -1228,121 +680,34 @@ function Pagina() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="observacoes">Observações / anotações rápidas</Label>
-                <Textarea
-                  id="observacoes"
-                  rows={3}
-                  value={form['observacoes'] ?? ""}
-                  onChange={(e) => setForm((a) => ({ ...a, observacoes: e.target.value }))}
-                />
-              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="obs" className="text-xs font-semibold">Observações (opcional)</Label>
+              <Input
+                id="obs"
+                placeholder="Ex: Farmadas com proxy dedicada, aquecidas por 3 dias"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                className="h-9 text-xs"
+              />
             </div>
+          </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAberto(false)} disabled={salvar.isPending}>
-                Cancelar
-              </Button>
-              <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
-                {salvar.isPending ? "Salvando..." : "Salvar produção"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </TooltipProvider>
-  );
-}
-
-function Campo({
-  id,
-  rotulo,
-  tipo = "number",
-  form,
-  setForm,
-}: {
-  id: string;
-  rotulo: string;
-  tipo?: string;
-  form: Record<string, string>;
-  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{rotulo}</Label>
-      <Input
-        id={id}
-        type={tipo}
-        inputMode={tipo === "number" ? "numeric" : undefined}
-        value={form[id] ?? ""}
-        onChange={(e) => setForm((a) => ({ ...a, [id]: e.target.value }))}
-      />
+          <DialogFooter className="border-t border-border/40 pt-3">
+            <Button variant="outline" onClick={() => setModalAberto(false)} disabled={salvarProducaoMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => salvarProducaoMutation.mutate()}
+              disabled={salvarProducaoMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+            >
+              {salvarProducaoMutation.isPending ? "Salvando e Catalogando..." : "Salvar e Enviar ao Estoque"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
-
-function CartaoKpi({
-  rotulo,
-  valor,
-  icone: Icone,
-  corIcone = "text-muted-foreground/60",
-  corValor = "text-foreground",
-  detalhe,
-  destaque = false,
-  explicacao,
-}: {
-  rotulo: string;
-  valor: string | number;
-  icone: any;
-  corIcone?: string;
-  corValor?: string;
-  detalhe?: string;
-  destaque?: boolean;
-  explicacao?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "group relative flex flex-col justify-between rounded-2xl border bg-[#141417] p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg shadow-black/40 border-[#27272A]/40",
-        destaque ? "border-blue-500/80 shadow-[0_0_15px_rgba(0,102,255,0.15)]" : "hover:border-primary/60"
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-base font-bold text-white mb-3">
-            {rotulo}
-          </p>
-          <p className={cn("font-bold text-2xl tracking-tight", corValor)}>
-            {valor}
-          </p>
-        </div>
-        <div className={cn("rounded-full bg-secondary/30 p-2.5 transition-colors group-hover:bg-secondary/50", corIcone)}>
-          <Icone className="size-5" />
-        </div>
-        
-        {explicacao && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="absolute top-2 right-2 text-muted-foreground/30 hover:text-muted-foreground transition-colors">
-                <Info className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-[280px] text-xs">{explicacao}</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-
-      {detalhe && (
-        <p className="mt-4 text-xs text-[#9CA3AF] font-medium flex items-center gap-1.5">
-          <Info className="size-3 opacity-50" />
-          {detalhe}
-        </p>
-      )}
-    </div>
-  );
-}
-
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }
