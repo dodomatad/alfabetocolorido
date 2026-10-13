@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getLocalDatabase } from "@/server/local-db";
+import type { ProducaoDiaria } from "@/types/production";
 
 export interface ItemEstoqueLocal {
   id: string;
@@ -545,3 +546,288 @@ export const listarVendasLocal = createServerFn({ method: "GET" })
       clientes: r.cliente_nome ? { nome: r.cliente_nome } : null,
     }));
   });
+
+// 11. Listar produção diária local por empresa
+export const listarProducaoLocal = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ empresa_id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const db = getLocalDatabase();
+    const rows = db.prepare(
+      "SELECT * FROM producao_diaria WHERE empresa_id = ? ORDER BY data_registro DESC, created_at DESC"
+    ).all(data.empresa_id) as any[];
+
+    return rows.map((r) => ({
+      ...r,
+      recebidas_fornecedor: Number(r.recebidas_fornecedor || 0),
+      bms_criadas: Number(r.bms_criadas || 0),
+      contas_viradas: Number(r.contas_viradas || 0),
+      bloqueios: Number(r.bloqueios || 0),
+      prontas_estoque: Number(r.prontas_estoque || 0),
+      aproveitamento: Number(r.aproveitamento || 0),
+      bms_aquecidas: Number(r.bms_aquecidas || 0),
+      contas_subidas: Number(r.contas_subidas || 0),
+      meta_diaria: Number(r.meta_diaria || 10),
+      tem_template: Boolean(r.tem_template),
+      quantidade: Number(r.quantidade || 1),
+    })) as ProducaoDiaria[];
+  });
+
+// 12. Salvar ou atualizar registro de produção diária e refletir no estoque
+export const salvarProducaoLocal = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z.object({
+      id: z.string().optional(),
+      empresa_id: z.string(),
+      data_registro: z.string().min(1, "Informe a data do registro."),
+      data_criacao: z.string().nullable().optional(),
+      funcionario_id: z.string().nullable().optional(),
+      funcionario_nome: z.string().nullable().optional(),
+      operador: z.string().min(1, "Selecione a funcionária/operador."),
+      tipo_ativo: z.string().default("BM 250"),
+      tipo_bm: z.string().default("BM 250"),
+      recebidas_fornecedor: z.number().default(0),
+      bms_criadas: z.number().default(0),
+      contas_viradas: z.number().default(0),
+      bloqueios: z.number().default(0),
+      prontas_estoque: z.number().default(0),
+      aproveitamento: z.number().default(0),
+      motivo_queda: z.string().nullable().optional(),
+      observacoes: z.string().nullable().optional(),
+      bms_aquecidas: z.number().default(0),
+      contas_subidas: z.number().default(0),
+      meta_diaria: z.number().default(10),
+      criado_por: z.string().nullable().optional(),
+      atualizado_por: z.string().nullable().optional(),
+      nome_bm: z.string().nullable().optional(),
+      nomes_bm_lote: z.array(z.string()).optional(),
+      limite_bm: z.string().nullable().optional(),
+      tem_template: z.boolean().optional(),
+      destinatario: z.string().nullable().optional(),
+      status_envio: z.string().default("disponivel"),
+      quantidade: z.number().default(1),
+    }).parse(data)
+  )
+  .handler(async ({ data }) => {
+    const db = getLocalDatabase();
+    const id = data.id || crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    db.exec("BEGIN IMMEDIATE TRANSACTION;");
+    try {
+      db.prepare(`
+        INSERT INTO producao_diaria (
+          id, empresa_id, data_registro, data_criacao, funcionario_id,
+          funcionario_nome, operador, tipo_ativo, tipo_bm, recebidas_fornecedor,
+          bms_criadas, contas_viradas, bloqueios, prontas_estoque, aproveitamento,
+          motivo_queda, observacoes, bms_aquecidas, contas_subidas, meta_diaria,
+          nome_bm, limite_bm, tem_template, destinatario, status_envio, quantidade,
+          criado_por, atualizado_por, created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?
+        )
+        ON CONFLICT(id) DO UPDATE SET
+          data_registro = excluded.data_registro,
+          data_criacao = excluded.data_criacao,
+          funcionario_id = excluded.funcionario_id,
+          funcionario_nome = excluded.funcionario_nome,
+          operador = excluded.operador,
+          tipo_ativo = excluded.tipo_ativo,
+          tipo_bm = excluded.tipo_bm,
+          recebidas_fornecedor = excluded.recebidas_fornecedor,
+          bms_criadas = excluded.bms_criadas,
+          contas_viradas = excluded.contas_viradas,
+          bloqueios = excluded.bloqueios,
+          prontas_estoque = excluded.prontas_estoque,
+          aproveitamento = excluded.aproveitamento,
+          motivo_queda = excluded.motivo_queda,
+          observacoes = excluded.observacoes,
+          bms_aquecidas = excluded.bms_aquecidas,
+          contas_subidas = excluded.contas_subidas,
+          meta_diaria = excluded.meta_diaria,
+          nome_bm = excluded.nome_bm,
+          limite_bm = excluded.limite_bm,
+          tem_template = excluded.tem_template,
+          destinatario = excluded.destinatario,
+          status_envio = excluded.status_envio,
+          quantidade = excluded.quantidade,
+          atualizado_por = excluded.atualizado_por,
+          updated_at = excluded.updated_at
+      `).run(
+        id,
+        data.empresa_id,
+        data.data_registro,
+        data.data_criacao || now,
+        data.funcionario_id ?? null,
+        data.funcionario_nome ?? data.operador,
+        data.operador,
+        data.tipo_ativo,
+        data.tipo_bm,
+        data.recebidas_fornecedor,
+        data.bms_criadas,
+        data.contas_viradas,
+        data.bloqueios,
+        data.prontas_estoque,
+        data.aproveitamento,
+        data.motivo_queda ?? null,
+        data.observacoes ?? null,
+        data.bms_aquecidas,
+        data.contas_subidas,
+        data.meta_diaria,
+        data.nome_bm ?? null,
+        data.limite_bm ?? null,
+        data.tem_template ? 1 : 0,
+        data.destinatario ?? null,
+        data.status_envio,
+        data.quantidade,
+        data.criado_por ?? null,
+        data.atualizado_por ?? null,
+        now,
+        now
+      );
+
+      // Inserir BMs individuais no estoque
+      const nomes = (data.nomes_bm_lote || [])
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+
+      if (nomes.length === 0 && data.nome_bm && data.nome_bm.trim()) {
+        nomes.push(data.nome_bm.trim());
+      }
+
+      const isBM = (data.tipo_bm || data.tipo_ativo || "").toUpperCase().startsWith("BM");
+      const limite = (data.limite_bm || data.tipo_bm || "250").replace(/bm\s*/i, "").trim().toLowerCase() || "250";
+      const statusEnvioAlvo = data.status_envio || "disponivel";
+      const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
+      const estaReservada = statusEnvioAlvo === "reservada";
+
+      if (isBM && nomes.length > 0) {
+        const insertEstoqueStmt = db.prepare(`
+          INSERT INTO estoque (
+            id, empresa_id, tipo_ativo, nome_bm, limite_bm, status_envio,
+            tem_template, data_criacao, responsavel, destinatario, origem,
+            producao_id, quantidade_disponivel, quantidade_reservada,
+            status, updated_at, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        for (const nomeClean of nomes) {
+          const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite)
+            ? nomeClean
+            : `${nomeClean} [${limite}]`;
+
+          const existente = db.prepare(
+            "SELECT id FROM estoque WHERE empresa_id = ? AND producao_id = ? AND nome_bm = ?"
+          ).get(data.empresa_id, id, nomeClean) as any;
+
+          if (!existente) {
+            insertEstoqueStmt.run(
+              crypto.randomUUID(),
+              data.empresa_id,
+              tipoAtivoFinal,
+              nomeClean,
+              limite,
+              statusEnvioAlvo,
+              data.tem_template ? 1 : 0,
+              data.data_registro,
+              data.operador,
+              data.destinatario ?? null,
+              "producao",
+              id,
+              estaDisponivel ? 1 : 0,
+              estaReservada ? 1 : 0,
+              estaDisponivel ? "disponivel" : "baixo_estoque",
+              now,
+              now
+            );
+          }
+        }
+      }
+
+      // Saldo agregado em estoque para unidades excedentes
+      const totalBmsNomeadas = nomes.length;
+      const totalLiquido = data.prontas_estoque;
+      const qtdParaPool = (isBM && totalBmsNomeadas > 0)
+        ? Math.max(0, totalLiquido - totalBmsNomeadas)
+        : totalLiquido;
+
+      if (qtdParaPool > 0) {
+        const poolExistente = db.prepare(
+          "SELECT id, quantidade_disponivel FROM estoque WHERE empresa_id = ? AND tipo_ativo = ? AND nome_bm IS NULL"
+        ).get(data.empresa_id, data.tipo_bm) as any;
+
+        if (poolExistente) {
+          db.prepare(`
+            UPDATE estoque
+            SET quantidade_disponivel = quantidade_disponivel + ?,
+                status = 'em_estoque',
+                updated_at = ?
+            WHERE id = ?
+          `).run(qtdParaPool, now, poolExistente.id);
+        } else {
+          db.prepare(`
+            INSERT INTO estoque (
+              id, empresa_id, tipo_ativo, limite_bm, quantidade_disponivel,
+              quantidade_reservada, status, origem, producao_id, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 0, 'em_estoque', 'producao', ?, ?, ?)
+          `).run(
+            crypto.randomUUID(),
+            data.empresa_id,
+            data.tipo_bm,
+            limite,
+            qtdParaPool,
+            id,
+            now,
+            now
+          );
+        }
+      }
+
+      db.exec("COMMIT;");
+      return { id, sucesso: true };
+    } catch (err) {
+      db.exec("ROLLBACK;");
+      throw err;
+    }
+  });
+
+// 13. Excluir produção diária local
+export const excluirProducaoLocal = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ id: z.string(), empresa_id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const db = getLocalDatabase();
+    db.exec("BEGIN IMMEDIATE TRANSACTION;");
+    try {
+      db.prepare(`
+        DELETE FROM estoque 
+        WHERE empresa_id = ? AND producao_id = ? AND venda_id IS NULL AND status IN ('disponivel', 'em_estoque', 'baixo_estoque')
+      `).run(data.empresa_id, data.id);
+
+      db.prepare("DELETE FROM producao_diaria WHERE id = ? AND empresa_id = ?").run(data.id, data.empresa_id);
+
+      db.exec("COMMIT;");
+      return { sucesso: true };
+    } catch (err) {
+      db.exec("ROLLBACK;");
+      throw err;
+    }
+  });
+
+// 14. Listar operadores conhecidos na produção local
+export const listarOperadoresLocal = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ empresa_id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const db = getLocalDatabase();
+    const rows = db.prepare(`
+      SELECT DISTINCT operador 
+      FROM producao_diaria 
+      WHERE empresa_id = ? AND operador IS NOT NULL AND TRIM(operador) != ''
+      ORDER BY operador ASC
+    `).all(data.empresa_id) as any[];
+    return rows.map((r) => r.operador as string);
+  });
+

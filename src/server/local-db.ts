@@ -51,11 +51,11 @@ export function getLocalDatabase(): DatabaseSync {
     CREATE TABLE IF NOT EXISTS producao_diaria (
       id TEXT PRIMARY KEY,
       empresa_id TEXT NOT NULL,
-      data_registro TEXT,
+      data_registro TEXT NOT NULL,
       data_criacao TEXT DEFAULT CURRENT_TIMESTAMP,
       funcionario_id TEXT,
       funcionario_nome TEXT,
-      operador TEXT,
+      operador TEXT NOT NULL,
       tipo_ativo TEXT DEFAULT 'BM 250',
       tipo_bm TEXT DEFAULT 'BM 250',
       recebidas_fornecedor INTEGER DEFAULT 0,
@@ -66,10 +66,23 @@ export function getLocalDatabase(): DatabaseSync {
       aproveitamento REAL DEFAULT 0,
       motivo_queda TEXT,
       observacoes TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      bms_aquecidas INTEGER DEFAULT 0,
+      contas_subidas INTEGER DEFAULT 0,
+      meta_diaria INTEGER DEFAULT 10,
+      nome_bm TEXT,
+      limite_bm TEXT,
+      tem_template INTEGER DEFAULT 0,
+      destinatario TEXT,
+      status_envio TEXT DEFAULT 'disponivel',
+      quantidade INTEGER DEFAULT 1,
+      criado_por TEXT,
+      atualizado_por TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE INDEX IF NOT EXISTS idx_producao_empresa ON producao_diaria(empresa_id);
+    CREATE INDEX IF NOT EXISTS idx_producao_data ON producao_diaria(empresa_id, data_registro);
 
     CREATE TABLE IF NOT EXISTS contas_enviadas (
       id TEXT PRIMARY KEY,
@@ -127,6 +140,37 @@ export function getLocalDatabase(): DatabaseSync {
 
     CREATE INDEX IF NOT EXISTS idx_venda_itens_venda ON venda_itens(venda_id);
   `);
+
+  // Migração defensiva: garante que bancos já criados anteriormente recebam as novas colunas
+  try {
+    const colunasProducao = (db.prepare("PRAGMA table_info(producao_diaria)").all() as any[]).map((c) => c.name);
+    const colunasParaAdicionar: Record<string, string> = {
+      bms_aquecidas: "INTEGER DEFAULT 0",
+      contas_subidas: "INTEGER DEFAULT 0",
+      meta_diaria: "INTEGER DEFAULT 10",
+      nome_bm: "TEXT",
+      limite_bm: "TEXT",
+      tem_template: "INTEGER DEFAULT 0",
+      destinatario: "TEXT",
+      status_envio: "TEXT DEFAULT 'disponivel'",
+      quantidade: "INTEGER DEFAULT 1",
+      criado_por: "TEXT",
+      atualizado_por: "TEXT",
+      updated_at: "TEXT DEFAULT CURRENT_TIMESTAMP",
+    };
+
+    for (const [col, def] of Object.entries(colunasParaAdicionar)) {
+      if (!colunasProducao.includes(col)) {
+        try {
+          db.exec(`ALTER TABLE producao_diaria ADD COLUMN ${col} ${def};`);
+        } catch {
+          // Ignora caso a coluna já tenha sido adicionada concorrentemente
+        }
+      }
+    }
+  } catch (errMig) {
+    console.warn("Aviso ao verificar colunas da tabela producao_diaria:", errMig);
+  }
 
   dbInstance = db;
   return dbInstance;

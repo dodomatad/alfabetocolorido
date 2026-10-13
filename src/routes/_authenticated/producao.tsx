@@ -34,8 +34,13 @@ import { useEffect, useMemo, useState } from "react";
 import { BmOperationalForm } from "@/components/comum/bm-operational-form";
 
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
-import { inserirLoteEstoqueLocal } from "@/lib/estoque.functions";
+import {
+  listarProducaoLocal,
+  salvarProducaoLocal,
+  excluirProducaoLocal,
+  listarEstoqueLocal,
+  listarOperadoresLocal,
+} from "@/lib/estoque.functions";
 
 
 import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
@@ -123,9 +128,6 @@ const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const AZUL = "#3B82F6";
 const VERDE = "#10B981";
 
-const tabela = () => supabase.from("producao_diaria");
-
-
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 function limiteInferior(periodo: string): { de?: string; ate?: string } {
@@ -169,18 +171,13 @@ function Pagina() {
     enabled: Boolean(empresa?.id),
     staleTime: 1000 * 60,
     queryFn: async () => {
-      const query = tabela().select("*");
-      
-      const { data: usuario } = await supabase.auth.getUser();
-      const p = permissoes.find(x => x.modulo === 'producao');
-      
-      if (usuario.user && p?.ocultar_valores) {
-        // Se ocultar_valores for true na produção, interpretamos como "Ver apenas a própria produção"
-        query.eq("criado_por", usuario.user.id);
-      }
+      if (!empresa?.id) return [];
+      const data = await listarProducaoLocal({ data: { empresa_id: empresa.id } });
+      const p = permissoes.find((x) => x.modulo === "producao");
 
-      const { data, error } = await query.order("data_registro", { ascending: false });
-      if (error) throw error;
+      if (session?.user && p?.ocultar_valores) {
+        return (data || []).filter((r) => r.criado_por === session.user.id);
+      }
       return (data as unknown as Registro[]) ?? [];
     },
   });
@@ -190,9 +187,31 @@ function Pagina() {
     enabled: Boolean(empresa?.id),
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await supabase.from("perfis").select("id, nome").limit(200);
-      if (error) throw error;
-      return data ?? [];
+      let perfis: { id: string; nome: string }[] = [];
+      try {
+        const { data } = await supabase.from("perfis").select("id, nome").limit(200);
+        if (data) perfis = data;
+      } catch {
+        // Fallback offline
+      }
+
+      // Adiciona operadores já conhecidos da base de produção local
+      if (empresa?.id) {
+        try {
+          const opsLocais = await listarOperadoresLocal({ data: { empresa_id: empresa.id } });
+          const nomesExistentes = new Set(perfis.map((p) => p.nome.toLowerCase()));
+          for (const op of opsLocais) {
+            if (!nomesExistentes.has(op.toLowerCase())) {
+              perfis.push({ id: `local-${op}`, nome: op });
+              nomesExistentes.add(op.toLowerCase());
+            }
+          }
+        } catch {
+          // Ignora caso falhe
+        }
+      }
+
+      return perfis;
     },
   });
 
@@ -201,13 +220,17 @@ function Pagina() {
     enabled: Boolean(empresa?.id) && aberto,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      if (error) return [];
-      return data || [];
+      try {
+        const { data, error } = await supabase
+          .from("clientes")
+          .select("id, nome")
+          .eq("ativo", true)
+          .order("nome");
+        if (error) return [];
+        return data || [];
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -216,12 +239,8 @@ function Pagina() {
     enabled: Boolean(empresa?.id),
     staleTime: 1000 * 30,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque")
-        .select("*")
-        .eq("empresa_id", empresa!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (!empresa?.id) return [];
+      const data = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
       return data || [];
     },
   });
@@ -367,6 +386,8 @@ function Pagina() {
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
       if (!form["operador"]?.trim()) throw new Error("Selecione a funcionária/operador.");
+      if (!form["data_registro"]?.trim()) throw new Error("Informe a data do registro.");
+
       const n = (c: string) => Number(form[c] || 0) || 0;
       const criadasNum = n("bms_criadas");
       const viradasNum = n("contas_viradas");
@@ -380,216 +401,49 @@ function Pagina() {
 
       const dataRegistroVal = form["data_registro"] || new Date().toISOString().split("T")[0];
       const dataCriacaoVal = form["data_criacao"] || new Date().toISOString();
-      const operadorVal = form["operador"] || "";
+      const operadorVal = form["operador"]?.trim() || "";
       const tipoAtivoVal = form["tipo_bm"] || "BM 250";
 
-      // Payload sanitizado e alinhado com todas as colunas de producao_diaria
-      const dadosProducao = {
-        empresa_id: empresa.id,
-        data_registro: dataRegistroVal,
-        data_criacao: dataCriacaoVal,
-        funcionario_id: null,
-        funcionario_nome: operadorVal,
-        operador: operadorVal,
-        tipo_ativo: tipoAtivoVal,
-        tipo_bm: tipoAtivoVal,
-        recebidas_fornecedor: fornecedorNum,
-        bms_criadas: criadasNum,
-        contas_viradas: viradasNum,
-        bloqueios: bloqueiosNum,
-        prontas_estoque: prontasEstoqueCalc,
-        aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
-        motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
-        observacoes: form["observacoes"]?.trim() || null,
-        bms_aquecidas: 0,
-        contas_subidas: 0,
-        meta_diaria: 10,
-        atualizado_por: session?.user.id ?? null,
-      };
-
-      // Metadados específicos de BM para persistência no Estoque
-      const dadosBM = {
-        nome_bm: form["nome_bm"] || null,
-        limite_bm: form["limite_bm"] || null,
-        tem_template: form["tem_template"] === "true",
-        data_criacao: dataCriacaoVal,
-        destinatario: form["destinatario"] || null,
-        status_envio: form["status_envio"] || "disponivel",
-        quantidade: n("quantidade") || 1,
-      };
-
-      const isBM = (dadosProducao.tipo_bm || "").startsWith("BM");
-      const totalLiquidoEstoque = prontasEstoqueCalc;
-
-      if (editando) {
-        const { error } = await tabela().update(dadosProducao as any).eq("id", editando.id);
-        if (error) throw error;
-        
-        // Atualiza estoque com a diferença líquida (delta)
-        const prevViradas = Number(editando.contas_viradas || 0);
-        const prevCriadas = Number(editando.bms_criadas || 0);
-        const prevBloqueios = Number(editando.bloqueios || 0);
-        const prevRecebidas = Number((editando as any).recebidas_fornecedor || 0);
-        const prevLiquido = (prevViradas > 0 ? prevViradas : Math.max(0, prevCriadas - prevBloqueios)) + prevRecebidas;
-        const diffTotal = totalLiquidoEstoque - prevLiquido;
-        
-        if (diffTotal !== 0) {
-          const { data: estoqueAtual } = await supabase
-            .from("estoque")
-            .select("id, quantidade_disponivel")
-            .eq("tipo_ativo", dadosProducao.tipo_bm)
-            .is("nome_bm", null)
-            .maybeSingle();
-
-          if (estoqueAtual) {
-            await supabase
-              .from("estoque")
-              .update({
-                quantidade_disponivel: Math.max(0, Number(estoqueAtual.quantidade_disponivel) + diffTotal),
-                status: Number(estoqueAtual.quantidade_disponivel) + diffTotal > 0 ? "em_estoque" : "esgotado",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", estoqueAtual.id);
-          } else if (diffTotal > 0) {
-            await supabase.from("estoque").insert({
-              empresa_id: empresa.id,
-              tipo_ativo: dadosProducao.tipo_bm,
-              limite_bm: dadosBM.limite_bm || dadosProducao.tipo_bm.replace("BM ", ""),
-              quantidade_disponivel: diffTotal,
-              quantidade_reservada: 0,
-              status: "em_estoque",
-            } as any);
-          }
-        }
-      } else {
-        const { data: novoReg, error } = await tabela().insert({
-          ...dadosProducao,
-          criado_por: session?.user.id ?? null,
-        } as any).select("id").maybeSingle();
-        if (error) throw error;
-        
-        const producaoId = novoReg?.id || null;
-
-        // Extrai todos os nomes preenchidos (lote de BMs)
-        const nomesValidos = nomesBmLista
-          .map((n) => n.trim())
-          .filter((n) => n.length > 0);
-        
-        // Se a lista estiver vazia mas tiver dadosBM.nome_bm, usa ele
-        if (nomesValidos.length === 0 && dadosBM.nome_bm?.trim()) {
-          nomesValidos.push(dadosBM.nome_bm.trim());
-        }
-
-        // Cadastra individualmente no Estoque para CADA nome de BM preenchido
-        if (isBM && nomesValidos.length > 0) {
-          const limite = normalizeLimite(dadosBM.limite_bm || dadosProducao.tipo_bm);
-          const statusEnvioAlvo = dadosBM.status_envio || "disponivel";
-          const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
-          const estaReservada = statusEnvioAlvo === "reservada";
-
-          const recordsToInsert = nomesValidos.map((nomeClean) => {
-            const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite.toLowerCase())
-              ? nomeClean
-              : `${nomeClean} [${limite}]`;
-
-            return {
-              empresa_id: empresa.id,
-              tipo_ativo: tipoAtivoFinal,
-              nome_bm: nomeClean,
-              limite_bm: limite,
-              tem_template: dadosBM.tem_template,
-              data_criacao: dadosBM.data_criacao,
-              responsavel: dadosProducao.operador,
-              destinatario: dadosBM.destinatario,
-              status_envio: statusEnvioAlvo,
-              quantidade_disponivel: estaDisponivel ? 1 : 0,
-              quantidade_reservada: estaReservada ? 1 : 0,
-              status: estaDisponivel ? "disponivel" : statusEnvioAlvo === "enviada" ? "vendida" : "baixo_estoque",
-              custo_medio_unitario: 0,
-              origem: "producao",
-              producao_id: producaoId,
-            };
-          });
-
-          // Inserção no estoque local SQLite (Persistência Garantida)
-          try {
-            await inserirLoteEstoqueLocal({
-              data: {
-                empresa_id: empresa.id,
-                items: recordsToInsert.map((rec) => ({
-                  tipo_ativo: rec.tipo_ativo,
-                  nome_bm: rec.nome_bm,
-                  limite_bm: rec.limite_bm,
-                  status_envio: rec.status_envio,
-                  tem_template: rec.tem_template,
-                  data_criacao: rec.data_criacao,
-                  responsavel: rec.responsavel,
-                  destinatario: rec.destinatario,
-                  origem: rec.origem,
-                  producao_id: rec.producao_id,
-                  quantidade_disponivel: rec.quantidade_disponivel,
-                  quantidade_reservada: rec.quantidade_reservada,
-                  status: rec.status,
-                })),
-              },
-            });
-          } catch (errLocalLote) {
-            console.warn("Aviso ao inserir lote no estoque local:", errLocalLote);
-          }
-
-          // Tentativa de espelhamento no Supabase (sem bloquear caso o remoto falhe)
-          try {
-            let { error: errEst } = await supabase.from("estoque").insert(recordsToInsert as any);
-            if (errEst && (errEst.message?.includes("origem") || errEst.message?.includes("producao_id") || errEst.message?.includes("nome_bm") || (errEst as any).code === "PGRST204")) {
-              const recordsFallback = recordsToInsert.map((rec) => {
-                const { origem, producao_id, contingencia_id, ...fallback } = rec as any;
-                return fallback;
-              });
-              await supabase.from("estoque").insert(recordsFallback as any);
-            }
-          } catch (eRemote) {
-            // Ignora falha remota
-          }
-        }
-
-        // Atualiza ou insere saldo agregado de estoque para reflexo imediato no dashboard
-        const totalBmsNomeadas = nomesValidos.length;
-        const qtdParaPool = (isBM && totalBmsNomeadas > 0)
-          ? Math.max(0, totalLiquidoEstoque - totalBmsNomeadas)
-          : totalLiquidoEstoque;
-
-        if (qtdParaPool > 0) {
-          const { data: estoqueAtual } = await supabase
-            .from("estoque")
-            .select("id, quantidade_disponivel")
-            .eq("empresa_id", empresa.id)
-            .eq("tipo_ativo", dadosProducao.tipo_bm)
-            .is("nome_bm", null)
-            .maybeSingle();
-
-          if (estoqueAtual) {
-            await supabase
-              .from("estoque")
-              .update({
-                quantidade_disponivel: Number(estoqueAtual.quantidade_disponivel) + qtdParaPool,
-                status: "em_estoque",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", estoqueAtual.id);
-          } else {
-            await supabase.from("estoque").insert({
-              empresa_id: empresa.id,
-              tipo_ativo: dadosProducao.tipo_bm,
-              limite_bm: dadosBM.limite_bm || dadosProducao.tipo_bm.replace("BM ", ""),
-              quantidade_disponivel: qtdParaPool,
-              quantidade_reservada: 0,
-              status: "em_estoque",
-              origem: "producao",
-              producao_id: producaoId,
-            } as any);
-          }
-        }
+      const nomesValidos = nomesBmLista
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+      if (nomesValidos.length === 0 && form["nome_bm"]?.trim()) {
+        nomesValidos.push(form["nome_bm"].trim());
       }
+
+      return await salvarProducaoLocal({
+        data: {
+          id: editando ? editando.id : undefined,
+          empresa_id: empresa.id,
+          data_registro: dataRegistroVal,
+          data_criacao: dataCriacaoVal,
+          funcionario_id: null,
+          funcionario_nome: operadorVal,
+          operador: operadorVal,
+          tipo_ativo: tipoAtivoVal,
+          tipo_bm: tipoAtivoVal,
+          recebidas_fornecedor: fornecedorNum,
+          bms_criadas: criadasNum,
+          contas_viradas: viradasNum,
+          bloqueios: bloqueiosNum,
+          prontas_estoque: prontasEstoqueCalc,
+          aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
+          motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
+          observacoes: form["observacoes"]?.trim() || null,
+          bms_aquecidas: 0,
+          contas_subidas: 0,
+          meta_diaria: 10,
+          criado_por: session?.user?.id ?? null,
+          atualizado_por: session?.user?.id ?? null,
+          nome_bm: form["nome_bm"]?.trim() || null,
+          nomes_bm_lote: nomesValidos,
+          limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
+          tem_template: form["tem_template"] === "true",
+          destinatario: form["destinatario"]?.trim() || null,
+          status_envio: form["status_envio"] || "disponivel",
+          quantidade: n("quantidade") || 1,
+        },
+      });
     },
     onSuccess: () => {
       const nomesValidos = nomesBmLista.map((n) => n.trim()).filter((n) => n.length > 0);
@@ -597,7 +451,7 @@ function Pagina() {
       if (qtdBms > 1) {
         toast.success(`✓ ${qtdBms} BMs adicionadas com sucesso à produção e ao estoque!`);
       } else {
-        toast.success(editando ? "✓ Registro atualizado e sincronizado com sucesso!" : "✓ Produção diária registrada e sincronizada com sucesso!");
+        toast.success(editando ? "✓ Registro de produção atualizado com sucesso!" : "✓ Produção diária registrada com sucesso!");
       }
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["producao"] });
@@ -609,24 +463,30 @@ function Pagina() {
       void queryClient.invalidateQueries({ queryKey: ["contingencia"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["perfis-producao"] });
       setAberto(false);
       setEditando(null);
       setForm(criarFormVazio());
       setNomesBmLista([""]);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      toast.error(e.message || "Erro ao salvar produção diária.");
+    },
   });
 
   const excluir = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await tabela().delete().eq("id", id);
-      if (error) throw error;
+      if (!empresa?.id) throw new Error("Empresa não identificada.");
+      await excluirProducaoLocal({ data: { id, empresa_id: empresa.id } });
     },
     onSuccess: () => {
-      toast.success("Registro excluído.");
+      toast.success("Registro de produção excluído.");
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["bms-producao-estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message || "Erro ao excluir registro de produção."),
   });
 
   return (
