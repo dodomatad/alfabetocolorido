@@ -234,8 +234,32 @@ function PaginaProducao() {
       const viradasNum = Number(contasViradas) || nomesValidos.length;
       const bloqueiosNum = Number(bloqueios) || 0;
 
-      // 1. Registra a linha diária de produção (schema limpo oficial)
-      let producaoId: string | null = null;
+      // 1. Insere CADA BM nominal individualmente no Estoque com o limite escolhido (Prioridade Operacional)
+      const recordsEstoque = nomesValidos.map((nome) => ({
+        empresa_id: empresa.id,
+        nome_bm: nome,
+        limite_bm: limiteBm,
+        tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
+        status_envio: "disponivel",
+        status: "disponivel",
+        quantidade_disponivel: 1,
+        quantidade_reservada: 0,
+        responsavel: operador.trim(),
+        data_criacao: dataVirada,
+        origem: "producao",
+        custo_medio_unitario: 0,
+      }));
+
+      const { data: bmsInseridas, error: erroEstoque } = await supabase
+        .from("estoque")
+        .insert(recordsEstoque as any)
+        .select("id");
+
+      if (erroEstoque) {
+        throw new Error(`Erro ao adicionar BMs ao Estoque: ${erroEstoque.message}`);
+      }
+
+      // 2. Registra o relatório diário em producao_diaria
       try {
         const payloadProducao: any = {
           empresa_id: empresa.id,
@@ -252,40 +276,11 @@ function PaginaProducao() {
           atualizado_por: session?.user?.id ?? null,
         };
 
-        const { data: novaProd } = await supabase
+        await supabase
           .from("producao_diaria")
-          .insert(payloadProducao)
-          .select("id")
-          .maybeSingle();
-
-        producaoId = novaProd?.id ?? null;
+          .insert(payloadProducao);
       } catch (errProd) {
-        console.warn("Aviso ao registrar producao_diaria:", errProd);
-      }
-
-      // 2. Insere CADA BM nominal individualmente no Estoque com o limite escolhido
-      const recordsEstoque = nomesValidos.map((nome) => ({
-        empresa_id: empresa.id,
-        nome_bm: nome,
-        limite_bm: limiteBm,
-        tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
-        status_envio: "disponivel",
-        status: "disponivel",
-        quantidade_disponivel: 1,
-        quantidade_reservada: 0,
-        responsavel: operador.trim(),
-        data_criacao: dataVirada,
-        origem: "producao",
-        producao_id: producaoId,
-        custo_medio_unitario: 0,
-      }));
-
-      const { error: erroEstoque } = await supabase
-        .from("estoque")
-        .insert(recordsEstoque as any);
-
-      if (erroEstoque) {
-        throw new Error(`Erro ao adicionar BMs ao Estoque: ${erroEstoque.message}`);
+        console.warn("Aviso ao registrar linha de producao_diaria:", errProd);
       }
 
       return { totalBms: nomesValidos.length };
