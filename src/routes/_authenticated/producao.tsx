@@ -172,11 +172,16 @@ function Pagina() {
     staleTime: 1000 * 60,
     queryFn: async () => {
       if (!empresa?.id) return [];
+      const isAmbienteRemoto = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1");
       let data: any[] = [];
-      try {
-        data = (await listarProducaoLocal({ data: { empresa_id: empresa.id } })) || [];
-      } catch (errLocal) {
-        console.warn("Aviso ao buscar produção local, buscando via Supabase:", errLocal);
+      if (!isAmbienteRemoto) {
+        try {
+          data = (await listarProducaoLocal({ data: { empresa_id: empresa.id } })) || [];
+        } catch (errLocal) {
+          console.warn("Aviso ao buscar produção local, buscando via Supabase:", errLocal);
+        }
+      }
+      if (data.length === 0) {
         try {
           const { data: remoteData } = await supabase
             .from("producao_diaria")
@@ -255,11 +260,14 @@ function Pagina() {
     staleTime: 1000 * 30,
     queryFn: async () => {
       if (!empresa?.id) return [];
-      try {
-        const data = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
-        if (data && data.length > 0) return data;
-      } catch (errLocal) {
-        console.warn("Aviso ao buscar estoque local, buscando via Supabase:", errLocal);
+      const isAmbienteRemoto = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1");
+      if (!isAmbienteRemoto) {
+        try {
+          const data = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
+          if (data && data.length > 0) return data;
+        } catch (errLocal) {
+          console.warn("Aviso ao buscar estoque local, buscando via Supabase:", errLocal);
+        }
       }
       try {
         const { data: remoteData } = await supabase
@@ -440,43 +448,49 @@ function Pagina() {
         nomesValidos.push(form["nome_bm"].trim());
       }
 
-      try {
-        return await salvarProducaoLocal({
-          data: {
-            id: editando ? editando.id : undefined,
-            empresa_id: empresa.id,
-            data_registro: dataRegistroVal,
-            data_criacao: dataCriacaoVal,
-            funcionario_id: null,
-            funcionario_nome: operadorVal,
-            operador: operadorVal,
-            tipo_ativo: tipoAtivoVal,
-            tipo_bm: tipoAtivoVal,
-            recebidas_fornecedor: fornecedorNum,
-            bms_criadas: criadasNum,
-            contas_viradas: viradasNum,
-            bloqueios: bloqueiosNum,
-            prontas_estoque: prontasEstoqueCalc,
-            aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
-            motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
-            observacoes: form["observacoes"]?.trim() || null,
-            bms_aquecidas: 0,
-            contas_subidas: 0,
-            meta_diaria: 10,
-            criado_por: session?.user?.id ?? null,
-            atualizado_por: session?.user?.id ?? null,
-            nome_bm: form["nome_bm"]?.trim() || null,
-            nomes_bm_lote: nomesValidos,
-            limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
-            tem_template: form["tem_template"] === "true",
-            destinatario: form["destinatario"]?.trim() || null,
-            status_envio: form["status_envio"] || "disponivel",
-            quantidade: n("quantidade") || 1,
-          },
-        });
-      } catch (errLocal: any) {
-        // Fallback gracioso para ambientes de nuvem (ex: central.lovable.app / Edge runtime sem suporte a SQLite local)
-        console.warn("Aviso: persistência local indisponível no ambiente atual, persistindo via Supabase:", errLocal);
+      const isAmbienteRemoto = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1");
+
+      if (!isAmbienteRemoto) {
+        try {
+          return await salvarProducaoLocal({
+            data: {
+              id: editando ? editando.id : undefined,
+              empresa_id: empresa.id,
+              data_registro: dataRegistroVal,
+              data_criacao: dataCriacaoVal,
+              funcionario_id: null,
+              funcionario_nome: operadorVal,
+              operador: operadorVal,
+              tipo_ativo: tipoAtivoVal,
+              tipo_bm: tipoAtivoVal,
+              recebidas_fornecedor: fornecedorNum,
+              bms_criadas: criadasNum,
+              contas_viradas: viradasNum,
+              bloqueios: bloqueiosNum,
+              prontas_estoque: prontasEstoqueCalc,
+              aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
+              motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
+              observacoes: form["observacoes"]?.trim() || null,
+              bms_aquecidas: 0,
+              contas_subidas: 0,
+              meta_diaria: 10,
+              criado_por: session?.user?.id ?? null,
+              atualizado_por: session?.user?.id ?? null,
+              nome_bm: form["nome_bm"]?.trim() || null,
+              nomes_bm_lote: nomesValidos,
+              limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
+              tem_template: form["tem_template"] === "true",
+              destinatario: form["destinatario"]?.trim() || null,
+              status_envio: form["status_envio"] || "disponivel",
+              quantidade: n("quantidade") || 1,
+            },
+          });
+        } catch (errLocal: any) {
+          console.warn("Aviso: persistência local falhou, tentando via Supabase:", errLocal);
+        }
+      }
+
+      // Persistência em nuvem (Lovable / Cloudflare Edge ou fallback)
         
         // Schema oficial remoto de producao_diaria:
         // empresa_id, data_registro, operador, bms_criadas, bms_aquecidas, contas_subidas,
