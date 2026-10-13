@@ -259,30 +259,7 @@ function PaginaProducao() {
         throw new Error(`Erro ao adicionar BMs ao Estoque: ${erroEstoque.message}`);
       }
 
-      // 2. Registra o relatório diário em producao_diaria
-      try {
-        const payloadProducao: any = {
-          empresa_id: empresa.id,
-          data_registro: dataVirada,
-          operador: operador.trim(),
-          tipo_bm: `BM ${limiteBm.toUpperCase()}`,
-          bms_criadas: criadasNum,
-          contas_viradas: viradasNum,
-          bloqueios: bloqueiosNum,
-          motivo_queda: motivoQueda === "nenhum" ? null : motivoQueda,
-          observacoes: observacoes.trim() || null,
-          meta_diaria: 10,
-          criado_por: session?.user?.id ?? null,
-          atualizado_por: session?.user?.id ?? null,
-        };
-
-        await supabase
-          .from("producao_diaria")
-          .insert(payloadProducao);
-      } catch (errProd) {
-        console.warn("Aviso ao registrar linha de producao_diaria:", errProd);
-      }
-
+      // 2. Retorna sucesso das BMs cadastradas
       return { totalBms: nomesValidos.length };
     },
     onSuccess: (res) => {
