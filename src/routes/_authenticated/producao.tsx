@@ -478,31 +478,22 @@ function Pagina() {
         // Fallback gracioso para ambientes de nuvem (ex: central.lovable.app / Edge runtime sem suporte a SQLite local)
         console.warn("Aviso: persistência local indisponível no ambiente atual, persistindo via Supabase:", errLocal);
         
+        // Schema oficial remoto de producao_diaria:
+        // empresa_id, data_registro, operador, bms_criadas, bms_aquecidas, contas_subidas,
+        // contas_viradas, bloqueios, motivo_queda, meta_diaria, observacoes, tipo_bm, criado_por, atualizado_por
         const payloadProducao: any = {
           empresa_id: empresa.id,
           data_registro: dataRegistroVal,
-          data_criacao: dataCriacaoVal,
-          funcionario_nome: operadorVal,
           operador: operadorVal,
-          tipo_ativo: tipoAtivoVal,
           tipo_bm: tipoAtivoVal,
-          recebidas_fornecedor: fornecedorNum,
           bms_criadas: criadasNum,
           contas_viradas: viradasNum,
           bloqueios: bloqueiosNum,
-          prontas_estoque: prontasEstoqueCalc,
-          aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
           motivo_queda: form["motivo_queda"] || null,
           observacoes: form["observacoes"]?.trim() || null,
           bms_aquecidas: 0,
           contas_subidas: 0,
           meta_diaria: 10,
-          nome_bm: form["nome_bm"]?.trim() || null,
-          limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
-          tem_template: form["tem_template"] === "true",
-          destinatario: form["destinatario"]?.trim() || null,
-          status_envio: form["status_envio"] || "disponivel",
-          quantidade: n("quantidade") || 1,
           atualizado_por: session?.user?.id ?? null,
         };
 
@@ -523,7 +514,7 @@ function Pagina() {
           if (errInsert) throw errInsert;
 
           const producaoId = novoReg?.id;
-          const limite = payloadProducao.limite_bm;
+          const limite = form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250");
           const statusEnvioAlvo = form["status_envio"] || "disponivel";
           const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
           const estaReservada = statusEnvioAlvo === "reservada";
@@ -586,7 +577,17 @@ function Pagina() {
   const excluir = useMutation({
     mutationFn: async (id: string) => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      await excluirProducaoLocal({ data: { id, empresa_id: empresa.id } });
+      try {
+        await excluirProducaoLocal({ data: { id, empresa_id: empresa.id } });
+      } catch (errLocal) {
+        console.warn("Aviso ao excluir localmente, excluindo via Supabase:", errLocal);
+        const { error } = await supabase
+          .from("producao_diaria")
+          .delete()
+          .eq("id", id)
+          .eq("empresa_id", empresa.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Registro de produção excluído.");
