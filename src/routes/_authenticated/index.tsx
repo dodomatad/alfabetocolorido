@@ -202,7 +202,7 @@ function PaginaDashboard() {
         .lte("data_venda", hojeIso);
       if (statusFiltro !== "todos") vendasQuery = vendasQuery.eq("status", statusFiltro as never);
 
-      const [vendas, itens, reposicoes, entregas, lancamentos, vendasTotais] = await Promise.all([
+      const [vendas, itens, reposicoes, entregas, lancamentos, vendasTotais, producao] = await Promise.all([
         vendasQuery,
         supabase
           .from("venda_itens")
@@ -229,7 +229,13 @@ function PaginaDashboard() {
         supabase
           .from("vendas")
           .select("valor_total, desconto, status")
+          .eq("empresa_id", empresa!.id),
+        supabase
+          .from("producao_diaria")
+          .select("*")
           .eq("empresa_id", empresa!.id)
+          .gte("data_registro", inicioIso)
+          .lte("data_registro", hojeIso),
       ]);
 
       const erro = vendas.error ?? itens.error ?? (reposicoes.error as any) ?? entregas.error ?? lancamentos.error ?? vendasTotais.error;
@@ -242,6 +248,7 @@ function PaginaDashboard() {
         entregas: (entregas.data ?? []) as unknown as LinhaEntrega[],
         lancamentosFinanceiros: lancamentos.data ?? [],
         vendasTotais: (vendasTotais.data ?? []) as any[],
+        producaoDiaria: (producao.data ?? []) as any[],
       };
     },
   });
@@ -251,6 +258,7 @@ function PaginaDashboard() {
   const reposicoes = useMemo(() => (consulta.data as any)?.reposicoes ?? [], [consulta.data]);
   const entregas = useMemo(() => (consulta.data as any)?.entregas ?? [], [consulta.data]);
   const vendasTotaisData = useMemo(() => (consulta.data as any)?.vendasTotais ?? [], [consulta.data]);
+  const producaoDiaria = useMemo(() => (consulta.data as any)?.producaoDiaria ?? [], [consulta.data]);
   
   const {
     totalReembolsadoGeral,
@@ -291,6 +299,8 @@ function PaginaDashboard() {
     taxaReposicao,
     taxaConversao,
     dadosROI,
+    totalBmsCriadasProd,
+    totalContasViradasProd,
   } = useMemo(() => {
     const val = vendas.filter((v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status));
     const reemb = vendas.filter((v) => ["reembolsada", "estornada", "cancelada"].includes(v.status));
@@ -356,15 +366,25 @@ function PaginaDashboard() {
     const totalReposicoesQtd = totalReposicoesPerfis + totalReposicoesEntregas;
     const txReposicao = totalEntregue > 0 ? (totalReposicoesQtd / totalEntregue) * 100 : 0;
 
+    // Taxa de Acerto / Aproveitamento Real da Esteira de Produção
+    const totalBmsCriadasProd = producaoDiaria.reduce((s: number, p: any) => s + (Number(p.bms_criadas) || 0), 0);
+    const totalContasViradasProd = producaoDiaria.reduce((s: number, p: any) => s + (Number(p.contas_viradas) || 0), 0);
+    
+    // Se houver registros na produção diária, a taxa de acerto é (Viradas / Criadas)
+    // Se ainda não houver lançamentos de produção, calcula a taxa de efetivação de pedidos
     const convertidas = vendas.filter(
       (v) => !["rascunho", "cancelada", "reembolsada", "falta_pagamento"].includes(v.status),
     ).length;
-    const txConversao = vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
+    const taxaAcertoReal = totalBmsCriadasProd > 0
+      ? (totalContasViradasProd / totalBmsCriadasProd) * 100
+      : vendas.length > 0 ? (convertidas / vendas.length) * 100 : 0;
 
     // 4. ROI Exato
+    // Se o custo for maior que zero: (Lucro / Custos Totais) * 100
+    // Se o custo for zero e houver lucro: Margem é de 100%
     const roiCalculado = cTotais > 0 
       ? ((Number(luc) / cTotais) * 100) 
-      : 0;
+      : fatLiq > 0 ? 100 : 0;
 
     const roiFormatado = `${roiCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
 
@@ -387,8 +407,10 @@ function PaginaDashboard() {
       custosTotais: cTotais,
       lucro: luc,
       taxaReposicao: txReposicao,
-      taxaConversao: txConversao,
+      taxaConversao: taxaAcertoReal,
       dadosROI: dROI,
+      totalBmsCriadasProd,
+      totalContasViradasProd,
     };
   }, [vendas, itens, reposicoes, entregas, consulta.data, inicioIso, hojeIso]);
 
@@ -735,7 +757,7 @@ function PaginaDashboard() {
               rotulo="ROI"
               valor={ocultarValores ? "***" : dadosROI.valor}
               corValor={ocultarValores ? "text-white" : dadosROI.cor}
-              explicacao={ocultarValores ? "" : "ROI = (Lucro / Custos) * 100. Se custo for 0 e lucro > 0, considera-se 100% de margem."}
+              explicacao={ocultarValores ? "" : `Retorno sobre o Investimento: Lucro (${fmtValor(lucro)}) / Custos Totais (${fmtValor(custosTotais)}).`}
             />
             <CartaoMetrica
               rotulo="Custo de Produção"
@@ -746,6 +768,8 @@ function PaginaDashboard() {
               rotulo="Taxa de Acertos"
               valor={ocultarValores ? "***%" : `${formatarNumero(taxaConversao)}%`}
               positivo={taxaConversao >= 0}
+              subvalor={totalBmsCriadasProd > 0 ? `${totalContasViradasProd} de ${totalBmsCriadasProd} BMs viradas` : undefined}
+              explicacao={totalBmsCriadasProd > 0 ? "Aproveitamento real da esteira: (Contas Viradas / BMs Criadas)." : "Taxa de conversão de pedidos efetivados."}
             />
             <CartaoMetrica
               rotulo="Taxa de Reembolso"
