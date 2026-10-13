@@ -557,7 +557,6 @@ function Pagina() {
 
           return { id: producaoId, sucesso: true };
         }
-      }
     },
     onSuccess: () => {
       const nomesValidos = nomesBmLista.map((n) => n.trim()).filter((n) => n.length > 0);
