@@ -172,9 +172,24 @@ function Pagina() {
     staleTime: 1000 * 60,
     queryFn: async () => {
       if (!empresa?.id) return [];
-      const data = await listarProducaoLocal({ data: { empresa_id: empresa.id } });
-      const p = permissoes.find((x) => x.modulo === "producao");
+      let data: any[] = [];
+      try {
+        data = (await listarProducaoLocal({ data: { empresa_id: empresa.id } })) || [];
+      } catch (errLocal) {
+        console.warn("Aviso ao buscar produção local, buscando via Supabase:", errLocal);
+        try {
+          const { data: remoteData } = await supabase
+            .from("producao_diaria")
+            .select("*")
+            .eq("empresa_id", empresa.id)
+            .order("data_registro", { ascending: false });
+          data = remoteData || [];
+        } catch {
+          data = [];
+        }
+      }
 
+      const p = permissoes.find((x) => x.modulo === "producao");
       if (session?.user && p?.ocultar_valores) {
         return (data || []).filter((r) => r.criado_por === session.user.id);
       }
@@ -240,8 +255,22 @@ function Pagina() {
     staleTime: 1000 * 30,
     queryFn: async () => {
       if (!empresa?.id) return [];
-      const data = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
-      return data || [];
+      try {
+        const data = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
+        if (data && data.length > 0) return data;
+      } catch (errLocal) {
+        console.warn("Aviso ao buscar estoque local, buscando via Supabase:", errLocal);
+      }
+      try {
+        const { data: remoteData } = await supabase
+          .from("estoque")
+          .select("*")
+          .eq("empresa_id", empresa.id)
+          .order("updated_at", { ascending: false });
+        return remoteData || [];
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -411,13 +440,48 @@ function Pagina() {
         nomesValidos.push(form["nome_bm"].trim());
       }
 
-      return await salvarProducaoLocal({
-        data: {
-          id: editando ? editando.id : undefined,
+      try {
+        return await salvarProducaoLocal({
+          data: {
+            id: editando ? editando.id : undefined,
+            empresa_id: empresa.id,
+            data_registro: dataRegistroVal,
+            data_criacao: dataCriacaoVal,
+            funcionario_id: null,
+            funcionario_nome: operadorVal,
+            operador: operadorVal,
+            tipo_ativo: tipoAtivoVal,
+            tipo_bm: tipoAtivoVal,
+            recebidas_fornecedor: fornecedorNum,
+            bms_criadas: criadasNum,
+            contas_viradas: viradasNum,
+            bloqueios: bloqueiosNum,
+            prontas_estoque: prontasEstoqueCalc,
+            aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
+            motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
+            observacoes: form["observacoes"]?.trim() || null,
+            bms_aquecidas: 0,
+            contas_subidas: 0,
+            meta_diaria: 10,
+            criado_por: session?.user?.id ?? null,
+            atualizado_por: session?.user?.id ?? null,
+            nome_bm: form["nome_bm"]?.trim() || null,
+            nomes_bm_lote: nomesValidos,
+            limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
+            tem_template: form["tem_template"] === "true",
+            destinatario: form["destinatario"]?.trim() || null,
+            status_envio: form["status_envio"] || "disponivel",
+            quantidade: n("quantidade") || 1,
+          },
+        });
+      } catch (errLocal: any) {
+        // Fallback gracioso para ambientes de nuvem (ex: central.lovable.app / Edge runtime sem suporte a SQLite local)
+        console.warn("Aviso: persistência local indisponível no ambiente atual, persistindo via Supabase:", errLocal);
+        
+        const payloadProducao: any = {
           empresa_id: empresa.id,
           data_registro: dataRegistroVal,
           data_criacao: dataCriacaoVal,
-          funcionario_id: null,
           funcionario_nome: operadorVal,
           operador: operadorVal,
           tipo_ativo: tipoAtivoVal,
@@ -428,22 +492,67 @@ function Pagina() {
           bloqueios: bloqueiosNum,
           prontas_estoque: prontasEstoqueCalc,
           aproveitamento: Number(aproveitamentoCalc.toFixed(2)),
-          motivo_queda: (form["motivo_queda"] || null) as MotivoQueda | null,
+          motivo_queda: form["motivo_queda"] || null,
           observacoes: form["observacoes"]?.trim() || null,
           bms_aquecidas: 0,
           contas_subidas: 0,
           meta_diaria: 10,
-          criado_por: session?.user?.id ?? null,
-          atualizado_por: session?.user?.id ?? null,
           nome_bm: form["nome_bm"]?.trim() || null,
-          nomes_bm_lote: nomesValidos,
           limite_bm: form["limite_bm"] || (tipoAtivoVal.replace("BM ", "") || "250"),
           tem_template: form["tem_template"] === "true",
           destinatario: form["destinatario"]?.trim() || null,
           status_envio: form["status_envio"] || "disponivel",
           quantidade: n("quantidade") || 1,
-        },
-      });
+          atualizado_por: session?.user?.id ?? null,
+        };
+
+        if (editando) {
+          const { error: errUpdate } = await supabase
+            .from("producao_diaria")
+            .update(payloadProducao)
+            .eq("id", editando.id);
+          if (errUpdate) throw errUpdate;
+          return { id: editando.id, sucesso: true };
+        } else {
+          payloadProducao.criado_por = session?.user?.id ?? null;
+          const { data: novoReg, error: errInsert } = await supabase
+            .from("producao_diaria")
+            .insert(payloadProducao)
+            .select("id")
+            .maybeSingle();
+          if (errInsert) throw errInsert;
+
+          const producaoId = novoReg?.id;
+          const limite = payloadProducao.limite_bm;
+          const statusEnvioAlvo = form["status_envio"] || "disponivel";
+          const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
+          const estaReservada = statusEnvioAlvo === "reservada";
+
+          // Cadastra BMs nomeadas no estoque
+          if (nomesValidos.length > 0) {
+            const recordsEstoque = nomesValidos.map((nomeBm) => ({
+              empresa_id: empresa.id,
+              tipo_ativo: nomeBm.toLowerCase().includes(limite.toLowerCase()) ? nomeBm : `${nomeBm} [${limite}]`,
+              nome_bm: nomeBm,
+              limite_bm: limite,
+              status_envio: statusEnvioAlvo,
+              tem_template: form["tem_template"] === "true",
+              data_criacao: dataRegistroVal,
+              responsavel: operadorVal,
+              destinatario: form["destinatario"]?.trim() || null,
+              origem: "producao",
+              producao_id: producaoId,
+              quantidade_disponivel: estaDisponivel ? 1 : 0,
+              quantidade_reservada: estaReservada ? 1 : 0,
+              status: estaDisponivel ? "disponivel" : "baixo_estoque",
+              custo_medio_unitario: 0,
+            }));
+            await supabase.from("estoque").insert(recordsEstoque as any);
+          }
+
+          return { id: producaoId, sucesso: true };
+        }
+      }
     },
     onSuccess: () => {
       const nomesValidos = nomesBmLista.map((n) => n.trim()).filter((n) => n.length > 0);
