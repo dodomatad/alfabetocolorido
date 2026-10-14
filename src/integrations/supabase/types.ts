@@ -1072,6 +1072,7 @@ export type Database = {
       }
       producao_diaria: {
         Row: {
+          aproveitamento: number | null
           atualizado_por: string | null
           bloqueios: number
           bms_aquecidas: number
@@ -1080,18 +1081,31 @@ export type Database = {
           contas_viradas: number
           created_at: string
           criado_por: string | null
+          data_criacao: string | null
           data_registro: string
+          destinatario: string | null
           empresa_id: string
+          funcionario_id: string | null
+          funcionario_nome: string | null
           id: string
+          limite_bm: string | null
           meta_diaria: number
           motivo_queda: Database["public"]["Enums"]["motivo_queda"] | null
+          nome_bm: string | null
           observacoes: string | null
           operador: string
           operador_id: string | null
+          prontas_estoque: number | null
+          quantidade: number | null
+          recebidas_fornecedor: number | null
+          status_envio: string | null
+          tem_template: boolean | null
+          tipo_ativo: string | null
           tipo_bm: string | null
           updated_at: string
         }
         Insert: {
+          aproveitamento?: number | null
           atualizado_por?: string | null
           bloqueios?: number
           bms_aquecidas?: number
@@ -1100,18 +1114,31 @@ export type Database = {
           contas_viradas?: number
           created_at?: string
           criado_por?: string | null
+          data_criacao?: string | null
           data_registro?: string
+          destinatario?: string | null
           empresa_id: string
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
           id?: string
+          limite_bm?: string | null
           meta_diaria?: number
           motivo_queda?: Database["public"]["Enums"]["motivo_queda"] | null
+          nome_bm?: string | null
           observacoes?: string | null
           operador: string
           operador_id?: string | null
+          prontas_estoque?: number | null
+          quantidade?: number | null
+          recebidas_fornecedor?: number | null
+          status_envio?: string | null
+          tem_template?: boolean | null
+          tipo_ativo?: string | null
           tipo_bm?: string | null
           updated_at?: string
         }
         Update: {
+          aproveitamento?: number | null
           atualizado_por?: string | null
           bloqueios?: number
           bms_aquecidas?: number
@@ -1120,14 +1147,26 @@ export type Database = {
           contas_viradas?: number
           created_at?: string
           criado_por?: string | null
+          data_criacao?: string | null
           data_registro?: string
+          destinatario?: string | null
           empresa_id?: string
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
           id?: string
+          limite_bm?: string | null
           meta_diaria?: number
           motivo_queda?: Database["public"]["Enums"]["motivo_queda"] | null
+          nome_bm?: string | null
           observacoes?: string | null
           operador?: string
           operador_id?: string | null
+          prontas_estoque?: number | null
+          quantidade?: number | null
+          recebidas_fornecedor?: number | null
+          status_envio?: string | null
+          tem_template?: boolean | null
+          tipo_ativo?: string | null
           tipo_bm?: string | null
           updated_at?: string
         }
