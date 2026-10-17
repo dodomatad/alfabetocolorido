@@ -245,29 +245,44 @@ export function FormularioVenda({
   // Consulta de Contas e BMs disponíveis no Estoque para seleção individual (Unificada Local + Remoto)
   const contasEstoqueQuery = useQuery({
     queryKey: ["estoque-disponivel-venda", empresa?.id],
-    enabled: Boolean(empresa?.id) && aberto,
+    enabled: aberto,
     staleTime: 0,
     queryFn: async () => {
-      if (!empresa?.id) return [];
-
       let remotos: any[] = [];
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("estoque")
           .select("*")
-          .eq("empresa_id", empresa.id)
-          .order("created_at", { ascending: false });
-        if (!error && data) remotos = data;
+          .is("venda_id", null)
+          .or("status.eq.Disponível,status.eq.disponivel,status.eq.Pronta para Envio,status_envio.eq.disponivel");
+
+        if (empresa?.id) {
+          query = query.eq("empresa_id", empresa.id);
+        }
+
+        const { data, error } = await query;
+        if (!error && data) {
+          remotos = data;
+        } else {
+          // Fallback mais abrangente sem filtros restritivos caso o schema difira
+          const { data: fallbackData } = await supabase
+            .from("estoque")
+            .select("*")
+            .is("venda_id", null);
+          if (fallbackData) remotos = fallbackData;
+        }
       } catch (errRemoto) {
         console.warn("Aviso ao buscar estoque remoto:", errRemoto);
       }
 
       let locais: any[] = [];
-      try {
-        const res = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
-        if (res) locais = res;
-      } catch (errLocal) {
-        console.warn("Aviso ao buscar estoque local:", errLocal);
+      if (empresa?.id) {
+        try {
+          const res = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
+          if (res) locais = res;
+        } catch (errLocal) {
+          console.warn("Aviso ao buscar estoque local:", errLocal);
+        }
       }
 
       const mapa = new Map<string, any>();
@@ -282,7 +297,7 @@ export function FormularioVenda({
 
       const todos = Array.from(mapa.values());
       return todos.filter((item) => {
-        const st = (item.status_envio || item.status || "")
+        const st = (item.status || item.status_envio || "")
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
@@ -1012,24 +1027,15 @@ export function FormularioVenda({
                   const allStockBms = contasEstoqueQuery.data || [];
 
                   // Normalização do Filtro de Modalidade / Limite
-                  const availableBms = allStockBms.filter((bm) => {
-                    const bmLimitNorm = normalizeLimit(bm.limite_bm || bm.limite || bm.tipo_ativo || bm.tipo || "");
-                    const isSameLimit = !selectedLimitNorm || bmLimitNorm === selectedLimitNorm || bmLimitNorm.includes(selectedLimitNorm) || selectedLimitNorm.includes(bmLimitNorm);
-                    
-                    const st = (bm.status_envio || bm.status || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-                    const isAvailable = [
-                      "disponivel",
-                      "pronta para envio",
-                      "pronta",
-                      "em_estoque",
-                      "pronta_envio"
-                    ].some((s) => st.includes(s));
-                    
-                    const isSoldOrDelivered = st.includes("vendida") || st.includes("entregue") || Boolean(bm.venda_id);
-                    const notSold = !bm.venda_id && !bm.cliente_id && !isSoldOrDelivered;
+                  const bmsFiltradasLimite = selectedLimitNorm
+                    ? allStockBms.filter((bm) => {
+                        const bmLimitNorm = normalizeLimit(bm.limite_bm || bm.limite || bm.tipo_ativo || bm.tipo || "");
+                        return bmLimitNorm === selectedLimitNorm || bmLimitNorm.includes(selectedLimitNorm) || selectedLimitNorm.includes(bmLimitNorm);
+                      })
+                    : allStockBms;
 
-                    return isSameLimit && (isAvailable || notSold) && !isSoldOrDelivered;
-                  });
+                  // Se houver BMs com o limite específico, utiliza elas; caso contrário, exibe todas as BMs disponíveis para seleção imediata
+                  const availableBms = bmsFiltradasLimite.length > 0 ? bmsFiltradasLimite : allStockBms;
 
                   // Array de IDs selecionados no item (suporte a seleção múltipla)
                   const selecionados: string[] = item.contas_ids && item.contas_ids.length > 0
@@ -1139,22 +1145,20 @@ export function FormularioVenda({
                             <CommandInput placeholder="Buscar por nome da BM, portfólio, conta, operador ou limite..." className="text-xs" />
                             <CommandList className="max-h-64 overflow-y-auto">
                               <CommandEmpty className="p-3 text-xs text-center text-muted-foreground">
-                                {availableBms.length === 0
-                                  ? selectedLimitNorm
-                                    ? `Nenhuma BM disponível encontrada para esta modalidade.`
-                                    : "Nenhuma BM disponível encontrada no estoque."
+                                {allStockBms.length === 0
+                                  ? "Nenhuma BM disponível encontrada no estoque."
                                   : "Nenhuma BM encontrada com este termo de busca."}
                               </CommandEmpty>
                               <CommandGroup heading={`Ativos Disponíveis (${availableBms.length} em estoque)`}>
                                 {availableBms.map((bm) => {
-                                  const nomePrincipal = bm.nome_bm || bm.tipo_ativo || "BM sem nome";
-                                  const limiteBadge = bm.limite_bm || bm.limite || (bm.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "250");
+                                  const nomePrincipal = bm.nome || bm.nome_bm || bm.tipo_ativo || "BM sem nome";
+                                  const limiteBadge = bm.limite || bm.limite_bm || (bm.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "250");
                                   const portNome = bm.nome_portfolio || "";
                                   const contaNome = bm.nome_conta || "";
                                   const estaMarcada = selecionados.includes(bm.id);
                                   const stEnvio = (bm.status_envio || "").toLowerCase();
-                                  const statusTexto = (stEnvio === "pronta_envio" || stEnvio.includes("pronta")) ? "Pronta para Envio" : "Disponível";
-                                  const operador = bm.responsavel || "";
+                                  const statusTexto = bm.status || ((stEnvio === "pronta_envio" || stEnvio.includes("pronta")) ? "Pronta para Envio" : "Disponível");
+                                  const operador = bm.criador_responsavel || bm.responsavel || "";
 
                                   return (
                                     <CommandItem

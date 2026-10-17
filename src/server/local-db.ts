@@ -179,7 +179,10 @@ export function getLocalDatabase(): DatabaseSync {
     const colunasEstoque = (db.prepare("PRAGMA table_info(estoque)").all() as any[]).map((c) => c.name);
     const colunasEstoqueParaAdicionar: Record<string, string> = {
       nome_bm: "TEXT",
+      nome: "TEXT",
       limite_bm: "TEXT",
+      limite: "TEXT",
+      criador_responsavel: "TEXT",
       nome_portfolio: "TEXT",
       nome_conta: "TEXT",
       status_envio: "TEXT DEFAULT 'disponivel'",

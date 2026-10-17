@@ -483,6 +483,15 @@ function PaginaProducao() {
       const viradasNum = Math.max(0, Number(contasViradas) || (linhas.length > 0 ? linhas.length : 1));
       const bloqueiosNum = Math.max(0, Number(bloqueios) || 0);
 
+      // Formata a data para o padrão de lote (ex: 17/10/2026)
+      const dataFormatada = dataVirada
+        ? dataVirada.split("-").reverse().join("/")
+        : new Date().toLocaleDateString("pt-BR");
+
+      const limitePadronizado = limiteBm.toUpperCase().startsWith("BM")
+        ? limiteBm.toUpperCase()
+        : `BM ${limiteBm.toUpperCase()}`;
+
       // Gera os nomes das BMs caso não tenham sido preenchidos manualmente
       const nomesValidos =
         linhas.length > 0
@@ -490,7 +499,7 @@ function PaginaProducao() {
           : Array.from(
               { length: Math.max(1, viradasNum) },
               (_, i) =>
-                `BM-${limiteBm.toUpperCase()}-${dataVirada.replace(/-/g, "").slice(2)}-${String(i + 1).padStart(2, "0")}`
+                `${limitePadronizado} - Lote ${dataFormatada} - #${String(i + 1).padStart(2, "0")}`
             );
 
       const producaoId = crypto.randomUUID();
@@ -517,24 +526,30 @@ function PaginaProducao() {
                 : nomeConta.trim())
           : null;
 
+        const nomeFinal = (typeof nome === "string" ? nome : (nome as any).nome)?.trim() || `${limitePadronizado} #${idx + 1}`;
+
         return {
           id: bmId,
           empresa_id: empresa.id,
-          nome_bm: nome.trim(),
+          nome: nomeFinal,
+          nome_bm: nomeFinal,
+          limite: lim,
           limite_bm: lim,
-          tipo_ativo: `${nome.trim()} [${lim}]`,
+          tipo_ativo: `${nomeFinal} [${lim}]`,
           nome_portfolio: portfolioFinal,
           nome_conta: contaFinal,
-          status: "disponivel",
+          status: "Disponível", // OBRIGATÓRIO: deve ser exatamente 'Disponível'
           status_envio: "disponivel",
           origem: "producao",
           producao_id: producaoId,
-          data_criacao: dataVirada || new Date().toISOString().slice(0, 10),
-          tem_template: false,
+          data_criacao: new Date().toISOString(),
           responsavel: operador.trim(),
+          criador_responsavel: operador.trim(),
           quantidade_disponivel: 1,
           quantidade_reservada: 0,
           custo_medio_unitario: 0,
+          venda_id: null,
+          cliente_id: null,
         };
       });
 
@@ -616,37 +631,39 @@ function PaginaProducao() {
       }
 
       // 4. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE
-      try {
-        const { error: erroEstoque } = await supabase
-          .from("estoque")
-          .insert(bmsToInsert as any);
+      const { error: stockError } = await supabase
+        .from("estoque")
+        .insert(bmsToInsert as any);
 
-        if (erroEstoque) {
-          console.warn("Aviso ao inserir no estoque remoto com colunas completas, tentando modo compatível:", erroEstoque);
-          const fallbackRecords = bmsToInsert.map((b) => ({
-            id: b.id,
-            empresa_id: b.empresa_id,
-            nome_bm: b.nome_bm,
-            limite_bm: b.limite_bm,
-            tipo_ativo: b.tipo_ativo,
-            quantidade_disponivel: 1,
-            quantidade_reservada: 0,
-            custo_medio_unitario: 0,
-            status: "disponivel",
-            status_envio: "disponivel",
-            responsavel: b.responsavel,
-            data_criacao: b.data_criacao,
-          }));
-          const resFallback = await supabase.from("estoque").insert(fallbackRecords as any);
-          if (resFallback.error) {
-            console.warn("Aviso ao inserir no estoque remoto com fallback:", resFallback.error);
-          }
+      if (stockError) {
+        console.warn("Aviso ao inserir no estoque remoto com colunas completas, tentando modo canônico:", stockError);
+        const fallbackRecords = bmsToInsert.map((b) => ({
+          id: b.id,
+          empresa_id: b.empresa_id,
+          nome_bm: b.nome_bm,
+          limite_bm: b.limite_bm,
+          tipo_ativo: b.tipo_ativo,
+          nome_portfolio: b.nome_portfolio,
+          nome_conta: b.nome_conta,
+          status: "Disponível",
+          status_envio: "disponivel",
+          origem: "producao",
+          producao_id: b.producao_id,
+          responsavel: b.responsavel,
+          quantidade_disponivel: 1,
+          quantidade_reservada: 0,
+          custo_medio_unitario: 0,
+          venda_id: null,
+          cliente_id: null,
+        }));
+        const resFallback = await supabase.from("estoque").insert(fallbackRecords as any);
+        if (resFallback.error) {
+          console.error("Erro ao subir BMs para o estoque:", resFallback.error);
+          throw resFallback.error;
         }
-      } catch (errEst) {
-        console.warn("Erro ao sincronizar estoque no Supabase:", errEst);
       }
 
-      // 4. Inserir lote localmente (se disponível)
+      // 5. Inserir lote localmente (se disponível)
       try {
         await inserirLoteEstoqueLocal({
           data: {
@@ -657,7 +674,7 @@ function PaginaProducao() {
               nome_bm: b.nome_bm,
               limite_bm: b.limite_bm,
               status_envio: "disponivel",
-              status: "disponivel",
+              status: "Disponível",
               quantidade_disponivel: 1,
               quantidade_reservada: 0,
               responsavel: b.responsavel,
@@ -679,21 +696,24 @@ function PaginaProducao() {
     },
     onSuccess: (res) => {
       toast.success(
-        `✓ Produção salva com sucesso! ${res.viradas} conta(s) virada(s) e ${res.totalBms} BM(s) adicionada(s) ao estoque com limite ${res.limite}!`
+        `✓ Produção salva e ${res.totalBms} BMs adicionadas ao estoque com sucesso!`
       );
-      void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
-      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      void queryClient.invalidateQueries({ queryKey: ["sales"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setModalAberto(false);
       resetForm();
     },
     onError: (err: Error) => {
+      console.error("Erro ao salvar produção:", err);
       toast.error(err.message || "Erro ao salvar produção.");
     },
   });
