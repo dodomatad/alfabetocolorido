@@ -299,17 +299,31 @@ export function FormularioVenda({
     },
   });
 
-  const numero = (v: string) => {
-    const n = Number(String(v).replace(",", "."));
-    return Number.isFinite(n) ? n : 0;
+  const parseCurrency = (val: any): number => {
+    if (typeof val === "number") return Number.isFinite(val) ? val : 0;
+    if (!val) return 0;
+    const limpo = String(val)
+      .replace(/R\$\s?/gi, "")
+      .replace(/[^0-9,.-]/g, "")
+      .trim();
+    if (!limpo) return 0;
+    if (limpo.includes(",")) {
+      const semPontoMilhar = limpo.replace(/\./g, "").replace(",", ".");
+      const num = Number(semPontoMilhar);
+      return Number.isFinite(num) ? num : 0;
+    }
+    const num = Number(limpo);
+    return Number.isFinite(num) ? num : 0;
   };
+
+  const numero = parseCurrency;
 
   const { subtotal, total } = useMemo(() => {
     const sub = itens.reduce(
-      (acc, i) => acc + numero(i.quantidade) * numero(i.preco_unitario),
+      (acc, i) => acc + parseCurrency(i.quantidade) * parseCurrency(i.preco_unitario),
       0,
     );
-    const tot = sub - numero(desconto) + numero(acrescimo);
+    const tot = sub - parseCurrency(desconto) + parseCurrency(acrescimo);
     return { subtotal: sub, total: tot };
   }, [itens, desconto, acrescimo]);
 
@@ -328,235 +342,223 @@ export function FormularioVenda({
   };
 
   const salvar = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (itensProcessar?: Item[]) => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      const validos = itens.filter((i) => i.modalidade_id && numero(i.quantidade) > 0);
-      if (validos.length === 0) throw new Error("Adicione ao menos um item com modalidade e quantidade.");
 
-      // Validação estrita de estoque antes de qualquer persistência
-      for (const itemVenda of validos) {
-        const mod = (modalidades.data ?? []).find((m) => m.id === itemVenda.modalidade_id);
-        const qtdPedida = numero(itemVenda.quantidade);
-        const nomeMod = mod?.nome || "BM";
-        const selectedLimitNorm = normalizeLimit(nomeMod || mod?.codigo);
-
-        const idsSelecionados: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
-          ? itemVenda.contas_ids
-          : itemVenda.conta_id ? [itemVenda.conta_id] : [];
-
-        // Total de contas disponíveis no estoque para esta modalidade
-        const contasDisponiveis = (contasEstoqueQuery.data || []).filter((c) => {
-          const bmLimitNorm = normalizeLimit(c.limite_bm || c.limite || c.tipo_ativo || c.tipo || "");
-          const isSameLimit = !selectedLimitNorm || bmLimitNorm === selectedLimitNorm || bmLimitNorm.includes(selectedLimitNorm) || selectedLimitNorm.includes(bmLimitNorm);
-          const st = (c.status_envio || c.status || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-          const isSold = st.includes("vendida") || st.includes("entregue") || Boolean(c.venda_id);
-          const isAvailable = st.includes("disponivel") || st.includes("pronta") || st.includes("em_estoque") || (!c.venda_id && !c.cliente_id);
-          return isSameLimit && isAvailable && !isSold;
-        });
-
-        const totalDisponivelSaldo = contasDisponiveis.reduce((acc, curr) => acc + Number(curr.quantidade_disponivel || 1), 0);
-
-        if (totalDisponivelSaldo < qtdPedida && idsSelecionados.length === 0) {
-          throw new Error(`Estoque insuficiente para ${nomeMod}: você solicitou ${qtdPedida}, mas restam apenas ${totalDisponivelSaldo} disponível(is).`);
-        }
-
-        // Se o usuário selecionou BMs específicas, validar quantidade selecionada vs pedida
-        if (idsSelecionados.length > 0 && idsSelecionados.length !== qtdPedida) {
-          throw new Error(`Quantidade divergente para ${nomeMod}: você selecionou ${idsSelecionados.length} BM(s) específica(s), mas o item pede ${qtdPedida}. Ajuste a seleção.`);
-        }
+      const listaItens = itensProcessar && itensProcessar.length > 0 ? itensProcessar : itens;
+      const validos = listaItens.filter((i) => i.modalidade_id && parseCurrency(i.quantidade) > 0);
+      if (validos.length === 0) {
+        throw new Error("Adicione ao menos um item com modalidade e quantidade.");
       }
 
-      let vendaSalvaId: string = vendaId || "";
-      const nomeCliente = (clientes.data ?? []).find((c) => c.id === clienteId)?.nome || null;
+      if (!clienteId) {
+        throw new Error("Por favor, selecione um cliente para a venda.");
+      }
+
+      const nomeCliente = (clientes.data ?? []).find((c) => c.id === clienteId)?.nome || "Cliente";
+      const statusFinalEnvio = deliveryStatus === "entregue" ? "entregue" : "nao_enviado";
       const statusFinalEntrega = deliveryStatus === "entregue" ? "entregue" : "pendente";
-      const dataRealizadaFinal = deliveryStatus === "entregue" ? (dataVenda || new Date().toISOString().slice(0, 10)) : null;
-      
-      const payloadVenda: any = {
-          empresa_id: empresa.id,
-          cliente_id: clienteId || null,
-          cliente: nomeCliente,
-          responsavel_producao_id: funcionarioId === 'ciro-fornecedor' ? null : (funcionarioId || null),
-          comissao_percentual: numero(percentualComissao),
-          data_venda: dataVenda,
-          data_entrega_prevista: dataEntrega || null,
-          status: status as any,
-          status_entrega: statusFinalEntrega,
-          delivery_status: deliveryStatus,
-          subtotal,
-          desconto: numero(desconto),
-          acrescimo: numero(acrescimo),
-          valor_total: total,
-          observacoes: (funcionarioId === 'ciro-fornecedor' ? '[FORNECEDOR_CIRO] ' : '') + (observacoes.trim() || ''),
-          atualizado_por: session?.user.id ?? null,
-      };
+      const dataVendaFinal = dataVenda || new Date().toISOString().slice(0, 10);
+      const dataEntregaFinal = dataEntrega || null;
+      const dataRealizadaFinal = deliveryStatus === "entregue" ? dataVendaFinal : null;
+
+      // Sanitização monetária completa
+      const subtotalCalculado = validos.reduce(
+        (acc, i) => acc + parseCurrency(i.quantidade) * parseCurrency(i.preco_unitario),
+        0
+      );
+      const descCalculado = parseCurrency(desconto);
+      const acrescCalculado = parseCurrency(acrescimo);
+      const totalCalculado = Math.max(0, subtotalCalculado - descCalculado + acrescCalculado);
+
+      // PASSO 1: Inserir ou atualizar na tabela 'vendas' no Supabase
+      let saleData: any = null;
 
       if (vendaId) {
-        // UPDATE
-        let { error: erroVenda } = await supabase
+        const payloadUpdate: any = {
+          cliente_id: clienteId,
+          cliente: nomeCliente,
+          cliente_nome: nomeCliente,
+          responsavel_producao_id: funcionarioId === "ciro-fornecedor" ? null : (funcionarioId || null),
+          comissao_percentual: parseCurrency(percentualComissao),
+          data_venda: dataVendaFinal,
+          data_entrega_prevista: dataEntregaFinal,
+          status: status as any,
+          status_entrega: statusFinalEntrega,
+          delivery_status: statusFinalEnvio,
+          subtotal: subtotalCalculado,
+          desconto: descCalculado,
+          acrescimo: acrescCalculado,
+          valor_total: totalCalculado,
+          observacoes: (funcionarioId === "ciro-fornecedor" ? "[FORNECEDOR_CIRO] " : "") + (observacoes.trim() || ""),
+          atualizado_por: session?.user?.id ?? null,
+        };
+
+        const { data: updatedSale, error: updError } = await supabase
           .from("vendas")
-          .update(payloadVenda)
-          .eq("id", vendaId);
-        
-        // Se a coluna delivery_status não existir no banco remoto ainda, faz update sem ela
-        if (erroVenda && (erroVenda.message?.includes("delivery_status") || (erroVenda as any).code === "PGRST204")) {
-          const { delivery_status: _, ...payloadSemDeliveryStatus } = payloadVenda;
-          const retry = await supabase.from("vendas").update(payloadSemDeliveryStatus).eq("id", vendaId);
-          erroVenda = retry.error;
-        }
-        if (erroVenda) throw erroVenda;
-        await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
-      }
+          .update(payloadUpdate)
+          .eq("id", vendaId)
+          .select()
+          .maybeSingle();
 
-      // 1. Persistência Local Garantida da Venda (SQLite via TanStack Start)
-      try {
-        const resVendaLocal = await salvarVendaLocal({
-          data: {
-            id: vendaId || undefined,
-            empresa_id: empresa.id,
-            cliente_id: clienteId || null,
-            cliente_nome: nomeCliente || null,
-            responsavel_producao_id: funcionarioId || null,
-            status,
-            status_entrega: statusFinalEntrega,
-            delivery_status: deliveryStatus,
-            data_venda: dataVenda || new Date().toISOString().slice(0, 10),
-            data_entrega_prevista: dataEntrega || null,
-            desconto: numero(desconto),
-            acrescimo: numero(acrescimo),
-            valor_total: total,
-            observacoes: ((funcionarioId === 'ciro-fornecedor' ? '[FORNECEDOR_CIRO] ' : '') + (observacoes.trim() || '')) || null,
-            criado_por: session?.user.id ?? null,
-            itens: validos.map((i) => ({
-              modalidade_id: i.modalidade_id,
-              conta_id: i.conta_id || (i.contas_ids?.[0]) || null,
-              quantidade: numero(i.quantidade),
-              preco_unitario: numero(i.preco_unitario),
-              desconto: 0,
-              valor_total: numero(i.quantidade) * numero(i.preco_unitario),
-            })),
-          },
-        });
-        vendaSalvaId = resVendaLocal.id;
-      } catch (errLocalVenda) {
-        console.warn("Aviso ao salvar venda localmente:", errLocalVenda);
-      }
-
-      // 2. Sincronização secundária com o Supabase (sem falhar a venda se o remoto falhar)
-      try {
-        if (vendaId) {
-          await supabase.from("vendas").update(payloadVenda).eq("id", vendaId);
-          await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
-        } else {
-          const { data: proximo } = await (supabase as any).rpc("proximo_numero_venda", {
-            _empresa: empresa.id,
-          });
-          const numV = Number(proximo) || 1;
-          const { data: novaV } = await supabase
+        if (updError) {
+          // Se delivery_status ou cliente_nome não existirem na tabela remota
+          const { delivery_status: _, cliente_nome: __, ...safePayload } = payloadUpdate;
+          const { data: retrySale, error: retryError } = await supabase
             .from("vendas")
-            .insert({
-              ...payloadVenda,
-              numero: numV,
-              criado_por: session?.user.id ?? null,
-            })
-            .select("id")
-            .maybeSingle();
-          if (novaV?.id) vendaSalvaId = novaV.id;
+            .update(safePayload)
+            .eq("id", vendaId)
+            .select()
+            .single();
+
+          if (retryError) throw retryError;
+          saleData = retrySale;
+        } else {
+          saleData = updatedSale;
         }
-      } catch (errRemotoVenda) {
-        // Ignora erro remoto caso offline/sem conexão
+
+        await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+      } else {
+        // Obter com segurança o próximo número sequencial da empresa
+        let proximoNumero = 1;
+        try {
+          const { data: maxVenda } = await supabase
+            .from("vendas")
+            .select("numero, numero_venda")
+            .eq("empresa_id", empresa.id)
+            .order("numero", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (maxVenda) {
+            const n1 = Number(maxVenda.numero) || 0;
+            const n2 = Number(maxVenda.numero_venda) || 0;
+            proximoNumero = Math.max(n1, n2, 0) + 1;
+          }
+        } catch (errNum) {
+          console.warn("Aviso ao buscar próximo número sequencial:", errNum);
+        }
+
+        const payloadInsert: any = {
+          empresa_id: empresa.id,
+          cliente_id: clienteId,
+          cliente: nomeCliente,
+          cliente_nome: nomeCliente,
+          numero: proximoNumero,
+          responsavel_producao_id: funcionarioId === "ciro-fornecedor" ? null : (funcionarioId || null),
+          comissao_percentual: parseCurrency(percentualComissao),
+          data_venda: dataVendaFinal,
+          data_entrega_prevista: dataEntregaFinal,
+          status: (status || "confirmada") as any,
+          status_entrega: statusFinalEntrega,
+          delivery_status: statusFinalEnvio,
+          subtotal: subtotalCalculado,
+          desconto: descCalculado,
+          acrescimo: acrescCalculado,
+          valor_total: totalCalculado,
+          observacoes: (funcionarioId === "ciro-fornecedor" ? "[FORNECEDOR_CIRO] " : "") + (observacoes.trim() || ""),
+          criado_por: session?.user?.id ?? null,
+        };
+
+        const { data: newSale, error: insError } = await supabase
+          .from("vendas")
+          .insert([payloadInsert])
+          .select()
+          .single();
+
+        if (insError) {
+          // Retry sem campos opcionais se o cache do schema remoto divergir
+          const { delivery_status: _, cliente_nome: __, ...safePayload } = payloadInsert;
+          const { data: retrySale, error: retryError } = await supabase
+            .from("vendas")
+            .insert([safePayload])
+            .select()
+            .single();
+
+          if (retryError) throw retryError;
+          saleData = retrySale;
+        } else {
+          saleData = newSale;
+        }
       }
 
-      // Sincroniza / cadastra entrega vinculada à venda com cliente e destinatário corretos
-      if (!vendaId) {
-        // Nova venda: cria a entrega correspondente
-        const { error: erroEntrega } = await supabase.from("entregas").insert({
-          empresa_id: empresa.id,
-          venda_id: vendaSalvaId,
-          cliente_id: clienteId || null,
-          destinatario: nomeCliente,
-          data_prevista: dataEntrega || dataVenda || new Date().toISOString().slice(0, 10),
-          status: statusFinalEntrega,
-          data_realizada: dataRealizadaFinal,
-          criado_por: session?.user.id ?? null,
-        } as any);
-        if (erroEntrega) {
-          console.warn("Aviso ao vincular entrega na venda:", erroEntrega);
+      if (!saleData?.id) {
+        throw new Error("Não foi possível confirmar o salvamento da venda.");
+      }
+
+      const vendaSalvaId: string = saleData.id;
+
+      // PASSO 2: Inserir itens vinculados na tabela 'venda_itens'
+      const itensInsert = validos.map((i) => ({
+        venda_id: vendaSalvaId,
+        modalidade_id: i.modalidade_id || null,
+        conta_id: i.conta_id || (i.contas_ids?.[0]) || null,
+        quantidade: parseCurrency(i.quantidade),
+        preco_unitario: parseCurrency(i.preco_unitario),
+        desconto: 0,
+        valor_total: parseCurrency(i.quantidade) * parseCurrency(i.preco_unitario),
+      }));
+
+      const { error: erroItens } = await supabase.from("venda_itens").insert(itensInsert);
+      if (erroItens) {
+        if (erroItens.message?.includes("conta_id")) {
+          const semConta = itensInsert.map(({ conta_id, ...resto }) => resto);
+          const { error: retryItensError } = await supabase.from("venda_itens").insert(semConta);
+          if (retryItensError) throw retryItensError;
+        } else {
+          throw erroItens;
         }
-      } else {
-        // Edição de venda: atualiza a entrega vinculada se existir ou cria se não existir
+      }
+
+      // Sincroniza registro de entrega vinculado à venda
+      try {
         const { data: entregaExistente } = await supabase
           .from("entregas")
           .select("id")
-          .eq("venda_id", vendaId)
+          .eq("venda_id", vendaSalvaId)
           .maybeSingle();
 
         if (entregaExistente) {
           await supabase.from("entregas").update({
-            cliente_id: clienteId || null,
+            cliente_id: clienteId,
             destinatario: nomeCliente,
-            data_prevista: dataEntrega || dataVenda,
+            data_prevista: dataEntregaFinal || dataVendaFinal,
             status: statusFinalEntrega,
             data_realizada: dataRealizadaFinal,
-            atualizado_por: session?.user.id ?? null,
+            atualizado_por: session?.user?.id ?? null,
           } as any).eq("id", entregaExistente.id);
         } else {
           await supabase.from("entregas").insert({
             empresa_id: empresa.id,
-            venda_id: vendaId,
-            cliente_id: clienteId || null,
+            venda_id: vendaSalvaId,
+            cliente_id: clienteId,
             destinatario: nomeCliente,
-            data_prevista: dataEntrega || dataVenda,
+            data_prevista: dataEntregaFinal || dataVendaFinal,
             status: statusFinalEntrega,
             data_realizada: dataRealizadaFinal,
-            criado_por: session?.user.id ?? null,
+            criado_por: session?.user?.id ?? null,
           } as any);
         }
+      } catch (errEntr) {
+        console.warn("Aviso ao sincronizar entrega:", errEntr);
       }
 
-      // Insere os novos itens (incluindo conta_id se selecionada)
-      const { error: erroItens } = await supabase.from("venda_itens").insert(
-        validos.map((i) => ({
-          venda_id: vendaSalvaId,
-          modalidade_id: i.modalidade_id,
-          quantidade: numero(i.quantidade),
-          preco_unitario: numero(i.preco_unitario),
-          desconto: 0,
-          valor_total: numero(i.quantidade) * numero(i.preco_unitario),
-          ...(i.conta_id ? { conta_id: i.conta_id } : {}),
-        })),
-      );
-      if (erroItens) {
-        // Fallback caso a coluna conta_id não exista ainda no schema remoto de venda_itens
-        const { error: erroItensSemContaId } = await supabase.from("venda_itens").insert(
-          validos.map((i) => ({
-            venda_id: vendaSalvaId,
-            modalidade_id: i.modalidade_id,
-            quantidade: numero(i.quantidade),
-            preco_unitario: numero(i.preco_unitario),
-            desconto: 0,
-            valor_total: numero(i.quantidade) * numero(i.preco_unitario),
-          })),
-        );
-        if (erroItensSemContaId) throw erroItensSemContaId;
-      }
+      // PASSO 3: Baixa dos Ativos na tabela 'estoque' e Histórico de Envio
+      const nomeRespEnvio = (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null;
 
-      // Baixa automática no estoque para os itens vendidos e registro de histórico
       for (const itemVenda of validos) {
         const mod = (modalidades.data ?? []).find((m) => m.id === itemVenda.modalidade_id);
-        const qtdVendida = numero(itemVenda.quantidade);
+        const qtdVendida = parseCurrency(itemVenda.quantidade);
         const nomeMod = mod?.nome || "BM";
         const codigoMod = mod?.codigo || "";
-        const dataDespacho = dataRealizadaFinal || dataVenda || new Date().toISOString().slice(0, 10);
-        const nomeRespEnvio = (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null;
-
-        // Normalizar limite da modalidade para busca de BMs correspondentes
+        const dataDespacho = dataRealizadaFinal || dataVendaFinal;
         const selectedLimitNorm = normalizeLimit(nomeMod || codigoMod);
 
         let idsParaBaixar: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
           ? itemVenda.contas_ids
           : itemVenda.conta_id ? [itemVenda.conta_id] : [];
 
-        // Se não selecionou BMs específicas manualmente, busca automaticamente as primeiras N BMs disponíveis deste limite
+        // Se não selecionou BMs específicas manualmente, deduz automaticamente as primeiras N disponíveis
         if (idsParaBaixar.length === 0) {
           const compativeis = (contasEstoqueQuery.data || []).filter((b) => {
             const bmLimitNorm = normalizeLimit(b.limite_bm || b.limite || b.tipo_ativo || b.tipo || "");
@@ -570,39 +572,40 @@ export function FormularioVenda({
         }
 
         if (idsParaBaixar.length > 0) {
-          const statusEnvioFinal = deliveryStatus === "entregue" ? "entregue" : "reservada";
+          const statusEstoque = statusFinalEnvio === "entregue" ? "Entregue" : "Vendida";
+          const statusEnvioEstoque = statusFinalEnvio === "entregue" ? "entregue" : "reservada";
 
-          // 1. Atualiza diretamente a tabela estoque no Supabase (Fonte de Verdade)
+          // 1. Atualizar estoque no Supabase
           try {
-            const { error: erroComVenda } = await (supabase.from("estoque") as any)
-              .update({
-                status: "Vendida",
-                status_envio: statusEnvioFinal,
-                quantidade_disponivel: 0,
-                destinatario: nomeCliente,
-                cliente_nome: nomeCliente,
-                venda_id: vendaSalvaId,
-                cliente_id: clienteId || null,
-                updated_at: new Date().toISOString(),
-              })
-              .in("id", idsParaBaixar);
+            const payloadEstoque: any = {
+              status: statusEstoque,
+              status_envio: statusEnvioEstoque,
+              quantidade_disponivel: 0,
+              venda_id: vendaSalvaId,
+              cliente_id: clienteId,
+              cliente_nome: nomeCliente,
+              destinatario: nomeCliente,
+              data_venda: dataVendaFinal,
+              updated_at: new Date().toISOString(),
+            };
 
-            if (erroComVenda) {
+            const { error: errEst } = await (supabase.from("estoque") as any)
+              .update(payloadEstoque)
+              .in("id", idsParaBaixar)
+              .eq("empresa_id", empresa.id);
+
+            if (errEst) {
+              const { data_venda: _, cliente_nome: __, ...safeEstoque } = payloadEstoque;
               await (supabase.from("estoque") as any)
-                .update({
-                  status: "Vendida",
-                  status_envio: statusEnvioFinal,
-                  quantidade_disponivel: 0,
-                  destinatario: nomeCliente,
-                  updated_at: new Date().toISOString(),
-                })
-                .in("id", idsParaBaixar);
+                .update(safeEstoque)
+                .in("id", idsParaBaixar)
+                .eq("empresa_id", empresa.id);
             }
-          } catch (errSupabaseUpdate) {
-            console.error("Erro ao atualizar status das BMs no estoque do Supabase:", errSupabaseUpdate);
+          } catch (eEst) {
+            console.warn("Aviso ao atualizar status das BMs no estoque do Supabase:", eEst);
           }
 
-          // 2. Registra o histórico individual de cada BM enviada (contas_enviadas) no Supabase
+          // 2. Histórico individual em contas_enviadas
           for (const bmId of idsParaBaixar) {
             const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
             const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
@@ -615,32 +618,32 @@ export function FormularioVenda({
                 venda_id: vendaSalvaId,
                 nome_bm: nomeBMFinal,
                 limite_bm: limiteBMFinal,
-                destinatario_cliente: nomeCliente || "Cliente da Venda",
+                destinatario_cliente: nomeCliente,
                 responsavel_envio: nomeRespEnvio,
                 data_envio: dataDespacho,
                 custo_unitario: contaRef?.custo_medio_unitario || 0,
-                valor_venda: numero(itemVenda.preco_unitario),
-                status_envio: statusEnvioFinal === "entregue" ? "enviada" : "reservada",
+                valor_venda: parseCurrency(itemVenda.preco_unitario),
+                status_envio: statusFinalEnvio === "entregue" ? "enviada" : "reservada",
               } as any);
             } catch (eContas) {
-              console.warn("Aviso ao salvar histórico de conta enviada no Supabase:", eContas);
+              console.warn("Aviso ao salvar histórico de conta enviada:", eContas);
             }
           }
 
-          // 3. Atualização no banco local SQLite (se estiver no app desktop local)
+          // 3. Atualização no banco local SQLite
           try {
             await baixarBmsVendaLocal({
               data: {
                 empresa_id: empresa.id,
                 venda_id: vendaSalvaId,
-                cliente_id: clienteId || null,
+                cliente_id: clienteId,
                 destinatario: nomeCliente,
                 bms_ids: idsParaBaixar,
-                status_envio: statusEnvioFinal,
+                status_envio: statusEnvioEstoque,
               },
             });
           } catch (errLocalBaixa) {
-            console.warn("Baixa local ignorada (ambiente web ou servidor offline):", errLocalBaixa);
+            console.warn("Baixa local ignorada:", errLocalBaixa);
           }
 
           for (const bmId of idsParaBaixar) {
@@ -656,11 +659,11 @@ export function FormularioVenda({
                   venda_id: vendaSalvaId,
                   nome_bm: nomeBMFinal,
                   limite_bm: limiteBMFinal,
-                  destinatario_cliente: nomeCliente || "Cliente da Venda",
+                  destinatario_cliente: nomeCliente,
                   responsavel_envio: nomeRespEnvio,
                   data_envio: dataDespacho,
                   custo_unitario: contaRef?.custo_medio_unitario || 0,
-                  valor_venda: numero(itemVenda.preco_unitario),
+                  valor_venda: parseCurrency(itemVenda.preco_unitario),
                   status_envio: "enviada",
                 },
               });
@@ -668,89 +671,144 @@ export function FormularioVenda({
               // fallback local ignorado
             }
           }
-          // 3. Atualização direta no Supabase (garante status 'Vendida' e dedução do estoque)
-          try {
-            await (supabase.from("estoque") as any)
-              .update({
-                status: "Vendida",
-                status_envio: statusEnvioFinal,
-                quantidade_disponivel: 0,
-                venda_id: vendaSalvaId,
-                cliente_id: clienteId || null,
-                cliente_nome: nomeCliente || null,
-                destinatario: nomeCliente || null,
-                updated_at: new Date().toISOString(),
-              })
-              .in("id", idsParaBaixar)
-              .eq("empresa_id", empresa.id);
-          } catch (eUpdEstoque) {
-            console.warn("Aviso ao atualizar estoque no Supabase:", eUpdEstoque);
-          }
-
-          // 4. Espelhamento RPC no Supabase (se configurado)
-          try {
-            await (supabase as any).rpc("baixar_bms_venda", {
-              p_empresa_id: empresa.id,
-              p_venda_id: vendaSalvaId,
-              p_cliente_id: clienteId || null,
-              p_destinatario: nomeCliente,
-              p_bms_ids: idsParaBaixar,
-              p_status_envio: statusEnvioFinal,
-            });
-          } catch (eRpc) {
-            // Ignora falha remota do Supabase
-          }
         }
       }
 
-      // Só gerar lançamento financeiro se for uma NOVA venda (para evitar duplicidade na edição)
-      const valorComissao = (subtotal * numero(percentualComissao)) / 100;
-      if (!vendaId && funcionarioId && valorComissao > 0) {
-        // Obter número temporário para descrição, já que proximo não está no escopo
-        const numVenda = 0; // Só um placeholder, pois o real já foi inserido
-        const { error: erroFinanceiro } = await supabase.from("lancamentos_financeiros").insert({
-          empresa_id: empresa.id,
-          tipo: "pagar",
-          categoria: "Comissão / Repasse",
-          descricao: `Comissão Venda - ${funcionarios.data?.find(f => f.id === funcionarioId)?.nome || 'Funcionária'}`,
-          valor: valorComissao,
-          data_vencimento: dataVenda,
-          situacao: "aberto",
-          observacoes: `Comissão de ${percentualComissao}% sobre subtotal de ${formatarMoeda(subtotal)}.`,
-          criado_por: session?.user.id ?? null,
+      // PASSO 4: Persistência no Banco Local SQLite (TanStack Start)
+      try {
+        await salvarVendaLocal({
+          data: {
+            id: vendaSalvaId,
+            empresa_id: empresa.id,
+            cliente_id: clienteId,
+            cliente_nome: nomeCliente,
+            responsavel_producao_id: funcionarioId === "ciro-fornecedor" ? null : (funcionarioId || null),
+            status: status || "confirmada",
+            status_entrega: statusFinalEntrega,
+            delivery_status: statusFinalEnvio,
+            data_venda: dataVendaFinal,
+            data_entrega_prevista: dataEntregaFinal,
+            desconto: descCalculado,
+            acrescimo: acrescCalculado,
+            valor_total: totalCalculado,
+            observacoes: ((funcionarioId === "ciro-fornecedor" ? "[FORNECEDOR_CIRO] " : "") + (observacoes.trim() || "")) || null,
+            criado_por: session?.user?.id ?? null,
+            itens: validos.map((i) => ({
+              modalidade_id: i.modalidade_id,
+              conta_id: i.conta_id || (i.contas_ids?.[0]) || null,
+              quantidade: parseCurrency(i.quantidade),
+              preco_unitario: parseCurrency(i.preco_unitario),
+              desconto: 0,
+              valor_total: parseCurrency(i.quantidade) * parseCurrency(i.preco_unitario),
+            })),
+          },
         });
-        if (erroFinanceiro) {
-          console.error("Erro ao gerar lançamento de comissão:", erroFinanceiro);
-          toast.error("Venda salva, mas erro ao gerar comissão no financeiro.");
+      } catch (errLocalVenda) {
+        console.warn("Aviso ao salvar venda localmente:", errLocalVenda);
+      }
+
+      // Lançamento financeiro de comissão (se houver)
+      const valorComissao = (subtotalCalculado * parseCurrency(percentualComissao)) / 100;
+      if (!vendaId && funcionarioId && funcionarioId !== "ciro-fornecedor" && valorComissao > 0) {
+        try {
+          await supabase.from("lancamentos_financeiros").insert({
+            empresa_id: empresa.id,
+            tipo: "pagar",
+            categoria: "Comissão / Repasse",
+            descricao: `Comissão Venda #${saleData.numero || "S/N"} - ${funcionarios.data?.find((f) => f.id === funcionarioId)?.nome || "Funcionária"}`,
+            valor: valorComissao,
+            data_vencimento: dataVendaFinal,
+            situacao: "aberto",
+            observacoes: `Comissão de ${percentualComissao}% sobre subtotal de ${formatarMoeda(subtotalCalculado)}.`,
+            criado_por: session?.user?.id ?? null,
+          });
+        } catch (erroFinanceiro) {
+          console.warn("Aviso ao gerar lançamento de comissão:", erroFinanceiro);
         }
       }
+
+      return saleData;
     },
     onSuccess: () => {
-      toast.success("Venda registrada com sucesso.");
+      toast.success("✓ Venda cadastrada com sucesso!");
       void queryClient.invalidateQueries({ queryKey: ["vendas"] });
-      void queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      void queryClient.invalidateQueries({ queryKey: ["sales"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["entregas"] });
       void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios_estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["producao"] });
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["painel"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
-      void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
       limpar();
       aoFechar();
     },
-    onError: (erro: Error) => toast.error(erro.message),
+    onError: (erro: any) => {
+      console.error("Erro detalhado ao salvar venda:", erro);
+      toast.error(erro?.message || "Erro ao registrar venda. Verifique os dados e tente novamente.");
+    },
   });
+
+  const handleSalvarVenda = () => {
+    try {
+      if (!empresa?.id) {
+        toast.error("Empresa não identificada. Recarregue a página.");
+        return;
+      }
+
+      if (!clienteId) {
+        toast.error("Por favor, selecione um cliente para a venda.");
+        return;
+      }
+
+      if (!itens || itens.length === 0) {
+        toast.error("Adicione ao menos um item ao pedido.");
+        return;
+      }
+
+      // Auto-associar modalidade caso uma BM tenha sido selecionada diretamente
+      const itensAjustados = itens.map((item) => {
+        let modId = item.modalidade_id;
+        if (!modId) {
+          const primeiraBmId = item.contas_ids?.[0] || item.conta_id;
+          if (primeiraBmId) {
+            const bmObj = (contasEstoqueQuery.data || []).find((b) => b.id === primeiraBmId);
+            if (bmObj) {
+              const limNorm = normalizeLimit(bmObj.limite_bm || bmObj.limite || bmObj.tipo_ativo || "");
+              const mod = (modalidades.data || []).find((m) => normalizeLimit(m.nome || m.codigo) === limNorm);
+              if (mod) modId = mod.id;
+            }
+          }
+          const primeiraModalidade = modalidades.data?.[0];
+          if (!modId && primeiraModalidade) {
+            modId = primeiraModalidade.id;
+          }
+        }
+        return { ...item, modalidade_id: modId };
+      });
+
+      const temItemInvalido = itensAjustados.some(
+        (i) => !i.modalidade_id || parseCurrency(i.quantidade) <= 0
+      );
+      if (temItemInvalido) {
+        toast.error("Preencha a modalidade e quantidade (> 0) para todos os itens.");
+        return;
+      }
+
+      salvar.mutate(itensAjustados);
+    } catch (err: any) {
+      console.error("Erro no manipulador de submissão da venda:", err);
+      toast.error(err?.message || "Erro ao processar dados da venda");
+    }
+  };
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && aoFechar()}>
@@ -1317,7 +1375,7 @@ export function FormularioVenda({
           <Button variant="outline" onClick={aoFechar} disabled={salvar.isPending}>
             Cancelar
           </Button>
-          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+          <Button onClick={handleSalvarVenda} disabled={salvar.isPending}>
             {salvar.isPending ? "Salvando..." : "Salvar venda"}
           </Button>
         </DialogFooter>
