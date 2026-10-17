@@ -115,11 +115,16 @@ export function emailValido(valor: string): boolean {
 }
 
 /**
- * Normaliza limites e modalidades de BMs (ex: "Conta 2K", "BM 2K", "2K", "2k" -> "2k"; "Conta 250", "BM 250", "250" -> "250")
+ * Normaliza limites e modalidades de BMs (ex: "Conta 2K", "BM 2K", "BM 01 [2K]" -> "2k"; "Conta 250", "BM 250 - Lote..." -> "250")
  */
 export function normalizeLimit(val: string | null | undefined): string {
   if (!val) return "";
   const str = String(val).toLowerCase().trim();
   if (str.includes("ilim")) return "ilimitada";
+  if (str.includes("100k")) return "100k";
+  if (str.includes("10k")) return "10k";
+  if (str.includes("2k")) return "2k";
+  if (str.includes("250")) return "250";
+  if (str.includes("perfil")) return "perfil";
   return str.replace(/[^0-9k]/g, "").trim();
 }

@@ -251,12 +251,7 @@ export function FormularioVenda({
     queryFn: async () => {
       let remotos: any[] = [];
       try {
-        let query = supabase
-          .from("estoque")
-          .select("*")
-          .is("venda_id", null)
-          .or("status.eq.Disponível,status.eq.disponivel,status.eq.Pronta para Envio,status_envio.eq.disponivel");
-
+        let query = supabase.from("estoque").select("*");
         if (empresa?.id) {
           query = query.eq("empresa_id", empresa.id);
         }
@@ -264,30 +259,27 @@ export function FormularioVenda({
         const { data, error } = await query;
         if (!error && data) {
           remotos = data;
-        } else {
-          // Fallback mais abrangente sem filtros restritivos caso o schema difira
-          const { data: fallbackData } = await supabase
-            .from("estoque")
-            .select("*")
-            .is("venda_id", null);
-          if (fallbackData) remotos = fallbackData;
+        } else if (error) {
+          console.warn("Aviso ao buscar estoque remoto:", error);
         }
       } catch (errRemoto) {
-        console.warn("Aviso ao buscar estoque remoto:", errRemoto);
+        console.warn("Aviso de rede ao buscar estoque remoto:", errRemoto);
       }
 
       let locais: any[] = [];
-      if (empresa?.id) {
-        try {
+      try {
+        if (empresa?.id) {
           const res = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
           if (res) locais = res;
-        } catch (errLocal) {
-          console.warn("Aviso ao buscar estoque local:", errLocal);
         }
+      } catch (errLocal) {
+        console.warn("Aviso ao buscar estoque local:", errLocal);
       }
 
       const mapa = new Map<string, any>();
+      // 1. Carrega remotos
       remotos.forEach((r) => mapa.set(r.id, r));
+      // 2. Sobrepõe com locais preservando metadados ricos (nome_bm, limite_bm, portfólio, conta)
       locais.forEach((l) => {
         if (!mapa.has(l.id)) {
           mapa.set(l.id, l);
@@ -303,14 +295,13 @@ export function FormularioVenda({
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .trim();
-        const isSoldOrDelivered = st.includes("vendida") || st.includes("entregue") || Boolean(item.venda_id);
+        const isSoldOrDelivered = st.includes("vendida") || st.includes("entregue") || st.includes("esgotado") || Boolean(item.venda_id);
         if (isSoldOrDelivered) return false;
 
-        const disp = st.includes("disponivel") || st.includes("em_estoque") || st.includes("pronta") || (!item.venda_id && !item.cliente_id);
         const qtd = item.quantidade_disponivel !== undefined && item.quantidade_disponivel !== null
           ? Number(item.quantidade_disponivel)
           : 1;
-        return disp && qtd > 0;
+        return qtd > 0;
       });
     },
   });
