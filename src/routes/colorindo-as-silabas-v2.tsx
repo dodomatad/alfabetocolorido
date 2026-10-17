@@ -130,17 +130,16 @@ function PaginaColorindoAsSilabas() {
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      (window as any).pixelId = "691cb8a66228ee189bdda0b7";
-      const script = document.createElement("script");
-      script.async = true;
-      script.defer = true;
-      script.src = "https://cdn.utmify.com.br/scripts/pixel/pixel.js";
-      document.head.appendChild(script);
-      return () => {
-        script.remove();
-      };
-    }
+    if (typeof window === "undefined") return;
+    (window as any).pixelId = "691cb8a66228ee189bdda0b7";
+    const script = document.createElement("script");
+    script.async = true;
+    script.defer = true;
+    script.src = "https://cdn.utmify.com.br/scripts/pixel/pixel.js";
+    document.head.appendChild(script);
+    return () => {
+      script.remove();
+    };
   }, []);
 
   useEffect(() => {

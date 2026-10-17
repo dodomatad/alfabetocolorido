@@ -416,11 +416,14 @@ function PaginaEstoque() {
         id: itemEditando?.id || crypto.randomUUID(),
         empresa_id: empresa.id,
         tipo_ativo: tipoAtivoFinal,
+        nome: isBM ? (nomeDigitado || null) : null,
         nome_bm: isBM ? (nomeDigitado || null) : null,
+        limite: isBM ? limiteEscolhido : null,
         limite_bm: isBM ? limiteEscolhido : null,
         tem_template: isBM ? temTemplate : false,
         data_criacao: isBM ? (dataCriacao || new Date().toISOString().slice(0, 10)) : null,
         responsavel: isBM ? (responsavel.trim() || null) : null,
+        criador_responsavel: isBM ? (responsavel.trim() || null) : null,
         destinatario: isBM ? (destinatario.trim() || null) : null,
         status_envio: isBM ? statusEnvio : null,
         quantidade_disponivel: Number(qtdDisponivel) || 0,
@@ -444,16 +447,31 @@ function PaginaEstoque() {
             .update(payload as any)
             .eq("id", itemEditando.id);
           if (errUpdate) {
-            console.error("Erro detalhado ao atualizar no Supabase:", errUpdate);
-            throw new Error(errUpdate.message || "Erro ao atualizar no estoque");
+            console.warn("Aviso ao atualizar com payload completo, tentando modo compatível:", errUpdate);
+            const { user_id, nome, limite, criador_responsavel, ...payloadCompativel } = payload;
+            const resFallback = await supabase
+              .from("estoque")
+              .update(payloadCompativel as any)
+              .eq("id", itemEditando.id);
+            if (resFallback.error) {
+              console.error("Erro detalhado ao atualizar no Supabase:", resFallback.error);
+              throw new Error(resFallback.error.message || "Erro ao atualizar no estoque");
+            }
           }
         } else {
           const { error: errInsert } = await supabase
             .from("estoque")
             .insert(payload as any);
           if (errInsert) {
-            console.error("Erro detalhado ao inserir no Supabase:", errInsert);
-            throw new Error(errInsert.message || "Erro ao salvar no estoque");
+            console.warn("Aviso ao inserir com payload completo, tentando modo compatível:", errInsert);
+            const { user_id, nome, limite, criador_responsavel, ...payloadCompativel } = payload;
+            const resFallback = await supabase
+              .from("estoque")
+              .insert(payloadCompativel as any);
+            if (resFallback.error) {
+              console.error("Erro detalhado ao inserir no Supabase:", resFallback.error);
+              throw new Error(resFallback.error.message || "Erro ao salvar no estoque");
+            }
           }
         }
       } catch (errSupabase: any) {
