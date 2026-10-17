@@ -114,6 +114,25 @@ function PaginaVendas() {
 
   const excluirVenda = useMutation({
     mutationFn: async (vendaId: string) => {
+      // 0. Restaura BMs vinculadas a esta venda de volta para disponível no estoque
+      try {
+        if (empresa?.id) {
+          await (supabase.from("estoque") as any)
+            .update({
+              status: "disponivel",
+              status_envio: "disponivel",
+              quantidade_disponivel: 1,
+              venda_id: null,
+              destinatario: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("venda_id", vendaId)
+            .eq("empresa_id", empresa.id);
+        }
+      } catch (eEstorno) {
+        console.warn("Aviso ao estornar BMs no estoque ao excluir venda:", eEstorno);
+      }
+
       // 1. Exclui os itens vinculados à venda (garantindo limpeza)
       await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
 
@@ -123,6 +142,13 @@ function PaginaVendas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
       queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });

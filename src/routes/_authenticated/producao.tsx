@@ -150,9 +150,14 @@ function extrairInfoBM(item: any) {
   const data = item?.data_criacao || item?.created_at || item?.updated_at || "";
   const destinatario = item?.destinatario || null;
 
-  const st = (item?.status_envio || item?.status || "").toLowerCase();
+  const st = (item?.status_envio || item?.status || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const ehIndisponivel = st.includes("vendida") || st.includes("entregue") || st.includes("reservada");
   const estaDisponivel =
-    (st === "disponivel" || st === "em_estoque" || st === "pronta_envio") &&
+    !ehIndisponivel &&
+    (st.includes("disponivel") || st.includes("em_estoque") || st.includes("pronta")) &&
     Number(item?.quantidade_disponivel ?? 1) > 0;
 
   return {
@@ -163,7 +168,10 @@ function extrairInfoBM(item: any) {
     data,
     destinatario,
     estaDisponivel,
-    status: st,
+    status: item?.status || "disponivel",
+    status_envio: item?.status_envio || "disponivel",
+    producao_id: item?.producao_id || null,
+    raw: item,
   };
 }
 
@@ -467,7 +475,30 @@ function PaginaProducao() {
       const motivoValido =
         bloqueiosNum > 0 && motivoQueda !== "nenhum" ? (motivoQueda as MotivoQuedaProducao) : null;
 
-      // 1. PERSISTIR LOCALMENTE COM DADOS COMPLETOS (SQLite via TanStack Start)
+      // 1. Gera lista de BMs como itens únicos e serializados com IDs universais
+      const bmsToInsert = nomesValidos.map((nome) => {
+        const bmId = crypto.randomUUID();
+        const lim = limiteBm.toUpperCase();
+        return {
+          id: bmId,
+          empresa_id: empresa.id,
+          nome_bm: nome.trim(),
+          limite_bm: lim,
+          tipo_ativo: `${nome.trim()} [${lim}]`,
+          status: "disponivel",
+          status_envio: "disponivel",
+          origem: "producao",
+          producao_id: producaoId,
+          data_criacao: dataVirada || new Date().toISOString().slice(0, 10),
+          tem_template: false,
+          responsavel: operador.trim(),
+          quantidade_disponivel: 1,
+          quantidade_reservada: 0,
+          custo_medio_unitario: 0,
+        };
+      });
+
+      // 2. PERSISTIR LOCALMENTE COM DADOS COMPLETOS (SQLite via TanStack Start)
       try {
         await salvarProducaoLocal({
           data: {
@@ -480,6 +511,11 @@ function PaginaProducao() {
             limite_bm: limiteBm,
             nome_bm: nomesValidos.join(", "),
             nomes_bm_lote: nomesValidos,
+            bms_detalhadas: bmsToInsert.map((b) => ({
+              id: b.id,
+              nome_bm: b.nome_bm,
+              limite_bm: b.limite_bm,
+            })),
             bms_criadas: criadasNum,
             contas_viradas: viradasNum,
             bloqueios: bloqueiosNum,
@@ -496,7 +532,7 @@ function PaginaProducao() {
         console.warn("Aviso ao salvar produção local:", errLocal);
       }
 
-      // 2. SALVAR NO REGISTRO DE PRODUÇÃO DIÁRIA DO SUPABASE (Apenas colunas suportadas no schema remoto)
+      // 3. SALVAR NO REGISTRO DE PRODUÇÃO DIÁRIA DO SUPABASE (Apenas colunas suportadas no schema remoto)
       try {
         const obsFinal =
           nomesValidos.length > 0
@@ -533,23 +569,24 @@ function PaginaProducao() {
         console.warn("Erro ao sincronizar producao_diaria no Supabase:", errProd);
       }
 
-      // 3. INSERIR AS BMS NOMINAIS NO ESTOQUE DO SUPABASE (Apenas colunas válidas)
+      // 4. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE
       try {
-        const recordsEstoqueSupabase = nomesValidos.map((nome) => ({
-          empresa_id: empresa.id,
-          tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
-          quantidade_disponivel: 1,
-          quantidade_reservada: 0,
-          custo_medio_unitario: 0,
-          status: "disponivel",
-        }));
-
         const { error: erroEstoque } = await supabase
           .from("estoque")
-          .insert(recordsEstoqueSupabase as any);
+          .insert(bmsToInsert as any);
 
         if (erroEstoque) {
-          console.warn("Aviso ao inserir no estoque remoto:", erroEstoque);
+          console.warn("Aviso ao inserir no estoque remoto com colunas completas, tentando modo compatível:", erroEstoque);
+          const fallbackRecords = bmsToInsert.map((b) => ({
+            id: b.id,
+            empresa_id: b.empresa_id,
+            tipo_ativo: b.tipo_ativo,
+            quantidade_disponivel: 1,
+            quantidade_reservada: 0,
+            custo_medio_unitario: 0,
+            status: "disponivel",
+          }));
+          await supabase.from("estoque").insert(fallbackRecords as any);
         }
       } catch (errEst) {
         console.warn("Erro ao sincronizar estoque no Supabase:", errEst);
@@ -566,10 +603,13 @@ function PaginaProducao() {
         `✓ Produção salva com sucesso! ${res.viradas} conta(s) virada(s) e ${res.totalBms} BM(s) adicionada(s) ao estoque com limite ${res.limite}!`
       );
       void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setModalAberto(false);
       resetForm();
@@ -579,14 +619,18 @@ function PaginaProducao() {
     },
   });
 
-  // 9. Exclusão de Lançamento de Produção Diária (com limpeza das BMs geradas)
+  // 9. Exclusão de Lançamento de Produção Diária (com estorno seguro das BMs geradas)
   const excluirProducaoMutation = useMutation({
     mutationFn: async ({ id, estornarEstoque = true }: { id: string; estornarEstoque?: boolean }) => {
       if (!empresa?.id) return;
 
       if (estornarEstoque) {
         try {
-          await supabase.from("estoque").delete().eq("empresa_id", empresa.id);
+          await supabase
+            .from("estoque")
+            .delete()
+            .eq("empresa_id", empresa.id)
+            .eq("producao_id", id);
         } catch (errEst) {
           console.warn("Aviso ao estornar BMs do estoque:", errEst);
         }
@@ -611,9 +655,13 @@ function PaginaProducao() {
     onSuccess: () => {
       toast.success("Lançamento de produção removido com sucesso.");
       void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => {
@@ -621,28 +669,58 @@ function PaginaProducao() {
     },
   });
 
-  // 10. Exclusão individual de BM do Estoque
+  // 10. Exclusão individual de BM do Estoque (com atualização otimista instantânea dos contadores)
   const excluirBmMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!empresa?.id) return;
+
+      // 1. Exclui no SQLite local
       try {
-        if (empresa?.id) {
-          await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
-        }
+        await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
       } catch (errLocal) {
         console.warn("Aviso ao excluir item local:", errLocal);
       }
 
-      const { error } = await supabase.from("estoque").delete().eq("id", id);
-      if (error) throw error;
+      // 2. Exclui no Supabase remoto
+      try {
+        const { error } = await supabase
+          .from("estoque")
+          .delete()
+          .eq("id", id)
+          .eq("empresa_id", empresa.id);
+        if (error) console.warn("Aviso ao excluir do estoque Supabase:", error);
+      } catch (errRemoto) {
+        console.warn("Erro ao excluir do Supabase remoto:", errRemoto);
+      }
+    },
+    onMutate: async (idExcluido: string) => {
+      await queryClient.cancelQueries({ queryKey: ["estoque-producao-bms", empresa?.id] });
+      const anterior = queryClient.getQueryData(["estoque-producao-bms", empresa?.id]);
+      queryClient.setQueryData(["estoque-producao-bms", empresa?.id], (velho: any[] | undefined) => {
+        if (!velho) return [];
+        return velho.filter((item) => item.id !== idExcluido);
+      });
+      return { anterior };
+    },
+    onError: (err: Error, _id, context) => {
+      if (context?.anterior) {
+        queryClient.setQueryData(["estoque-producao-bms", empresa?.id], context.anterior);
+      }
+      toast.error(`Erro ao excluir BM: ${err.message}`);
     },
     onSuccess: () => {
-      toast.success("BM removida do estoque.");
+      toast.success("BM excluída com sucesso.");
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
-    },
-    onError: (err: Error) => {
-      toast.error(`Erro ao excluir: ${err.message}`);
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 
@@ -1100,23 +1178,62 @@ function PaginaProducao() {
                           </div>
                         </div>
 
-                        {(prod.nome_bm || prod.observacoes || prod.motivo_queda) && (
-                          <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/30 space-y-0.5">
-                            {prod.nome_bm && (
-                              <p className="font-mono text-blue-300 line-clamp-2">
-                                <strong>BMs:</strong> {prod.nome_bm}
-                              </p>
-                            )}
-                            {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
-                              <p className="text-red-400 font-semibold">
-                                Queda: {prod.motivo_queda.replace(/_/g, " ")}
-                              </p>
-                            )}
-                            {prod.observacoes && (
-                              <p className="italic text-slate-400 line-clamp-2">{prod.observacoes}</p>
-                            )}
-                          </div>
-                        )}
+                        {(() => {
+                          const bmsDoLote = bmsDoMes.filter(
+                            (b) => b.producao_id === prod.id || (prod.nome_bm && prod.nome_bm.includes(b.nome))
+                          );
+                          return (
+                            <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/30 space-y-1">
+                              {bmsDoLote.length > 0 ? (
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-semibold text-slate-300 block">BMs Geradas no Lote:</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {bmsDoLote.map((b) => (
+                                      <Badge
+                                        key={b.id}
+                                        variant="outline"
+                                        className={cn(
+                                          "gap-1 font-mono text-[10px] py-0.5 px-1.5 inline-flex items-center",
+                                          b.estaDisponivel
+                                            ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                                            : "border-zinc-700 bg-zinc-800/60 text-zinc-400"
+                                        )}
+                                      >
+                                        <span>{b.nome}</span>
+                                        <span
+                                          role="button"
+                                          tabIndex={0}
+                                          title={`Excluir BM ${b.nome}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (window.confirm(`Tem certeza de que deseja excluir a BM ${b.nome}?`)) {
+                                              excluirBmMutation.mutate(b.id);
+                                            }
+                                          }}
+                                          className="hover:text-red-400 text-muted-foreground/60 cursor-pointer ml-0.5 p-0.5 rounded transition"
+                                        >
+                                          <Trash2 className="size-2.5" />
+                                        </span>
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : prod.nome_bm ? (
+                                <p className="font-mono text-blue-300 line-clamp-2">
+                                  <strong>BMs:</strong> {prod.nome_bm}
+                                </p>
+                              ) : null}
+                              {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
+                                <p className="text-red-400 font-semibold">
+                                  Queda: {prod.motivo_queda.replace(/_/g, " ")}
+                                </p>
+                              )}
+                              {prod.observacoes && (
+                                <p className="italic text-slate-400 line-clamp-2">{prod.observacoes}</p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -1203,22 +1320,62 @@ function PaginaProducao() {
                                 {aproveitamento}%
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-xs max-w-xs">
-                              {prod.nome_bm && (
-                                <p className="font-mono text-[11px] text-blue-300 truncate" title={prod.nome_bm}>
-                                  {prod.nome_bm}
-                                </p>
-                              )}
-                              {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
-                                <p className="text-[11px] text-red-400 font-semibold mt-0.5">
-                                  Queda: {prod.motivo_queda.replace(/_/g, " ")}
-                                </p>
-                              )}
-                              {prod.observacoes && (
-                                <p className="text-[11px] text-muted-foreground truncate" title={prod.observacoes}>
-                                  {prod.observacoes}
-                                </p>
-                              )}
+                            <TableCell className="text-xs max-w-sm">
+                              {(() => {
+                                const bmsDoLote = bmsDoMes.filter(
+                                  (b) => b.producao_id === prod.id || (prod.nome_bm && prod.nome_bm.includes(b.nome))
+                                );
+                                return (
+                                  <div className="space-y-1">
+                                    {bmsDoLote.length > 0 ? (
+                                      <div className="flex flex-wrap gap-1 max-w-xs">
+                                        {bmsDoLote.map((b) => (
+                                          <Badge
+                                            key={b.id}
+                                            variant="outline"
+                                            className={cn(
+                                              "gap-1 font-mono text-[10px] py-0.5 px-1.5 inline-flex items-center",
+                                              b.estaDisponivel
+                                                ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                                                : "border-zinc-700 bg-zinc-800/60 text-zinc-400"
+                                            )}
+                                          >
+                                            <span>{b.nome}</span>
+                                            <span
+                                              role="button"
+                                              tabIndex={0}
+                                              title={`Excluir BM ${b.nome}`}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm(`Tem certeza de que deseja excluir a BM ${b.nome}?`)) {
+                                                  excluirBmMutation.mutate(b.id);
+                                                }
+                                              }}
+                                              className="hover:text-red-400 text-muted-foreground/60 cursor-pointer ml-0.5 p-0.5 rounded transition"
+                                            >
+                                              <Trash2 className="size-2.5" />
+                                            </span>
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    ) : prod.nome_bm ? (
+                                      <p className="font-mono text-[11px] text-blue-300 truncate" title={prod.nome_bm}>
+                                        {prod.nome_bm}
+                                      </p>
+                                    ) : null}
+                                    {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
+                                      <p className="text-[11px] text-red-400 font-semibold">
+                                        Queda: {prod.motivo_queda.replace(/_/g, " ")}
+                                      </p>
+                                    )}
+                                    {prod.observacoes && (
+                                      <p className="text-[11px] text-muted-foreground truncate" title={prod.observacoes}>
+                                        {prod.observacoes}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap">
                               <Button
@@ -1300,7 +1457,7 @@ function PaginaProducao() {
                             size="icon"
                             className="size-7 text-muted-foreground hover:text-red-400"
                             onClick={() => {
-                              if (window.confirm(`Deseja remover a BM "${bm.nome}" do estoque?`)) {
+                              if (window.confirm(`Tem certeza de que deseja excluir a BM ${bm.nome}?`)) {
                                 excluirBmMutation.mutate(bm.id);
                               }
                             }}
@@ -1399,7 +1556,7 @@ function PaginaProducao() {
                               size="icon"
                               className="size-8 text-muted-foreground hover:text-red-400"
                               onClick={() => {
-                                if (window.confirm(`Deseja remover a BM "${bm.nome}" do estoque?`)) {
+                                if (window.confirm(`Tem certeza de que deseja excluir a BM ${bm.nome}?`)) {
                                   excluirBmMutation.mutate(bm.id);
                                 }
                               }}

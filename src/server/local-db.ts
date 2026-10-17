@@ -168,8 +168,40 @@ export function getLocalDatabase(): DatabaseSync {
         }
       }
     }
+
+    // Migração defensiva para tabela estoque
+    const colunasEstoque = (db.prepare("PRAGMA table_info(estoque)").all() as any[]).map((c) => c.name);
+    const colunasEstoqueParaAdicionar: Record<string, string> = {
+      nome_bm: "TEXT",
+      limite_bm: "TEXT",
+      status_envio: "TEXT DEFAULT 'disponivel'",
+      tem_template: "INTEGER DEFAULT 0",
+      data_criacao: "TEXT",
+      responsavel: "TEXT",
+      destinatario: "TEXT",
+      origem: "TEXT DEFAULT 'producao'",
+      producao_id: "TEXT",
+      venda_id: "TEXT",
+      cliente_id: "TEXT",
+      quantidade_disponivel: "REAL DEFAULT 1",
+      quantidade_reservada: "REAL DEFAULT 0",
+      custo_medio_unitario: "REAL DEFAULT 0",
+      status: "TEXT DEFAULT 'disponivel'",
+      updated_at: "TEXT DEFAULT CURRENT_TIMESTAMP",
+      created_at: "TEXT DEFAULT CURRENT_TIMESTAMP",
+    };
+
+    for (const [col, def] of Object.entries(colunasEstoqueParaAdicionar)) {
+      if (!colunasEstoque.includes(col)) {
+        try {
+          db.exec(`ALTER TABLE estoque ADD COLUMN ${col} ${def};`);
+        } catch {
+          // Ignora caso a coluna já exista
+        }
+      }
+    }
   } catch (errMig) {
-    console.warn("Aviso ao verificar colunas da tabela producao_diaria:", errMig);
+    console.warn("Aviso ao verificar colunas das tabelas locais:", errMig);
   }
 
   dbInstance = db;

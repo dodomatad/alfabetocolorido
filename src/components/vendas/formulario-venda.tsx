@@ -241,35 +241,55 @@ export function FormularioVenda({
     },
   });
 
-  // Consulta de Contas e BMs disponíveis no Estoque para seleção individual (Local com Fallback)
+  // Consulta de Contas e BMs disponíveis no Estoque para seleção individual (Unificada Local + Remoto)
   const contasEstoqueQuery = useQuery({
     queryKey: ["estoque-disponivel-venda", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
-    staleTime: 1000 * 60 * 1,
+    staleTime: 1000 * 30,
     queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      let locais: any[] = [];
       try {
-        const locais = await listarEstoqueLocal({ data: { empresa_id: empresa!.id } });
-        const disponiveis = (locais || []).filter((item) => {
-          const st = (item.status_envio || item.status || "").toLowerCase();
-          const disp = st === "disponivel" || st === "em_estoque" || st === "pronta_envio";
-          return disp && Number(item.quantidade_disponivel || 0) > 0;
-        });
-        if (disponiveis.length > 0) return disponiveis as any[];
+        const res = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
+        if (res) locais = res;
       } catch (errLocal) {
         console.warn("Aviso ao buscar estoque local:", errLocal);
       }
 
-      const { data, error } = await supabase
-        .from("estoque")
-        .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio")
-        .eq("empresa_id", empresa!.id)
-        .gt("quantidade_disponivel", 0)
-        .order("tipo_ativo");
-      if (error) {
-        console.warn("Aviso ao buscar estoque disponível:", error);
-        return [];
+      let remotos: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("estoque")
+          .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio")
+          .eq("empresa_id", empresa.id)
+          .gt("quantidade_disponivel", 0)
+          .order("tipo_ativo");
+        if (!error && data) remotos = data;
+      } catch (errRemoto) {
+        console.warn("Aviso ao buscar estoque remoto:", errRemoto);
       }
-      return data || [];
+
+      const mapa = new Map<string, any>();
+      remotos.forEach((r) => mapa.set(r.id, r));
+      locais.forEach((l) => {
+        if (!mapa.has(l.id)) {
+          mapa.set(l.id, l);
+        } else {
+          mapa.set(l.id, { ...mapa.get(l.id), ...l });
+        }
+      });
+
+      const todos = Array.from(mapa.values());
+      return todos.filter((item) => {
+        const st = (item.status_envio || item.status || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+        const disp = st.includes("disponivel") || st.includes("em_estoque") || st.includes("pronta");
+        const indisponivel = st.includes("vendida") || st.includes("entregue") || st.includes("reservada");
+        return disp && !indisponivel && Number(item.quantidade_disponivel || 0) > 0;
+      });
     },
   });
 
@@ -598,7 +618,26 @@ export function FormularioVenda({
             }
           }
 
-          // 3. Espelhamento não-bloqueante no Supabase (se disponível)
+          // 3. Atualização direta no Supabase (garante status 'vendida' e dedução do estoque)
+          try {
+            await supabase
+              .from("estoque")
+              .update({
+                status: "vendida",
+                status_envio: statusEnvioFinal,
+                quantidade_disponivel: 0,
+                venda_id: vendaSalvaId,
+                cliente_id: clienteId || null,
+                destinatario: nomeCliente || null,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .in("id", idsParaBaixar)
+              .eq("empresa_id", empresa.id);
+          } catch (eUpdEstoque) {
+            console.warn("Aviso ao atualizar estoque no Supabase:", eUpdEstoque);
+          }
+
+          // 4. Espelhamento RPC no Supabase (se configurado)
           try {
             await (supabase as any).rpc("baixar_bms_venda", {
               p_empresa_id: empresa.id,
@@ -642,12 +681,15 @@ export function FormularioVenda({
       void queryClient.invalidateQueries({ queryKey: ["entregas"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
       void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios_estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["producao"] });
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["painel"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
@@ -848,14 +890,17 @@ export function FormularioVenda({
 
                   // Filtra apenas ativos disponíveis ou prontos para envio correspondentes à modalidade
                   const contasFiltradas = (contasEstoqueQuery.data || []).filter((c) => {
-                    const st = (c.status_envio || c.status || "").toLowerCase();
-                    // Deve estar disponível ou pronta para envio
-                    const statusValido = st === "disponivel" || st === "pronta_envio" || st === "em_estoque";
-                    if (!statusValido && Number(c.quantidade_disponivel || 0) <= 0) return false;
+                    const st = (c.status_envio || c.status || "")
+                      .toLowerCase()
+                      .normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "");
+                    const statusValido = st.includes("disponivel") || st.includes("pronta") || st.includes("em_estoque");
+                    const indisponivel = st.includes("vendida") || st.includes("entregue") || st.includes("reservada");
+                    if ((!statusValido || indisponivel) && Number(c.quantidade_disponivel || 0) <= 0) return false;
 
                     if (!limAlvo) return true;
                     const limC = (c.limite_bm || (c.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
-                    return limC === limAlvo || c.tipo_ativo?.toLowerCase().includes(nomeMod.toLowerCase());
+                    return limC === limAlvo || c.tipo_ativo?.toUpperCase().includes(limAlvo);
                   });
 
                   // Array de IDs selecionados no item (suporte a seleção múltipla)

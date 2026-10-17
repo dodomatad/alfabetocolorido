@@ -600,6 +600,11 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
       atualizado_por: z.string().nullable().optional(),
       nome_bm: z.string().nullable().optional(),
       nomes_bm_lote: z.array(z.string()).optional(),
+      bms_detalhadas: z.array(z.object({
+        id: z.string(),
+        nome_bm: z.string(),
+        limite_bm: z.string().optional()
+      })).optional(),
       limite_bm: z.string().nullable().optional(),
       tem_template: z.boolean().optional(),
       destinatario: z.string().nullable().optional(),
@@ -705,7 +710,7 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
       const estaDisponivel = statusEnvioAlvo === "disponivel" || statusEnvioAlvo === "pronta_envio";
       const estaReservada = statusEnvioAlvo === "reservada";
 
-      if (isBM && nomes.length > 0) {
+      if (isBM && (nomes.length > 0 || (data.bms_detalhadas && data.bms_detalhadas.length > 0))) {
         const insertEstoqueStmt = db.prepare(`
           INSERT INTO estoque (
             id, empresa_id, tipo_ativo, nome_bm, limite_bm, status_envio,
@@ -715,35 +720,71 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
-        for (const nomeClean of nomes) {
-          const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite)
-            ? nomeClean
-            : `${nomeClean} [${limite}]`;
+        if (data.bms_detalhadas && data.bms_detalhadas.length > 0) {
+          for (const itemDet of data.bms_detalhadas) {
+            const nomeClean = itemDet.nome_bm.trim();
+            const limClean = (itemDet.limite_bm || limite).toUpperCase();
+            const tipoAtivoFinal = nomeClean.toUpperCase().includes(limClean)
+              ? nomeClean
+              : `${nomeClean} [${limClean}]`;
 
-          const existente = db.prepare(
-            "SELECT id FROM estoque WHERE empresa_id = ? AND producao_id = ? AND nome_bm = ?"
-          ).get(data.empresa_id, id, nomeClean) as any;
+            const existente = db.prepare(
+              "SELECT id FROM estoque WHERE empresa_id = ? AND id = ?"
+            ).get(data.empresa_id, itemDet.id) as any;
 
-          if (!existente) {
-            insertEstoqueStmt.run(
-              crypto.randomUUID(),
-              data.empresa_id,
-              tipoAtivoFinal,
-              nomeClean,
-              limite,
-              statusEnvioAlvo,
-              data.tem_template ? 1 : 0,
-              data.data_registro,
-              data.operador,
-              data.destinatario ?? null,
-              "producao",
-              id,
-              estaDisponivel ? 1 : 0,
-              estaReservada ? 1 : 0,
-              estaDisponivel ? "disponivel" : "baixo_estoque",
-              now,
-              now
-            );
+            if (!existente) {
+              insertEstoqueStmt.run(
+                itemDet.id,
+                data.empresa_id,
+                tipoAtivoFinal,
+                nomeClean,
+                limClean,
+                statusEnvioAlvo,
+                data.tem_template ? 1 : 0,
+                data.data_registro,
+                data.operador,
+                data.destinatario ?? null,
+                "producao",
+                id,
+                estaDisponivel ? 1 : 0,
+                estaReservada ? 1 : 0,
+                estaDisponivel ? "disponivel" : "baixo_estoque",
+                now,
+                now
+              );
+            }
+          }
+        } else {
+          for (const nomeClean of nomes) {
+            const tipoAtivoFinal = nomeClean.toLowerCase().includes(limite)
+              ? nomeClean
+              : `${nomeClean} [${limite.toUpperCase()}]`;
+
+            const existente = db.prepare(
+              "SELECT id FROM estoque WHERE empresa_id = ? AND producao_id = ? AND nome_bm = ?"
+            ).get(data.empresa_id, id, nomeClean) as any;
+
+            if (!existente) {
+              insertEstoqueStmt.run(
+                crypto.randomUUID(),
+                data.empresa_id,
+                tipoAtivoFinal,
+                nomeClean,
+                limite.toUpperCase(),
+                statusEnvioAlvo,
+                data.tem_template ? 1 : 0,
+                data.data_registro,
+                data.operador,
+                data.destinatario ?? null,
+                "producao",
+                id,
+                estaDisponivel ? 1 : 0,
+                estaReservada ? 1 : 0,
+                estaDisponivel ? "disponivel" : "baixo_estoque",
+                now,
+                now
+              );
+            }
           }
         }
       }
