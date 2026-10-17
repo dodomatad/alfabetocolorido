@@ -44,7 +44,7 @@ import {
   registrarContaEnviadaLocal,
   salvarVendaLocal,
 } from "@/lib/estoque.functions";
-import { formatarMoeda } from "@/lib/formatadores";
+import { formatarMoeda, normalizeLimit } from "@/lib/formatadores";
 import { cn } from "@/lib/utils";
 
 type Item = { 
@@ -53,6 +53,7 @@ type Item = {
   preco_unitario: string;
   conta_id?: string;
   contas_ids?: string[];
+  nome_bm?: string;
 };
 
 const ITEM_VAZIO: Item = { modalidade_id: "", quantidade: "1", preco_unitario: "0", conta_id: "" };
@@ -253,9 +254,8 @@ export function FormularioVenda({
       try {
         const { data, error } = await supabase
           .from("estoque")
-          .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio, responsavel")
+          .select("*")
           .eq("empresa_id", empresa.id)
-          .gt("quantidade_disponivel", 0)
           .order("created_at", { ascending: false });
         if (!error && data) remotos = data;
       } catch (errRemoto) {
@@ -285,10 +285,16 @@ export function FormularioVenda({
         const st = (item.status_envio || item.status || "")
           .toLowerCase()
           .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
-        const disp = st.includes("disponivel") || st.includes("em_estoque") || st.includes("pronta");
-        const indisponivel = st.includes("vendida") || st.includes("entregue") || st.includes("reservada");
-        return disp && !indisponivel && Number(item.quantidade_disponivel || 0) > 0;
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+        const isSoldOrDelivered = st.includes("vendida") || st.includes("entregue") || Boolean(item.venda_id);
+        if (isSoldOrDelivered) return false;
+
+        const disp = st.includes("disponivel") || st.includes("em_estoque") || st.includes("pronta") || (!item.venda_id && !item.cliente_id);
+        const qtd = item.quantidade_disponivel !== undefined && item.quantidade_disponivel !== null
+          ? Number(item.quantidade_disponivel)
+          : 1;
+        return disp && qtd > 0;
       });
     },
   });
@@ -332,7 +338,7 @@ export function FormularioVenda({
         const mod = (modalidades.data ?? []).find((m) => m.id === itemVenda.modalidade_id);
         const qtdPedida = numero(itemVenda.quantidade);
         const nomeMod = mod?.nome || "BM";
-        const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toLowerCase();
+        const selectedLimitNorm = normalizeLimit(nomeMod || mod?.codigo);
 
         const idsSelecionados: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
           ? itemVenda.contas_ids
@@ -340,18 +346,17 @@ export function FormularioVenda({
 
         // Total de contas disponíveis no estoque para esta modalidade
         const contasDisponiveis = (contasEstoqueQuery.data || []).filter((c) => {
-          const st = (c.status || "").toLowerCase();
-          const stEnvio = (c.status_envio || "").toLowerCase();
-          const estaDisponivel = (st === "disponivel" || st === "em_estoque" || stEnvio === "disponivel" || stEnvio === "pronta_envio") && Number(c.quantidade_disponivel || 0) > 0;
-          if (!estaDisponivel) return false;
-          if (!limiteAlvo) return true;
-          const limC = (c.limite_bm || c.tipo_ativo || "").toLowerCase();
-          return limC.includes(limiteAlvo);
+          const bmLimitNorm = normalizeLimit(c.limite_bm || c.limite || c.tipo_ativo || c.tipo || "");
+          const isSameLimit = !selectedLimitNorm || bmLimitNorm === selectedLimitNorm || bmLimitNorm.includes(selectedLimitNorm) || selectedLimitNorm.includes(bmLimitNorm);
+          const st = (c.status_envio || c.status || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          const isSold = st.includes("vendida") || st.includes("entregue") || Boolean(c.venda_id);
+          const isAvailable = st.includes("disponivel") || st.includes("pronta") || st.includes("em_estoque") || (!c.venda_id && !c.cliente_id);
+          return isSameLimit && isAvailable && !isSold;
         });
 
         const totalDisponivelSaldo = contasDisponiveis.reduce((acc, curr) => acc + Number(curr.quantidade_disponivel || 1), 0);
 
-        if (totalDisponivelSaldo < qtdPedida) {
+        if (totalDisponivelSaldo < qtdPedida && idsSelecionados.length === 0) {
           throw new Error(`Estoque insuficiente para ${nomeMod}: você solicitou ${qtdPedida}, mas restam apenas ${totalDisponivelSaldo} disponível(is).`);
         }
 
@@ -544,8 +549,8 @@ export function FormularioVenda({
         const dataDespacho = dataRealizadaFinal || dataVenda || new Date().toISOString().slice(0, 10);
         const nomeRespEnvio = (funcionarios.data ?? []).find((f) => f.id === funcionarioId)?.nome || null;
 
-        // Tentar identificar o limite ou nome correspondente no estoque (normalizado para 250, 2k, 10k, 100k)
-        const limiteAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || codigoMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toLowerCase();
+        // Normalizar limite da modalidade para busca de BMs correspondentes
+        const selectedLimitNorm = normalizeLimit(nomeMod || codigoMod);
 
         let idsParaBaixar: string[] = itemVenda.contas_ids && itemVenda.contas_ids.length > 0
           ? itemVenda.contas_ids
@@ -553,19 +558,12 @@ export function FormularioVenda({
 
         // Se não selecionou BMs específicas manualmente, busca automaticamente as primeiras N BMs disponíveis deste limite
         if (idsParaBaixar.length === 0) {
-          const { data: bmsAuto } = await supabase
-            .from("estoque")
-            .select("id, limite_bm, tipo_ativo")
-            .eq("empresa_id", empresa.id)
-            .eq("status", "disponivel")
-            .gt("quantidade_disponivel", 0)
-            .order("created_at", { ascending: true })
-            .limit(qtdVendida * 2);
-
-          const compativeis = (bmsAuto || []).filter((b) => {
-            if (!limiteAlvo) return true;
-            const limB = (b.limite_bm || b.tipo_ativo || "").toLowerCase();
-            return limB.includes(limiteAlvo);
+          const compativeis = (contasEstoqueQuery.data || []).filter((b) => {
+            const bmLimitNorm = normalizeLimit(b.limite_bm || b.limite || b.tipo_ativo || b.tipo || "");
+            const isSameLimit = !selectedLimitNorm || bmLimitNorm === selectedLimitNorm || bmLimitNorm.includes(selectedLimitNorm) || selectedLimitNorm.includes(bmLimitNorm);
+            const st = (b.status_envio || b.status || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            const isSold = st.includes("vendida") || st.includes("entregue") || Boolean(b.venda_id);
+            return isSameLimit && !isSold;
           });
 
           idsParaBaixar = compativeis.slice(0, qtdVendida).map((b) => b.id);
@@ -576,30 +574,28 @@ export function FormularioVenda({
 
           // 1. Atualiza diretamente a tabela estoque no Supabase (Fonte de Verdade)
           try {
-            const { error: erroComVenda } = await supabase
-              .from("estoque")
+            const { error: erroComVenda } = await (supabase.from("estoque") as any)
               .update({
-                status: "vendida",
+                status: "Vendida",
                 status_envio: statusEnvioFinal,
                 quantidade_disponivel: 0,
                 destinatario: nomeCliente,
+                cliente_nome: nomeCliente,
                 venda_id: vendaSalvaId,
                 cliente_id: clienteId || null,
                 updated_at: new Date().toISOString(),
-              } as any)
+              })
               .in("id", idsParaBaixar);
 
             if (erroComVenda) {
-              // Fallback caso as colunas venda_id ou cliente_id não existam no schema remoto
-              await supabase
-                .from("estoque")
+              await (supabase.from("estoque") as any)
                 .update({
-                  status: "vendida",
+                  status: "Vendida",
                   status_envio: statusEnvioFinal,
                   quantidade_disponivel: 0,
                   destinatario: nomeCliente,
                   updated_at: new Date().toISOString(),
-                } as any)
+                })
                 .in("id", idsParaBaixar);
             }
           } catch (errSupabaseUpdate) {
@@ -610,7 +606,7 @@ export function FormularioVenda({
           for (const bmId of idsParaBaixar) {
             const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
             const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
-            const limiteBMFinal = contaRef?.limite_bm || limiteAlvo || null;
+            const limiteBMFinal = contaRef?.limite_bm || contaRef?.limite || selectedLimitNorm || null;
 
             try {
               await supabase.from("contas_enviadas").insert({
@@ -650,7 +646,7 @@ export function FormularioVenda({
           for (const bmId of idsParaBaixar) {
             const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
             const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
-            const limiteBMFinal = contaRef?.limite_bm || limiteAlvo || null;
+            const limiteBMFinal = contaRef?.limite_bm || contaRef?.limite || selectedLimitNorm || null;
 
             try {
               await registrarContaEnviadaLocal({
@@ -672,19 +668,19 @@ export function FormularioVenda({
               // fallback local ignorado
             }
           }
-          // 3. Atualização direta no Supabase (garante status 'vendida' e dedução do estoque)
+          // 3. Atualização direta no Supabase (garante status 'Vendida' e dedução do estoque)
           try {
-            await supabase
-              .from("estoque")
+            await (supabase.from("estoque") as any)
               .update({
-                status: "vendida",
+                status: "Vendida",
                 status_envio: statusEnvioFinal,
                 quantidade_disponivel: 0,
                 venda_id: vendaSalvaId,
                 cliente_id: clienteId || null,
+                cliente_nome: nomeCliente || null,
                 destinatario: nomeCliente || null,
                 updated_at: new Date().toISOString(),
-              } as any)
+              })
               .in("id", idsParaBaixar)
               .eq("empresa_id", empresa.id);
           } catch (eUpdEstoque) {
@@ -899,10 +895,20 @@ export function FormularioVenda({
                       a.map((i, x) => {
                         if (x !== indice) return i;
                         const m = (modalidades.data ?? []).find((mm) => mm.id === v);
+                        const novoModNorm = normalizeLimit(m?.nome || m?.codigo);
+                        // Filtra apenas contas já selecionadas que ainda combinem com a nova modalidade selecionada
+                        const contasAindaValidas = (i.contas_ids || []).filter((id) => {
+                          const c = (contasEstoqueQuery.data || []).find((ct) => ct.id === id);
+                          if (!c) return false;
+                          const cNorm = normalizeLimit(c.limite_bm || c.limite || c.tipo_ativo || "");
+                          return !novoModNorm || cNorm === novoModNorm || cNorm.includes(novoModNorm) || novoModNorm.includes(cNorm);
+                        });
                         return {
                           ...i,
                           modalidade_id: v,
                           preco_unitario: m ? String(m.preco_venda_padrao) : i.preco_unitario,
+                          contas_ids: contasAindaValidas,
+                          conta_id: contasAindaValidas[0] || "",
                         };
                       }),
                     )
@@ -933,31 +939,38 @@ export function FormularioVenda({
                   <span className="text-[11px] font-normal text-muted-foreground/80 lowercase">
                     {(() => {
                       const mod = (modalidades.data ?? []).find((m) => m.id === item.modalidade_id);
-                      const lim = mod?.nome?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "";
-                      return lim ? `filtrado por ${lim}` : "ativas e prontas em estoque";
+                      const modNome = mod?.nome || mod?.codigo || "";
+                      const limNorm = normalizeLimit(modNome);
+                      return limNorm ? `filtrado por ${modNome}` : "todas disponíveis em estoque";
                     })()}
                   </span>
                 </Label>
 
                 {(() => {
                   const mod = (modalidades.data ?? []).find((m) => m.id === item.modalidade_id);
-                  const nomeMod = mod?.nome || "";
-                  const limAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
+                  const nomeMod = mod?.nome || mod?.codigo || "";
+                  const selectedLimitNorm = normalizeLimit(nomeMod); // ex: "2k"
 
-                  // Filtra apenas ativos rigorosamente disponíveis ou prontos para envio correspondentes à modalidade
-                  const contasFiltradas = (contasEstoqueQuery.data || []).filter((c) => {
-                    const st = (c.status_envio || c.status || "")
-                      .toLowerCase()
-                      .normalize("NFD")
-                      .replace(/[\u0300-\u036f]/g, "");
-                    const isDisponivel = (st.includes("disponivel") || st.includes("pronta") || st.includes("em_estoque")) &&
-                      !st.includes("vendida") && !st.includes("entregue") && !st.includes("reservada") &&
-                      Number(c.quantidade_disponivel || 0) > 0;
-                    if (!isDisponivel) return false;
+                  const allStockBms = contasEstoqueQuery.data || [];
 
-                    if (!limAlvo) return true;
-                    const limC = (c.limite_bm || (c.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
-                    return limC === limAlvo || c.tipo_ativo?.toUpperCase().includes(limAlvo) || c.tipo_ativo?.toLowerCase().includes(nomeMod.toLowerCase());
+                  // Normalização do Filtro de Modalidade / Limite
+                  const availableBms = allStockBms.filter((bm) => {
+                    const bmLimitNorm = normalizeLimit(bm.limite_bm || bm.limite || bm.tipo_ativo || bm.tipo || "");
+                    const isSameLimit = !selectedLimitNorm || bmLimitNorm === selectedLimitNorm || bmLimitNorm.includes(selectedLimitNorm) || selectedLimitNorm.includes(bmLimitNorm);
+                    
+                    const st = (bm.status_envio || bm.status || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                    const isAvailable = [
+                      "disponivel",
+                      "pronta para envio",
+                      "pronta",
+                      "em_estoque",
+                      "pronta_envio"
+                    ].some((s) => st.includes(s));
+                    
+                    const isSoldOrDelivered = st.includes("vendida") || st.includes("entregue") || Boolean(bm.venda_id);
+                    const notSold = !bm.venda_id && !bm.cliente_id && !isSoldOrDelivered;
+
+                    return isSameLimit && (isAvailable || notSold) && !isSoldOrDelivered;
                   });
 
                   // Array de IDs selecionados no item (suporte a seleção múltipla)
@@ -975,13 +988,26 @@ export function FormularioVenda({
 
                     const novaQtd = novosIds.length > 0 ? String(novosIds.length) : (item.quantidade || "1");
 
+                    // Se a modalidade ainda não foi escolhida, associa automaticamente a modalidade correspondente à BM selecionada
+                    let novaModalidadeId = item.modalidade_id;
+                    const bmSelecionada = allStockBms.find((b) => b.id === contaId);
+                    if (!novaModalidadeId && bmSelecionada) {
+                      const limNorm = normalizeLimit(bmSelecionada.limite_bm || bmSelecionada.limite || bmSelecionada.tipo_ativo || "");
+                      const modCompativel = (modalidades.data ?? []).find((m) => normalizeLimit(m.nome || m.codigo) === limNorm);
+                      if (modCompativel) {
+                        novaModalidadeId = modCompativel.id;
+                      }
+                    }
+
                     setItens((prev) =>
                       prev.map((it, x) =>
                         x === indice
                           ? {
                               ...it,
+                              modalidade_id: novaModalidadeId,
                               contas_ids: novosIds,
                               conta_id: novosIds[0] || "",
+                              nome_bm: bmSelecionada?.nome_bm || bmSelecionada?.tipo_ativo || it.nome_bm || "",
                               quantidade: novosIds.length > 0 ? novaQtd : it.quantidade,
                             }
                           : it,
@@ -993,7 +1019,7 @@ export function FormularioVenda({
                     setItens((prev) =>
                       prev.map((it, x) =>
                         x === indice
-                          ? { ...it, contas_ids: [], conta_id: "" }
+                          ? { ...it, contas_ids: [], conta_id: "", nome_bm: "" }
                           : it,
                       ),
                     );
@@ -1016,9 +1042,9 @@ export function FormularioVenda({
                                 </span>
                               ) : (
                                 selecionados.map((id) => {
-                                  const c = (contasEstoqueQuery.data || []).find((x) => x.id === id);
+                                  const c = allStockBms.find((x) => x.id === id);
                                   const n = c?.nome_bm || c?.tipo_ativo || "BM Selecionada";
-                                  const lim = c?.limite_bm || "250";
+                                  const lim = c?.limite_bm || c?.limite || "250";
                                   return (
                                     <Badge
                                       key={id}
@@ -1045,48 +1071,61 @@ export function FormularioVenda({
                             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[420px] max-w-[95vw] p-0 bg-popover border-border/60 shadow-xl" align="start">
+                        <PopoverContent className="w-[480px] max-w-[95vw] p-0 bg-popover border-border/60 shadow-xl" align="start">
                           <Command>
-                            <CommandInput placeholder="Buscar por nome da BM ou limite..." className="text-xs" />
-                            <CommandList className="max-h-60 overflow-y-auto">
+                            <CommandInput placeholder="Buscar por nome da BM, operador ou limite..." className="text-xs" />
+                            <CommandList className="max-h-64 overflow-y-auto">
                               <CommandEmpty className="p-3 text-xs text-center text-muted-foreground">
-                                {contasFiltradas.length === 0
-                                  ? "Nenhuma BM disponível encontrada para esta modalidade."
-                                  : "Nenhuma BM encontrada com este termo."}
+                                {availableBms.length === 0
+                                  ? selectedLimitNorm
+                                    ? `Nenhuma BM disponível encontrada para esta modalidade.`
+                                    : "Nenhuma BM disponível encontrada no estoque."
+                                  : "Nenhuma BM encontrada com este termo de busca."}
                               </CommandEmpty>
-                              <CommandGroup heading="Ativos Disponíveis (Produção / Estoque)">
-                                {contasFiltradas.map((conta) => {
-                                  const nomePrincipal = conta.nome_bm || conta.tipo_ativo;
-                                  const limiteBadge = conta.limite_bm || (conta.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "250");
-                                  const estaMarcada = selecionados.includes(conta.id);
-                                  const statusTexto = conta.status_envio === "pronta_envio" ? "Pronta para Envio" : "Disponível";
+                              <CommandGroup heading={`Ativos Disponíveis (${availableBms.length} em estoque)`}>
+                                {availableBms.map((bm) => {
+                                  const nomePrincipal = bm.nome_bm || bm.tipo_ativo || "BM sem nome";
+                                  const limiteBadge = bm.limite_bm || bm.limite || (bm.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "250");
+                                  const estaMarcada = selecionados.includes(bm.id);
+                                  const stEnvio = (bm.status_envio || "").toLowerCase();
+                                  const statusTexto = (stEnvio === "pronta_envio" || stEnvio.includes("pronta")) ? "Pronta para Envio" : "Disponível";
+                                  const operador = bm.responsavel || "";
 
                                   return (
                                     <CommandItem
-                                      key={conta.id}
-                                      value={`${nomePrincipal} ${limiteBadge} ${conta.id}`}
-                                      onSelect={() => alternarSelecaoConta(conta.id)}
-                                      className="flex items-center justify-between text-xs py-2 px-2.5 cursor-pointer"
+                                      key={bm.id}
+                                      value={`${nomePrincipal} ${limiteBadge} ${operador} ${statusTexto} ${bm.id}`.toLowerCase()}
+                                      onSelect={() => alternarSelecaoConta(bm.id)}
+                                      className="flex items-center justify-between text-xs py-2 px-2.5 cursor-pointer hover:bg-accent/40"
                                     >
-                                      <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                      <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
                                         <div className={cn(
-                                          "flex size-4 items-center justify-center rounded border transition-colors",
+                                          "flex size-4 items-center justify-center rounded border transition-colors shrink-0",
                                           estaMarcada ? "bg-blue-600 border-blue-500 text-white" : "border-muted-foreground/40 bg-background/50"
                                         )}>
                                           {estaMarcada && <Check className="size-3" />}
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                          <span className="font-semibold text-foreground truncate">
-                                            {nomePrincipal}
-                                          </span>
-                                          <span className="text-[10px] text-muted-foreground">
-                                            Limite: <strong className="text-blue-400">{limiteBadge}</strong> • Saldo: {conta.quantidade_disponivel}
-                                          </span>
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-semibold text-foreground truncate">
+                                              {nomePrincipal}
+                                            </span>
+                                            <span className="text-muted-foreground/40">•</span>
+                                            <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] px-1.5 py-0 h-4 font-bold shrink-0">
+                                              {limiteBadge.toUpperCase().startsWith("BM") ? limiteBadge.toUpperCase() : `BM ${limiteBadge.toUpperCase()}`}
+                                            </Badge>
+                                            <span className="text-muted-foreground/40">•</span>
+                                            <span className="text-[11px] text-emerald-400 font-medium shrink-0">
+                                              Status: {statusTexto}
+                                            </span>
+                                          </div>
+                                          {operador && (
+                                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                                              Operador: <strong className="text-slate-300 font-normal">{operador}</strong>
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
-                                      <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] shrink-0 font-medium">
-                                        {statusTexto}
-                                      </Badge>
                                     </CommandItem>
                                   );
                                 })}

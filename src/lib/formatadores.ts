@@ -113,3 +113,13 @@ function cnpjValido(d: string): boolean {
 export function emailValido(valor: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(valor.trim());
 }
+
+/**
+ * Normaliza limites e modalidades de BMs (ex: "Conta 2K", "BM 2K", "2K", "2k" -> "2k"; "Conta 250", "BM 250", "250" -> "250")
+ */
+export function normalizeLimit(val: string | null | undefined): string {
+  if (!val) return "";
+  const str = String(val).toLowerCase().trim();
+  if (str.includes("ilim")) return "ilimitada";
+  return str.replace(/[^0-9k]/g, "").trim();
+}
