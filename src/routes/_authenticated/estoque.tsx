@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { resilientInsert, resilientUpdate } from "@/lib/supabase-resilient";
 import { useSessao } from "@/hooks/use-sessao";
 import {
   listarEstoqueLocal,
@@ -416,20 +417,26 @@ function PaginaEstoque() {
         id: itemEditando?.id || crypto.randomUUID(),
         empresa_id: empresa.id,
         tipo_ativo: tipoAtivoFinal,
-        nome: isBM ? (nomeDigitado || null) : null,
+        nome: isBM ? (nomeDigitado || `BM ${limiteEscolhido}`) : tipoAtivoFinal,
         nome_bm: isBM ? (nomeDigitado || null) : null,
         limite: isBM ? limiteEscolhido : null,
         limite_bm: isBM ? limiteEscolhido : null,
+        template: isBM ? temTemplate : false,
         tem_template: isBM ? temTemplate : false,
-        data_criacao: isBM ? (dataCriacao || new Date().toISOString().slice(0, 10)) : null,
+        data_criacao: isBM ? (dataCriacao ? new Date(dataCriacao).toISOString() : new Date().toISOString()) : new Date().toISOString(),
+        data_registro: isBM ? (dataCriacao || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10),
         responsavel: isBM ? (responsavel.trim() || null) : null,
         criador_responsavel: isBM ? (responsavel.trim() || null) : null,
         destinatario: isBM ? (destinatario.trim() || null) : null,
+        destinatario_cliente: isBM ? (destinatario.trim() || null) : null,
         status_envio: isBM ? statusEnvio : null,
+        quantidade: Number(qtdDisponivel) || 1,
         quantidade_disponivel: Number(qtdDisponivel) || 0,
         quantidade_reservada: Number(qtdReservada) || 0,
+        custo_unitario: Number(custoMedio.replace(",", ".")) || 0,
         custo_medio_unitario: Number(custoMedio.replace(",", ".")) || 0,
         status: statusFinal,
+        origem: "manual",
       };
 
       // 1. Obter usuário autenticado para envio seguro
@@ -439,43 +446,23 @@ function PaginaEstoque() {
         user_id: user?.id || null,
       };
 
-      // 2. Persistir no Supabase com tratamento e log detalhado de erro
+      // 2. Persistir no Supabase de forma resiliente contra schema cache desatualizado
       try {
         if (itemEditando) {
-          const { error: errUpdate } = await supabase
-            .from("estoque")
-            .update(payload as any)
-            .eq("id", itemEditando.id);
+          const { error: errUpdate } = await resilientUpdate("estoque", payload, "id", itemEditando.id);
           if (errUpdate) {
-            console.warn("Aviso ao atualizar com payload completo, tentando modo compatível:", errUpdate);
-            const { user_id, nome, limite, criador_responsavel, ...payloadCompativel } = payload;
-            const resFallback = await supabase
-              .from("estoque")
-              .update(payloadCompativel as any)
-              .eq("id", itemEditando.id);
-            if (resFallback.error) {
-              console.error("Erro detalhado ao atualizar no Supabase:", resFallback.error);
-              throw new Error(resFallback.error.message || "Erro ao atualizar no estoque");
-            }
+            console.error("Erro detalhado ao atualizar no Supabase:", errUpdate);
+            throw new Error(errUpdate.message || "Erro ao atualizar no estoque");
           }
         } else {
-          const { error: errInsert } = await supabase
-            .from("estoque")
-            .insert(payload as any);
+          const { error: errInsert } = await resilientInsert("estoque", payload);
           if (errInsert) {
-            console.warn("Aviso ao inserir com payload completo, tentando modo compatível:", errInsert);
-            const { user_id, nome, limite, criador_responsavel, ...payloadCompativel } = payload;
-            const resFallback = await supabase
-              .from("estoque")
-              .insert(payloadCompativel as any);
-            if (resFallback.error) {
-              console.error("Erro detalhado ao inserir no Supabase:", resFallback.error);
-              throw new Error(resFallback.error.message || "Erro ao salvar no estoque");
-            }
+            console.error("Erro detalhado ao inserir no Supabase:", errInsert);
+            throw new Error(errInsert.message || "Erro ao salvar no estoque");
           }
         }
       } catch (errSupabase: any) {
-        console.error("Erro detalhado:", errSupabase);
+        console.error("Erro detalhado Supabase:", errSupabase);
         throw errSupabase;
       }
 

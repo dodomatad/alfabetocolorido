@@ -96,54 +96,77 @@ export const salvarItemEstoqueLocal = createServerFn({ method: "POST" })
 
     const stmt = db.prepare(`
       INSERT INTO estoque (
-        id, empresa_id, tipo_ativo, nome_bm, limite_bm, nome_portfolio, nome_conta, status_envio,
-        tem_template, data_criacao, responsavel, destinatario, origem,
-        producao_id, venda_id, cliente_id, quantidade_disponivel,
-        quantidade_reservada, custo_medio_unitario, status, updated_at, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, empresa_id, tipo_ativo, nome, nome_bm, limite, limite_bm, nome_portfolio, nome_conta, status_envio,
+        tem_template, template, data_criacao, data_registro, responsavel, criador_responsavel, destinatario, destinatario_cliente, origem,
+        producao_id, venda_id, cliente_id, quantidade, quantidade_disponivel,
+        quantidade_reservada, custo_unitario, custo_medio_unitario, status, user_id, updated_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         tipo_ativo = excluded.tipo_ativo,
+        nome = excluded.nome,
         nome_bm = excluded.nome_bm,
+        limite = excluded.limite,
         limite_bm = excluded.limite_bm,
         nome_portfolio = excluded.nome_portfolio,
         nome_conta = excluded.nome_conta,
         status_envio = excluded.status_envio,
         tem_template = excluded.tem_template,
+        template = excluded.template,
         data_criacao = excluded.data_criacao,
+        data_registro = excluded.data_registro,
         responsavel = excluded.responsavel,
+        criador_responsavel = excluded.criador_responsavel,
         destinatario = excluded.destinatario,
+        destinatario_cliente = excluded.destinatario_cliente,
         origem = excluded.origem,
         producao_id = excluded.producao_id,
         venda_id = excluded.venda_id,
         cliente_id = excluded.cliente_id,
+        quantidade = excluded.quantidade,
         quantidade_disponivel = excluded.quantidade_disponivel,
         quantidade_reservada = excluded.quantidade_reservada,
+        custo_unitario = excluded.custo_unitario,
         custo_medio_unitario = excluded.custo_medio_unitario,
         status = excluded.status,
+        user_id = excluded.user_id,
         updated_at = excluded.updated_at
     `);
+
+    const nomeVal = (data as any).nome ?? data.nome_bm ?? data.tipo_ativo;
+    const limVal = (data as any).limite ?? data.limite_bm ?? null;
+    const respVal = (data as any).criador_responsavel ?? data.responsavel ?? null;
+    const destVal = (data as any).destinatario_cliente ?? data.destinatario ?? null;
 
     stmt.run(
       id,
       data.empresa_id,
       data.tipo_ativo,
-      data.nome_bm ?? null,
-      data.limite_bm ?? null,
+      nomeVal,
+      data.nome_bm ?? nomeVal,
+      limVal,
+      data.limite_bm ?? limVal,
       data.nome_portfolio ?? null,
       data.nome_conta ?? null,
       data.status_envio ?? "disponivel",
       data.tem_template ? 1 : 0,
-      data.data_criacao ?? now.slice(0, 10),
-      data.responsavel ?? null,
-      data.destinatario ?? null,
+      (data as any).template ? 1 : (data.tem_template ? 1 : 0),
+      data.data_criacao ?? now,
+      (data as any).data_registro ?? (data.data_criacao ? data.data_criacao.slice(0, 10) : now.slice(0, 10)),
+      respVal,
+      respVal,
+      destVal,
+      destVal,
       data.origem ?? "producao",
       data.producao_id ?? null,
       data.venda_id ?? null,
       data.cliente_id ?? null,
+      (data as any).quantidade ?? data.quantidade_disponivel ?? 1,
       data.quantidade_disponivel,
       data.quantidade_reservada,
+      (data as any).custo_unitario ?? data.custo_medio_unitario ?? 0,
       data.custo_medio_unitario ?? 0,
       data.status,
+      data.user_id ?? null,
       now,
       now
     );

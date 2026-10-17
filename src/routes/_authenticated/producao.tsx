@@ -74,6 +74,7 @@ import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela } from "@/components/comum/estados";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
+import { resilientInsert } from "@/lib/supabase-resilient";
 import {
   listarEstoqueLocal,
   listarProducaoLocal,
@@ -542,14 +543,20 @@ function PaginaProducao() {
           status_envio: "disponivel",
           origem: "producao",
           producao_id: producaoId,
+          template: false,
+          tem_template: false,
           data_criacao: new Date().toISOString(),
+          data_registro: dataVirada || new Date().toISOString().slice(0, 10),
           responsavel: operador.trim(),
           criador_responsavel: operador.trim(),
+          quantidade: 1,
           quantidade_disponivel: 1,
           quantidade_reservada: 0,
+          custo_unitario: 0,
           custo_medio_unitario: 0,
           venda_id: null,
           cliente_id: null,
+          user_id: session?.user?.id ?? null,
         };
       });
 
@@ -619,9 +626,7 @@ function PaginaProducao() {
           dadosProducaoSupabase.motivo_queda = motivoValido;
         }
 
-        const { error: erroProducao } = await supabase
-          .from("producao_diaria")
-          .insert(dadosProducaoSupabase);
+        const { error: erroProducao } = await resilientInsert("producao_diaria", dadosProducaoSupabase);
 
         if (erroProducao) {
           console.warn("Aviso ao salvar producao_diaria no Supabase remoto:", erroProducao);
@@ -630,37 +635,12 @@ function PaginaProducao() {
         console.warn("Erro ao sincronizar producao_diaria no Supabase:", errProd);
       }
 
-      // 4. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE
-      const { error: stockError } = await supabase
-        .from("estoque")
-        .insert(bmsToInsert as any);
+      // 4. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE (Resiliente a colunas do schema cache)
+      const { error: stockError } = await resilientInsert("estoque", bmsToInsert);
 
       if (stockError) {
-        console.warn("Aviso ao inserir no estoque remoto com colunas completas, tentando modo canônico:", stockError);
-        const fallbackRecords = bmsToInsert.map((b) => ({
-          id: b.id,
-          empresa_id: b.empresa_id,
-          nome_bm: b.nome_bm,
-          limite_bm: b.limite_bm,
-          tipo_ativo: b.tipo_ativo,
-          nome_portfolio: b.nome_portfolio,
-          nome_conta: b.nome_conta,
-          status: "Disponível",
-          status_envio: "disponivel",
-          origem: "producao",
-          producao_id: b.producao_id,
-          responsavel: b.responsavel,
-          quantidade_disponivel: 1,
-          quantidade_reservada: 0,
-          custo_medio_unitario: 0,
-          venda_id: null,
-          cliente_id: null,
-        }));
-        const resFallback = await supabase.from("estoque").insert(fallbackRecords as any);
-        if (resFallback.error) {
-          console.error("Erro ao subir BMs para o estoque:", resFallback.error);
-          throw resFallback.error;
-        }
+        console.error("Erro ao subir BMs para o estoque:", stockError);
+        throw stockError;
       }
 
       // 5. Inserir lote localmente (se disponível)

@@ -187,19 +187,25 @@ export function getLocalDatabase(): DatabaseSync {
       nome_conta: "TEXT",
       status_envio: "TEXT DEFAULT 'disponivel'",
       tem_template: "INTEGER DEFAULT 0",
+      template: "INTEGER DEFAULT 0",
       data_criacao: "TEXT",
+      data_registro: "TEXT",
       responsavel: "TEXT",
       destinatario: "TEXT",
+      destinatario_cliente: "TEXT",
       origem: "TEXT DEFAULT 'producao'",
       producao_id: "TEXT",
       venda_id: "TEXT",
       cliente_id: "TEXT",
       cliente_nome: "TEXT",
       data_venda: "TEXT",
+      quantidade: "REAL DEFAULT 1",
       quantidade_disponivel: "REAL DEFAULT 1",
       quantidade_reservada: "REAL DEFAULT 0",
+      custo_unitario: "REAL DEFAULT 0",
       custo_medio_unitario: "REAL DEFAULT 0",
       status: "TEXT DEFAULT 'disponivel'",
+      user_id: "TEXT",
       updated_at: "TEXT DEFAULT CURRENT_TIMESTAMP",
       created_at: "TEXT DEFAULT CURRENT_TIMESTAMP",
     };
@@ -208,6 +214,27 @@ export function getLocalDatabase(): DatabaseSync {
       if (!colunasEstoque.includes(col)) {
         try {
           db.exec(`ALTER TABLE estoque ADD COLUMN ${col} ${def};`);
+        } catch {
+          // Ignora caso a coluna já exista
+        }
+      }
+    }
+
+    // Migração defensiva para tabela vendas
+    const colunasVendas = (db.prepare("PRAGMA table_info(vendas)").all() as any[]).map((c) => c.name);
+    const colunasVendasParaAdicionar: Record<string, string> = {
+      status_inicial: "TEXT DEFAULT 'Rascunho'",
+      previsao_entrega: "TEXT",
+      status_envio: "TEXT DEFAULT 'Não enviado'",
+      user_id: "TEXT",
+      cliente_id: "TEXT",
+      cliente_nome: "TEXT",
+    };
+
+    for (const [col, def] of Object.entries(colunasVendasParaAdicionar)) {
+      if (!colunasVendas.includes(col)) {
+        try {
+          db.exec(`ALTER TABLE vendas ADD COLUMN ${col} ${def};`);
         } catch {
           // Ignora caso a coluna já exista
         }

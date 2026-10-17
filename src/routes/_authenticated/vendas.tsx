@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
+import { resilientUpdate } from "@/lib/supabase-resilient";
 import { listarVendasLocal } from "@/lib/estoque.functions";
 import { formatarData, formatarMoeda } from "@/lib/formatadores";
 
@@ -100,35 +101,45 @@ function PaginaVendas() {
         console.warn("Aviso ao buscar vendas locais:", errLocal);
       }
 
-      let q = supabase
+      try {
+        let q = supabase
+          .from("vendas")
+          .select("id, numero, status, status_entrega, valor_total, data_venda, data_entrega_prevista, cliente_nome, cliente, clientes(nome)")
+          .order("data_venda", { ascending: false })
+          .limit(50);
+        if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
+        const { data, error } = await q;
+        if (!error && data && data.length > 0) return data as unknown as Venda[];
+      } catch (errQ) {
+        console.warn("Aviso ao buscar vendas com join:", errQ);
+      }
+
+      // Fallback sem junção direta se a relação não existir no schema
+      const { data: fallbackData } = await supabase
         .from("vendas")
-        .select("id, numero, status, status_entrega, valor_total, data_venda, data_entrega_prevista, clientes(nome)")
-        .order("numero", { ascending: false })
+        .select("*")
+        .order("data_venda", { ascending: false })
         .limit(50);
-      if (status !== "todos") q = q.eq("status", status as (typeof STATUS)[number]);
-      const { data, error } = await q;
-      if (error) return [];
-      return (data ?? []) as unknown as Venda[];
+      return (fallbackData ?? []) as unknown as Venda[];
     },
   });
 
   const excluirVenda = useMutation({
     mutationFn: async (vendaId: string) => {
-      // 0. Restaura BMs vinculadas a esta venda de volta para disponível no estoque
+      // 0. Restaura BMs vinculadas a esta venda de volta para disponível no estoque de forma resiliente
       try {
-        if (empresa?.id) {
-          await (supabase.from("estoque") as any)
-            .update({
-              status: "disponivel",
-              status_envio: "disponivel",
-              quantidade_disponivel: 1,
-              venda_id: null,
-              destinatario: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("venda_id", vendaId)
-            .eq("empresa_id", empresa.id);
-        }
+        await resilientUpdate("estoque", {
+          status: "Disponível",
+          status_envio: "disponivel",
+          quantidade_disponivel: 1,
+          quantidade: 1,
+          venda_id: null,
+          destinatario: null,
+          destinatario_cliente: null,
+          cliente_id: null,
+          cliente_nome: null,
+          updated_at: new Date().toISOString(),
+        }, "venda_id", vendaId);
       } catch (eEstorno) {
         console.warn("Aviso ao estornar BMs no estoque ao excluir venda:", eEstorno);
       }
@@ -224,8 +235,8 @@ function PaginaVendas() {
               <TableBody>
                 {consulta.data?.map((venda) => (
                   <TableRow key={venda.id}>
-                    <TableCell className="num font-medium">{venda.numero}</TableCell>
-                    <TableCell>{venda.clientes?.nome ?? "—"}</TableCell>
+                    <TableCell className="num font-medium">{venda.numero || "—"}</TableCell>
+                    <TableCell>{venda.clientes?.nome ?? (venda as any).cliente_nome ?? (venda as any).cliente ?? "—"}</TableCell>
                     <TableCell className="num">{formatarData(venda.data_venda, fuso)}</TableCell>
                     <TableCell className="hidden md:table-cell num text-muted-foreground">
                       {venda.data_entrega_prevista ? formatarData(venda.data_entrega_prevista, fuso) : "—"}

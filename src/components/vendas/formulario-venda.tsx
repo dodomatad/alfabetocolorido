@@ -38,6 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
+import { resilientInsert, resilientUpdate } from "@/lib/supabase-resilient";
 import {
   listarEstoqueLocal,
   baixarBmsVendaLocal,
@@ -464,8 +465,11 @@ export function FormularioVenda({
           comissao_percentual: parseCurrency(percentualComissao),
           data_venda: dataVendaFinal,
           data_entrega_prevista: dataEntregaFinal,
+          previsao_entrega: dataEntregaFinal ? dataEntregaFinal.slice(0, 10) : null,
           status: (status || "confirmada") as any,
+          status_inicial: (status || "confirmada") as any,
           status_entrega: statusFinalEntrega,
+          status_envio: statusFinalEnvio === "entregue" ? "Entregue" : "Não enviado",
           delivery_status: statusFinalEnvio,
           subtotal: subtotalCalculado,
           desconto: descCalculado,
@@ -473,28 +477,15 @@ export function FormularioVenda({
           valor_total: totalCalculado,
           observacoes: (funcionarioId === "ciro-fornecedor" ? "[FORNECEDOR_CIRO] " : "") + (observacoes.trim() || ""),
           criado_por: session?.user?.id ?? null,
+          user_id: session?.user?.id ?? null,
         };
 
-        const { data: newSale, error: insError } = await supabase
-          .from("vendas")
-          .insert([payloadInsert])
-          .select()
-          .single();
-
+        const { data: newSale, error: insError } = await resilientInsert("vendas", [payloadInsert], { select: true });
         if (insError) {
-          // Retry sem campos opcionais se o cache do schema remoto divergir
-          const { delivery_status: _, cliente_nome: __, ...safePayload } = payloadInsert;
-          const { data: retrySale, error: retryError } = await supabase
-            .from("vendas")
-            .insert([safePayload])
-            .select()
-            .single();
-
-          if (retryError) throw retryError;
-          saleData = retrySale;
-        } else {
-          saleData = newSale;
+          console.error("Erro ao salvar venda no Supabase:", insError);
+          throw insError;
         }
+        saleData = Array.isArray(newSale) ? newSale[0] : newSale;
       }
 
       if (!saleData?.id) {
@@ -590,31 +581,24 @@ export function FormularioVenda({
           const statusEstoque = statusFinalEnvio === "entregue" ? "Entregue" : "Vendida";
           const statusEnvioEstoque = statusFinalEnvio === "entregue" ? "entregue" : "reservada";
 
-          // 1. Atualizar estoque no Supabase
+          // 1. Atualizar estoque no Supabase com resiliência de colunas
           try {
             const payloadEstoque: any = {
               status: statusEstoque,
               status_envio: statusEnvioEstoque,
               quantidade_disponivel: 0,
+              quantidade: 0,
               venda_id: vendaSalvaId,
               cliente_id: clienteId,
               cliente_nome: nomeCliente,
               destinatario: nomeCliente,
+              destinatario_cliente: nomeCliente,
               data_venda: dataVendaFinal,
               updated_at: new Date().toISOString(),
             };
 
-            const { error: errEst } = await (supabase.from("estoque") as any)
-              .update(payloadEstoque)
-              .in("id", idsParaBaixar)
-              .eq("empresa_id", empresa.id);
-
-            if (errEst) {
-              const { data_venda: _, cliente_nome: __, ...safeEstoque } = payloadEstoque;
-              await (supabase.from("estoque") as any)
-                .update(safeEstoque)
-                .in("id", idsParaBaixar)
-                .eq("empresa_id", empresa.id);
+            for (const bmId of idsParaBaixar) {
+              await resilientUpdate("estoque", payloadEstoque, "id", bmId);
             }
           } catch (eEst) {
             console.warn("Aviso ao atualizar status das BMs no estoque do Supabase:", eEst);
@@ -627,7 +611,7 @@ export function FormularioVenda({
             const limiteBMFinal = contaRef?.limite_bm || contaRef?.limite || selectedLimitNorm || null;
 
             try {
-              await supabase.from("contas_enviadas").insert({
+              await resilientInsert("contas_enviadas", {
                 empresa_id: empresa.id,
                 bm_id: bmId,
                 venda_id: vendaSalvaId,
@@ -639,7 +623,7 @@ export function FormularioVenda({
                 custo_unitario: contaRef?.custo_medio_unitario || 0,
                 valor_venda: parseCurrency(itemVenda.preco_unitario),
                 status_envio: statusFinalEnvio === "entregue" ? "enviada" : "reservada",
-              } as any);
+              });
             } catch (eContas) {
               console.warn("Aviso ao salvar histórico de conta enviada:", eContas);
             }
