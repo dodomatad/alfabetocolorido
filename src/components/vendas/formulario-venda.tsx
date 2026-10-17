@@ -1045,13 +1045,18 @@ export function FormularioVenda({
                                   const c = allStockBms.find((x) => x.id === id);
                                   const n = c?.nome_bm || c?.tipo_ativo || "BM Selecionada";
                                   const lim = c?.limite_bm || c?.limite || "250";
+                                  const port = c?.nome_portfolio;
+                                  const conta = c?.nome_conta;
                                   return (
                                     <Badge
                                       key={id}
                                       variant="secondary"
                                       className="gap-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] py-0.5 px-2"
                                     >
-                                      <span>{n} • {lim}</span>
+                                      <span>{n}</span>
+                                      {port && <span className="opacity-80 text-[10px]">• Port: {port}</span>}
+                                      {conta && <span className="opacity-80 text-[10px]">• CA: {conta}</span>}
+                                      <span className="font-bold opacity-90">• {lim}</span>
                                       <span
                                         role="button"
                                         tabIndex={0}
@@ -1071,9 +1076,9 @@ export function FormularioVenda({
                             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[480px] max-w-[95vw] p-0 bg-popover border-border/60 shadow-xl" align="start">
+                        <PopoverContent className="w-[520px] max-w-[95vw] p-0 bg-popover border-border/60 shadow-xl" align="start">
                           <Command>
-                            <CommandInput placeholder="Buscar por nome da BM, operador ou limite..." className="text-xs" />
+                            <CommandInput placeholder="Buscar por nome da BM, portfólio, conta, operador ou limite..." className="text-xs" />
                             <CommandList className="max-h-64 overflow-y-auto">
                               <CommandEmpty className="p-3 text-xs text-center text-muted-foreground">
                                 {availableBms.length === 0
@@ -1086,6 +1091,8 @@ export function FormularioVenda({
                                 {availableBms.map((bm) => {
                                   const nomePrincipal = bm.nome_bm || bm.tipo_ativo || "BM sem nome";
                                   const limiteBadge = bm.limite_bm || bm.limite || (bm.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "250");
+                                  const portNome = bm.nome_portfolio || "";
+                                  const contaNome = bm.nome_conta || "";
                                   const estaMarcada = selecionados.includes(bm.id);
                                   const stEnvio = (bm.status_envio || "").toLowerCase();
                                   const statusTexto = (stEnvio === "pronta_envio" || stEnvio.includes("pronta")) ? "Pronta para Envio" : "Disponível";
@@ -1094,7 +1101,7 @@ export function FormularioVenda({
                                   return (
                                     <CommandItem
                                       key={bm.id}
-                                      value={`${nomePrincipal} ${limiteBadge} ${operador} ${statusTexto} ${bm.id}`.toLowerCase()}
+                                      value={`${nomePrincipal} ${portNome} ${contaNome} ${limiteBadge} ${operador} ${statusTexto} ${bm.id}`.toLowerCase()}
                                       onSelect={() => alternarSelecaoConta(bm.id)}
                                       className="flex items-center justify-between text-xs py-2 px-2.5 cursor-pointer hover:bg-accent/40"
                                     >
@@ -1110,13 +1117,29 @@ export function FormularioVenda({
                                             <span className="font-semibold text-foreground truncate">
                                               {nomePrincipal}
                                             </span>
+                                            {portNome && (
+                                              <>
+                                                <span className="text-muted-foreground/40">•</span>
+                                                <span className="text-[11px] text-blue-300 font-medium truncate max-w-[170px]" title={portNome}>
+                                                  Portfólio: {portNome}
+                                                </span>
+                                              </>
+                                            )}
+                                            {contaNome && (
+                                              <>
+                                                <span className="text-muted-foreground/40">•</span>
+                                                <span className="text-[11px] text-amber-300 font-medium truncate max-w-[170px]" title={contaNome}>
+                                                  Conta: {contaNome}
+                                                </span>
+                                              </>
+                                            )}
                                             <span className="text-muted-foreground/40">•</span>
                                             <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] px-1.5 py-0 h-4 font-bold shrink-0">
                                               {limiteBadge.toUpperCase().startsWith("BM") ? limiteBadge.toUpperCase() : `BM ${limiteBadge.toUpperCase()}`}
                                             </Badge>
                                             <span className="text-muted-foreground/40">•</span>
                                             <span className="text-[11px] text-emerald-400 font-medium shrink-0">
-                                              Status: {statusTexto}
+                                              {statusTexto}
                                             </span>
                                           </div>
                                           {operador && (

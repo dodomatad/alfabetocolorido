@@ -21,6 +21,8 @@ import {
   CalendarDays,
   Clock,
   RotateCcw,
+  Briefcase,
+  Megaphone,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -157,6 +159,8 @@ function extrairInfoBM(item: any) {
   }
 
   const nomeExibicao = nomeCustom || (limiteExtraido ? `BM ${limiteExtraido.toUpperCase()}` : tipoAtivo || "BM");
+  const nomePortfolio = item?.nome_portfolio || item?.portfolio || null;
+  const nomeConta = item?.nome_conta || item?.conta || null;
   const responsavel = item?.responsavel || "—";
   const data = item?.data_criacao || item?.created_at || item?.updated_at || "";
   const destinatario = item?.destinatario || null;
@@ -175,6 +179,8 @@ function extrairInfoBM(item: any) {
     id: item?.id,
     nome: nomeExibicao,
     limite: limiteExtraido,
+    nomePortfolio,
+    nomeConta,
     responsavel,
     data,
     destinatario,
@@ -237,6 +243,8 @@ function PaginaProducao() {
   const [dataVirada, setDataVirada] = useState(() => new Date().toISOString().slice(0, 10));
   const [limiteBm, setLimiteBm] = useState("250");
   const [nomesBmTexto, setNomesBmTexto] = useState("");
+  const [nomePortfolio, setNomePortfolio] = useState("");
+  const [nomeConta, setNomeConta] = useState("");
   const [bmsCriadas, setBmsCriadas] = useState("1");
   const [contasViradas, setContasViradas] = useState("1");
   const [bloqueios, setBloqueios] = useState("0");
@@ -440,6 +448,8 @@ function PaginaProducao() {
     setDataVirada(new Date().toISOString().slice(0, 10));
     setLimiteBm("250");
     setNomesBmTexto("");
+    setNomePortfolio("");
+    setNomeConta("");
     setBmsCriadas("1");
     setContasViradas("1");
     setBloqueios("0");
@@ -489,15 +499,32 @@ function PaginaProducao() {
         bloqueiosNum > 0 && motivoQueda !== "nenhum" ? (motivoQueda as MotivoQuedaProducao) : null;
 
       // 1. Gera lista de BMs como itens únicos e serializados com IDs universais
-      const bmsToInsert = nomesValidos.map((nome) => {
+      const bmsToInsert = nomesValidos.map((nome, idx) => {
         const bmId = crypto.randomUUID();
         const lim = limiteBm.toUpperCase();
+
+        const portfolioFinal = nomePortfolio.trim()
+          ? (nomesValidos.length > 1 && nomePortfolio.includes("{n}")
+              ? nomePortfolio.replace("{n}", String(idx + 1))
+              : nomePortfolio.trim())
+          : null;
+
+        const contaFinal = nomeConta.trim()
+          ? (nomesValidos.length > 1 && nomeConta.includes("{n}")
+              ? nomeConta.replace("{n}", String(idx + 1).padStart(2, "0"))
+              : nomesValidos.length > 1
+                ? `${nomeConta.trim()} ${String(idx + 1).padStart(2, "0")}`
+                : nomeConta.trim())
+          : null;
+
         return {
           id: bmId,
           empresa_id: empresa.id,
           nome_bm: nome.trim(),
           limite_bm: lim,
           tipo_ativo: `${nome.trim()} [${lim}]`,
+          nome_portfolio: portfolioFinal,
+          nome_conta: contaFinal,
           status: "disponivel",
           status_envio: "disponivel",
           origem: "producao",
@@ -522,12 +549,16 @@ function PaginaProducao() {
             tipo_ativo: `BM ${limiteBm.toUpperCase()}`,
             tipo_bm: `BM ${limiteBm.toUpperCase()}`,
             limite_bm: limiteBm,
+            nome_portfolio: nomePortfolio.trim() || null,
+            nome_conta: nomeConta.trim() || null,
             nome_bm: nomesValidos.join(", "),
             nomes_bm_lote: nomesValidos,
             bms_detalhadas: bmsToInsert.map((b) => ({
               id: b.id,
               nome_bm: b.nome_bm,
               limite_bm: b.limite_bm,
+              nome_portfolio: b.nome_portfolio,
+              nome_conta: b.nome_conta,
             })),
             bms_criadas: criadasNum,
             contas_viradas: viradasNum,
@@ -565,6 +596,8 @@ function PaginaProducao() {
           bloqueios: bloqueiosNum,
           observacoes: obsFinal,
           criado_por: session?.user?.id ?? null,
+          ...(nomePortfolio.trim() ? { nome_portfolio: nomePortfolio.trim() } : {}),
+          ...(nomeConta.trim() ? { nome_conta: nomeConta.trim() } : {}),
         };
 
         if (motivoValido) {
@@ -618,17 +651,17 @@ function PaginaProducao() {
         await inserirLoteEstoqueLocal({
           data: {
             empresa_id: empresa.id,
-            items: nomesValidos.map((nome) => ({
+            items: bmsToInsert.map((b) => ({
               empresa_id: empresa.id,
-              tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
-              nome_bm: nome,
-              limite_bm: limiteBm,
+              tipo_ativo: b.tipo_ativo,
+              nome_bm: b.nome_bm,
+              limite_bm: b.limite_bm,
               status_envio: "disponivel",
               status: "disponivel",
               quantidade_disponivel: 1,
               quantidade_reservada: 0,
-              responsavel: operador.trim(),
-              data_criacao: dataVirada,
+              responsavel: b.responsavel,
+              data_criacao: b.data_criacao,
               origem: "producao",
               producao_id: producaoId,
             })),
@@ -795,7 +828,9 @@ function PaginaProducao() {
         termo &&
         !info.nome.toLowerCase().includes(termo) &&
         !info.responsavel.toLowerCase().includes(termo) &&
-        !(info.destinatario || "").toLowerCase().includes(termo)
+        !(info.destinatario || "").toLowerCase().includes(termo) &&
+        !(info.nomePortfolio || "").toLowerCase().includes(termo) &&
+        !(info.nomeConta || "").toLowerCase().includes(termo)
       ) {
         return false;
       }
@@ -1247,9 +1282,7 @@ function PaginaProducao() {
                                           title={`Excluir BM ${b.nome}`}
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            if (window.confirm(`Tem certeza de que deseja excluir a BM ${b.nome}?`)) {
-                                              excluirBmMutation.mutate(b.id);
-                                            }
+                                            setBmParaExcluir({ id: b.id, nome: b.nome });
                                           }}
                                           className="hover:text-red-400 text-muted-foreground/60 cursor-pointer ml-0.5 p-0.5 rounded transition"
                                         >
@@ -1388,9 +1421,7 @@ function PaginaProducao() {
                                               title={`Excluir BM ${b.nome}`}
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (window.confirm(`Tem certeza de que deseja excluir a BM ${b.nome}?`)) {
-                                                  excluirBmMutation.mutate(b.id);
-                                                }
+                                                setBmParaExcluir({ id: b.id, nome: b.nome });
                                               }}
                                               className="hover:text-red-400 text-muted-foreground/60 cursor-pointer ml-0.5 p-0.5 rounded transition"
                                             >
@@ -1483,10 +1514,14 @@ function PaginaProducao() {
                 {/* 1. CARDS PARA CELULAR (block md:hidden) */}
                 <div className="block md:hidden divide-y divide-border/30">
                   {bmsFiltradas.map((bm: any) => (
-                    <div key={bm.id} className="p-3.5 space-y-2 hover:bg-muted/20 transition">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-white">{bm.nome}</span>
-                        <div className="flex items-center gap-2">
+                    <div key={bm.id} className="p-3.5 space-y-2.5 hover:bg-muted/20 transition">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <span className="font-mono text-sm font-bold text-white block truncate">
+                            {bm.nome}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <Badge
                             variant="outline"
                             className="border-blue-500/40 text-blue-400 bg-blue-500/10 font-bold text-[11px]"
@@ -1505,9 +1540,25 @@ function PaginaProducao() {
                         </div>
                       </div>
 
+                      {/* PORTFÓLIO DA BM E CONTA DE ANÚNCIOS */}
+                      <div className="space-y-1 bg-black/30 p-2.5 rounded-lg border border-border/40 text-xs">
+                        <div className="flex items-center gap-1.5 text-slate-200">
+                          <span className="text-blue-400 font-semibold shrink-0">🏢 Portfólio:</span>
+                          <span className="font-medium text-white truncate">
+                            {bm.nomePortfolio || "Não informado"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-200">
+                          <span className="text-purple-400 font-semibold shrink-0">📢 Conta:</span>
+                          <span className="font-medium text-white truncate">
+                            {bm.nomeConta || "Não informada"}
+                          </span>
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between text-xs text-slate-300">
-                        <span>Operador: <strong>{bm.responsavel}</strong></span>
-                        <span className="text-muted-foreground">{bm.data ? formatarData(bm.data, fuso) : "—"}</span>
+                        <span>Operador: <strong className="text-white font-medium">{bm.responsavel}</strong></span>
+                        <span className="text-muted-foreground text-[11px]">{bm.data ? formatarData(bm.data, fuso) : "—"}</span>
                       </div>
 
                       <div className="flex items-center justify-between pt-1 border-t border-border/30 text-xs">
@@ -1539,11 +1590,13 @@ function PaginaProducao() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/40 hover:bg-transparent">
-                        <TableHead className="whitespace-nowrap">Nome da BM</TableHead>
-                        <TableHead className="whitespace-nowrap">Limite Virado</TableHead>
-                        <TableHead className="whitespace-nowrap">Quem Virou (Operador)</TableHead>
+                        <TableHead className="whitespace-nowrap">Nome da BM / Ativo</TableHead>
+                        <TableHead className="whitespace-nowrap">Portfólio Empresarial (BM)</TableHead>
+                        <TableHead className="whitespace-nowrap">Conta de Anúncios</TableHead>
+                        <TableHead className="whitespace-nowrap">Limite</TableHead>
+                        <TableHead className="whitespace-nowrap">Operador</TableHead>
                         <TableHead className="whitespace-nowrap">Data de Entrada</TableHead>
-                        <TableHead className="whitespace-nowrap">Destinatário / Enviado Para</TableHead>
+                        <TableHead className="whitespace-nowrap">Destinatário</TableHead>
                         <TableHead className="text-center whitespace-nowrap">Status no Estoque</TableHead>
                         <TableHead className="text-right whitespace-nowrap">Ação</TableHead>
                       </TableRow>
@@ -1556,6 +1609,24 @@ function PaginaProducao() {
                         >
                           <TableCell className="font-bold text-white font-mono text-xs whitespace-nowrap">
                             {bm.nome}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {bm.nomePortfolio ? (
+                              <span className="inline-flex items-center gap-1 text-blue-300 font-medium bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded text-[11px]">
+                                🏢 {bm.nomePortfolio}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/50 italic text-[11px]">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {bm.nomeConta ? (
+                              <span className="inline-flex items-center gap-1 text-purple-300 font-medium bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded text-[11px]">
+                                📢 {bm.nomeConta}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/50 italic text-[11px]">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Badge
@@ -1698,15 +1769,78 @@ function PaginaProducao() {
               </Select>
             </div>
 
+            {/* PORTFÓLIO E CONTA DE ANÚNCIOS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-muted/20 p-3 rounded-lg border border-border/50">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+                  <Label htmlFor="portfolio" className="text-xs font-semibold">
+                    Portfólio da BM (BM Portfolio)
+                  </Label>
+                </div>
+                <Input
+                  id="portfolio"
+                  placeholder="Ex: Agência Prime Business"
+                  value={nomePortfolio}
+                  onChange={(e) => setNomePortfolio(e.target.value)}
+                  className="h-10 sm:h-9 text-xs sm:text-sm"
+                />
+                <span className="text-[10px] text-muted-foreground block">
+                  Use &#123;n&#125; para numeração automática em lote.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+                  <Label htmlFor="conta" className="text-xs font-semibold">
+                    Nome da Conta de Anúncios
+                  </Label>
+                </div>
+                <Input
+                  id="conta"
+                  placeholder="Ex: Conta 01 - Tráfego"
+                  value={nomeConta}
+                  onChange={(e) => setNomeConta(e.target.value)}
+                  className="h-10 sm:h-9 text-xs sm:text-sm"
+                />
+                <span className="text-[10px] text-muted-foreground block">
+                  Identificação da conta vinculada ao ativo.
+                </span>
+              </div>
+            </div>
+
             {/* NOMES DAS BMS */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="nomes" className="text-xs font-semibold">
                   Nome(s) da(s) BM(s)
                 </Label>
-                <span className="text-[10px] sm:text-[11px] text-muted-foreground">
-                  (1 por linha para cadastrar lote)
-                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[10px] text-primary hover:bg-primary/10"
+                    onClick={() => {
+                      const prefix = `BM-${limiteBm.toUpperCase()}`;
+                      const linhas = nomesBmTexto.split("\n").filter((l) => l.trim().length > 0);
+                      const proximoNum = linhas.length + 1;
+                      const novoNome = `${prefix}-${String(proximoNum).padStart(2, "0")}`;
+                      const novoTexto = nomesBmTexto ? `${nomesBmTexto.trim()}\n${novoNome}` : novoNome;
+                      setNomesBmTexto(novoTexto);
+                      const total = novoTexto.split("\n").filter((l) => l.trim().length > 0).length;
+                      setBmsCriadas(String(total));
+                      setContasViradas(String(total));
+                    }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Adicionar BM ao Lote
+                  </Button>
+                  <span className="text-[10px] sm:text-[11px] text-muted-foreground">
+                    (1 por linha)
+                  </span>
+                </div>
               </div>
               <Textarea
                 id="nomes"

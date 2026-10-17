@@ -9,6 +9,8 @@ export interface ItemEstoqueLocal {
   tipo_ativo: string;
   nome_bm?: string | null;
   limite_bm?: string | null;
+  nome_portfolio?: string | null;
+  nome_conta?: string | null;
   status_envio?: string | null;
   tem_template?: boolean | null;
   data_criacao?: string | null;
@@ -69,6 +71,8 @@ export const salvarItemEstoqueLocal = createServerFn({ method: "POST" })
       tipo_ativo: z.string(),
       nome_bm: z.string().nullable().optional(),
       limite_bm: z.string().nullable().optional(),
+      nome_portfolio: z.string().nullable().optional(),
+      nome_conta: z.string().nullable().optional(),
       status_envio: z.string().nullable().optional(),
       tem_template: z.boolean().optional(),
       data_criacao: z.string().nullable().optional(),
@@ -91,15 +95,17 @@ export const salvarItemEstoqueLocal = createServerFn({ method: "POST" })
 
     const stmt = db.prepare(`
       INSERT INTO estoque (
-        id, empresa_id, tipo_ativo, nome_bm, limite_bm, status_envio,
+        id, empresa_id, tipo_ativo, nome_bm, limite_bm, nome_portfolio, nome_conta, status_envio,
         tem_template, data_criacao, responsavel, destinatario, origem,
         producao_id, venda_id, cliente_id, quantidade_disponivel,
         quantidade_reservada, custo_medio_unitario, status, updated_at, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         tipo_ativo = excluded.tipo_ativo,
         nome_bm = excluded.nome_bm,
         limite_bm = excluded.limite_bm,
+        nome_portfolio = excluded.nome_portfolio,
+        nome_conta = excluded.nome_conta,
         status_envio = excluded.status_envio,
         tem_template = excluded.tem_template,
         data_criacao = excluded.data_criacao,
@@ -122,6 +128,8 @@ export const salvarItemEstoqueLocal = createServerFn({ method: "POST" })
       data.tipo_ativo,
       data.nome_bm ?? null,
       data.limite_bm ?? null,
+      data.nome_portfolio ?? null,
+      data.nome_conta ?? null,
       data.status_envio ?? "disponivel",
       data.tem_template ? 1 : 0,
       data.data_criacao ?? now.slice(0, 10),
@@ -600,10 +608,14 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
       atualizado_por: z.string().nullable().optional(),
       nome_bm: z.string().nullable().optional(),
       nomes_bm_lote: z.array(z.string()).optional(),
+      nome_portfolio: z.string().nullable().optional(),
+      nome_conta: z.string().nullable().optional(),
       bms_detalhadas: z.array(z.object({
         id: z.string(),
         nome_bm: z.string(),
-        limite_bm: z.string().optional()
+        limite_bm: z.string().optional(),
+        nome_portfolio: z.string().nullable().optional(),
+        nome_conta: z.string().nullable().optional(),
       })).optional(),
       limite_bm: z.string().nullable().optional(),
       tem_template: z.boolean().optional(),
@@ -625,14 +637,14 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
           funcionario_nome, operador, tipo_ativo, tipo_bm, recebidas_fornecedor,
           bms_criadas, contas_viradas, bloqueios, prontas_estoque, aproveitamento,
           motivo_queda, observacoes, bms_aquecidas, contas_subidas, meta_diaria,
-          nome_bm, limite_bm, tem_template, destinatario, status_envio, quantidade,
+          nome_bm, limite_bm, nome_portfolio, nome_conta, tem_template, destinatario, status_envio, quantidade,
           criado_por, atualizado_por, created_at, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?
         )
         ON CONFLICT(id) DO UPDATE SET
@@ -656,6 +668,8 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
           meta_diaria = excluded.meta_diaria,
           nome_bm = excluded.nome_bm,
           limite_bm = excluded.limite_bm,
+          nome_portfolio = excluded.nome_portfolio,
+          nome_conta = excluded.nome_conta,
           tem_template = excluded.tem_template,
           destinatario = excluded.destinatario,
           status_envio = excluded.status_envio,
@@ -685,6 +699,8 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
         data.meta_diaria,
         data.nome_bm ?? null,
         data.limite_bm ?? null,
+        data.nome_portfolio ?? null,
+        data.nome_conta ?? null,
         data.tem_template ? 1 : 0,
         data.destinatario ?? null,
         data.status_envio,
@@ -713,11 +729,11 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
       if (isBM && (nomes.length > 0 || (data.bms_detalhadas && data.bms_detalhadas.length > 0))) {
         const insertEstoqueStmt = db.prepare(`
           INSERT INTO estoque (
-            id, empresa_id, tipo_ativo, nome_bm, limite_bm, status_envio,
+            id, empresa_id, tipo_ativo, nome_bm, limite_bm, nome_portfolio, nome_conta, status_envio,
             tem_template, data_criacao, responsavel, destinatario, origem,
             producao_id, quantidade_disponivel, quantidade_reservada,
             status, updated_at, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         if (data.bms_detalhadas && data.bms_detalhadas.length > 0) {
@@ -727,6 +743,8 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
             const tipoAtivoFinal = nomeClean.toUpperCase().includes(limClean)
               ? nomeClean
               : `${nomeClean} [${limClean}]`;
+            const portFinal = itemDet.nome_portfolio ?? data.nome_portfolio ?? null;
+            const contaFinal = itemDet.nome_conta ?? data.nome_conta ?? null;
 
             const existente = db.prepare(
               "SELECT id FROM estoque WHERE empresa_id = ? AND id = ?"
@@ -739,6 +757,8 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
                 tipoAtivoFinal,
                 nomeClean,
                 limClean,
+                portFinal,
+                contaFinal,
                 statusEnvioAlvo,
                 data.tem_template ? 1 : 0,
                 data.data_registro,
@@ -771,6 +791,8 @@ export const salvarProducaoLocal = createServerFn({ method: "POST" })
                 tipoAtivoFinal,
                 nomeClean,
                 limite.toUpperCase(),
+                data.nome_portfolio ?? null,
+                data.nome_conta ?? null,
                 statusEnvioAlvo,
                 data.tem_template ? 1 : 0,
                 data.data_registro,
