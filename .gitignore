@@ -37,3 +37,6 @@ data/
 *.db-wal
 *.db-shm
 *.sqlite
+
+# Supabase temp
+supabase/.temp/
