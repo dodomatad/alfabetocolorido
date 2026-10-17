@@ -289,26 +289,34 @@ function PaginaEstoque() {
     },
   });
 
-  // Consulta principal do Estoque (Persistência Local Integrada)
+  // Consulta principal do Estoque (Supabase Primário + Fallback Local)
   const { data: itensEstoque, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["estoque-lista", "bm_stock", empresa?.id],
     enabled: !!empresa?.id,
+    staleTime: 0,
     queryFn: async () => {
+      // 1. Supabase (Repositório Central em Nuvem)
       try {
-        const locais = await listarEstoqueLocal({ data: { empresa_id: empresa!.id } });
-        return (locais || []) as ItemEstoque[];
-      } catch (errLocal) {
-        console.warn("Erro ao buscar estoque local, tentando fallback:", errLocal);
         const { data, error } = await supabase
           .from("estoque")
           .select("*")
           .eq("empresa_id", empresa!.id)
-          .order("updated_at", { ascending: false });
-        if (error) return [];
-        return (data || []) as ItemEstoque[];
+          .order("created_at", { ascending: false });
+        if (!error && data && data.length > 0) {
+          return data as ItemEstoque[];
+        }
+      } catch (errSupabase) {
+        console.warn("Aviso ao buscar estoque no Supabase:", errSupabase);
+      }
+
+      // 2. Fallback no banco local
+      try {
+        const locais = await listarEstoqueLocal({ data: { empresa_id: empresa!.id } });
+        return (locais || []) as ItemEstoque[];
+      } catch (errLocal) {
+        return [];
       }
     },
-    staleTime: 1000 * 60 * 1,
   });
 
   const [abaAtiva, setAbaAtiva] = useState<string>("estoque");
@@ -526,18 +534,29 @@ function PaginaEstoque() {
   const excluirMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
+      
+      // 1. Supabase (nuvem)
+      const { error: erroSupabase } = await supabase.from("estoque").delete().eq("id", id);
+      if (erroSupabase) {
+        console.warn("Aviso ao excluir no Supabase:", erroSupabase);
+      }
+
+      // 2. Local
       try {
-        await supabase.from("estoque").delete().eq("id", id);
-      } catch (e) {
-        // Ignora erro remoto
+        await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
+      } catch (errLocal) {
+        console.warn("Aviso ao excluir local:", errLocal);
       }
     },
     onSuccess: () => {
       toast.success("Item removido do estoque.");
-      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setItemParaExcluir(null);
