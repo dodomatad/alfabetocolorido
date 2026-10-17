@@ -655,24 +655,19 @@ function PaginaProducao() {
         console.warn("Erro ao sincronizar producao_diaria no Supabase:", errProd);
       }
 
-      // 4. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE (Resiliente a colunas do schema cache)
-      const { error: stockError } = await resilientInsert("estoque", bmsToInsert);
-
-      if (stockError) {
-        console.error("Erro ao subir BMs para o estoque:", stockError);
-        throw stockError;
-      }
-
-      // 5. Inserir lote localmente (se disponível)
+      // 4. Inserir lote localmente (garante que cada BM individual fique salva e disponível)
       try {
         await inserirLoteEstoqueLocal({
           data: {
             empresa_id: empresa.id,
             items: bmsToInsert.map((b) => ({
+              id: b.id,
               empresa_id: empresa.id,
               tipo_ativo: b.tipo_ativo,
               nome_bm: b.nome_bm,
               limite_bm: b.limite_bm,
+              nome_portfolio: b.nome_portfolio,
+              nome_conta: b.nome_conta,
               status_envio: "disponivel",
               status: "Disponível",
               quantidade_disponivel: 1,
@@ -684,8 +679,18 @@ function PaginaProducao() {
             })),
           },
         });
-      } catch {
-        // Fallback local não bloqueante
+      } catch (errLocal) {
+        console.warn("Aviso ao salvar estoque local:", errLocal);
+      }
+
+      // 5. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE (Resiliente a colunas do schema cache)
+      try {
+        const { error: stockError } = await resilientInsert("estoque", bmsToInsert);
+        if (stockError) {
+          console.warn("Aviso ao sincronizar BMs no Supabase remoto:", stockError);
+        }
+      } catch (errStock) {
+        console.warn("Erro de rede ao subir BMs para o estoque remoto:", errStock);
       }
 
       return {

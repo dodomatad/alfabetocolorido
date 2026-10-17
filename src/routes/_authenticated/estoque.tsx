@@ -56,13 +56,24 @@ function DashboardEstoque() {
     },
   });
 
+  const extrairLimite = (texto: string) => {
+    const lim = (texto || "").toLowerCase();
+    if (lim.includes("100k")) return "100k";
+    if (lim.includes("10k")) return "10k";
+    if (lim.includes("2k")) return "2k";
+    if (lim.includes("250")) return "250";
+    if (lim.includes("ilimitad")) return "ilimitada";
+    if (lim.includes("perfil")) return "perfil";
+    return "";
+  };
+
   const getQtd = (tipo: string) => {
+    const cardLim = extrairLimite(tipo);
     return (
       estoque
         ?.filter((e) => {
-          const t = (e.tipo_ativo || e.nome || e.limite || "").toLowerCase();
-          const tipoNorm = tipo.toLowerCase();
-          return t === tipoNorm || t.includes(tipoNorm);
+          const t = e.tipo_ativo || e.nome || e.limite || e.limite_bm || "";
+          return extrairLimite(t) === cardLim;
         })
         .reduce((acc, curr) => acc + Number(curr.quantidade_disponivel || 1), 0) || 0
     );

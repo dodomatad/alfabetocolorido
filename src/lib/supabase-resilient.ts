@@ -60,11 +60,10 @@ export async function resilientInsert<T = any>(
           const extrairBase = (item: any) => ({
             id: item.id || crypto.randomUUID(),
             empresa_id: item.empresa_id,
-            tipo_ativo: item.tipo_ativo || item.nome || "BM",
+            tipo_ativo: item.tipo_ativo || item.nome || item.nome_bm || "BM 250",
             quantidade_disponivel: item.quantidade_disponivel ?? 1,
-            quantidade_reservada: item.quantidade_reservada ?? 0,
             custo_medio_unitario: item.custo_medio_unitario ?? 0,
-            status: item.status || "Disponível",
+            status: item.status === "Disponível" ? "em_estoque" : (item.status || "em_estoque"),
           });
           const basePayload = Array.isArray(records)
             ? records.map(extrairBase)
