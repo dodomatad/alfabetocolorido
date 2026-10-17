@@ -429,48 +429,72 @@ function PaginaEstoque() {
         status: statusFinal,
       };
 
-      // 1. Salva localmente no SQLite
-      const resLocal = await salvarItemEstoqueLocal({ data: payloadLocal });
-      const estoqueSalvoId = resLocal.id || payloadLocal.id;
+      // 1. Obter usuário autenticado para envio seguro
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload = {
+        ...payloadLocal,
+        user_id: user?.id || null,
+      };
 
-      // 2. Se o status for "enviada" ou tiver destinatário, registra localmente no histórico
-      const ehEnviada = statusEnvio === "enviada" || (isBM && Boolean(destinatario.trim()) && statusEnvio !== "disponivel");
-      if (ehEnviada) {
-        try {
-          await registrarContaEnviadaLocal({
-            data: {
-              empresa_id: empresa.id,
-              bm_id: estoqueSalvoId,
-              nome_bm: nomeDigitado || tipoAtivoFinal,
-              limite_bm: limiteEscolhido,
-              destinatario_cliente: destinatario.trim() || "Cliente não informado",
-              responsavel_envio: responsavel.trim() || null,
-              data_envio: dataCriacao || new Date().toISOString().slice(0, 10),
-              custo_unitario: Number(custoMedio.replace(",", ".")) || 0,
-              valor_venda: 0,
-              status_envio: "enviada",
-            },
-          });
-        } catch (eH) {
-          console.warn("Aviso ao salvar histórico de conta enviada local:", eH);
-        }
-      }
-
-      // 3. Fallback assíncrono para o Supabase (sem travar a interface se o Supabase falhar)
+      // 2. Persistir no Supabase com tratamento e log detalhado de erro
       try {
         if (itemEditando) {
-          await supabase.from("estoque").update(payloadLocal as any).eq("id", itemEditando.id);
+          const { error: errUpdate } = await supabase
+            .from("estoque")
+            .update(payload as any)
+            .eq("id", itemEditando.id);
+          if (errUpdate) {
+            console.error("Erro detalhado ao atualizar no Supabase:", errUpdate);
+            throw new Error(errUpdate.message || "Erro ao atualizar no estoque");
+          }
         } else {
-          await supabase.from("estoque").insert(payloadLocal as any);
+          const { error: errInsert } = await supabase
+            .from("estoque")
+            .insert(payload as any);
+          if (errInsert) {
+            console.error("Erro detalhado ao inserir no Supabase:", errInsert);
+            throw new Error(errInsert.message || "Erro ao salvar no estoque");
+          }
         }
-      } catch (errSupabase) {
-        // Ignora divergência remota; o local já garantiu a persistência
+      } catch (errSupabase: any) {
+        console.error("Erro detalhado:", errSupabase);
+        throw errSupabase;
+      }
+
+      // 3. Sincronização secundária local no SQLite (protegida contra bloqueios de EPERM do SO)
+      try {
+        const resLocal = await salvarItemEstoqueLocal({ data: payload });
+        const estoqueSalvoId = resLocal?.id || payload.id;
+
+        const ehEnviada = statusEnvio === "enviada" || (isBM && Boolean(destinatario.trim()) && statusEnvio !== "disponivel");
+        if (ehEnviada) {
+          try {
+            await registrarContaEnviadaLocal({
+              data: {
+                empresa_id: empresa.id,
+                bm_id: estoqueSalvoId,
+                nome_bm: nomeDigitado || tipoAtivoFinal,
+                limite_bm: limiteEscolhido,
+                destinatario_cliente: destinatario.trim() || "Cliente não informado",
+                responsavel_envio: responsavel.trim() || null,
+                data_envio: dataCriacao || new Date().toISOString().slice(0, 10),
+                custo_unitario: Number(custoMedio.replace(",", ".")) || 0,
+                valor_venda: 0,
+                status_envio: "enviada",
+              },
+            });
+          } catch (eH) {
+            console.warn("Aviso ao salvar histórico de conta enviada local:", eH);
+          }
+        }
+      } catch (errLocal: any) {
+        console.warn("Aviso SQLite local (não impeditivo se EPERM):", errLocal);
       }
     },
     onSuccess: () => {
-      toast.success(itemEditando ? "✓ Ativo atualizado com sucesso!" : "✓ Item salvo no estoque com sucesso!");
-      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      toast.success(itemEditando ? "✓ Ativo atualizado com sucesso!" : "✓ Salvo no estoque com sucesso!");
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
       void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -478,9 +502,14 @@ function PaginaEstoque() {
       setModalAberto(false);
     },
     onError: (err: Error) => {
+      console.error("Erro detalhado:", err);
       toast.error("Erro ao salvar no estoque", { description: err.message });
     },
   });
+
+  const handleSaveStock = () => {
+    salvarMutation.mutate();
+  };
 
   // Mutation rápida para alternar status (Mover para Contingência / Liberar para Estoque / Bloquear)
   const alterarStatusMutation = useMutation({
@@ -1198,7 +1227,7 @@ function PaginaEstoque() {
             </Button>
             <Button
               type="button"
-              onClick={() => salvarMutation.mutate()}
+              onClick={handleSaveStock}
               disabled={salvarMutation.isPending}
             >
               {salvarMutation.isPending ? "Salvando..." : "Salvar no Estoque"}

@@ -86,7 +86,8 @@ export const salvarItemEstoqueLocal = createServerFn({ method: "POST" })
       quantidade_reservada: z.number().default(0),
       custo_medio_unitario: z.number().nullable().optional(),
       status: z.string().default("disponivel"),
-    }).parse(data)
+      user_id: z.string().nullable().optional(),
+    }).passthrough().parse(data)
   )
   .handler(async ({ data }) => {
     const db = getLocalDatabase();
