@@ -239,8 +239,8 @@ function PaginaProducao() {
   const [bmParaExcluir, setBmParaExcluir] = useState<{ id: string; nome: string } | null>(null);
 
   // Campos do Formulário de Produção & Estoque
-  const [operador, setOperador] = useState("");
-  const [operadorManual, setOperadorManual] = useState(false);
+  const [operadorSelecionado, setOperadorSelecionado] = useState("");
+  const [operadorOutroTexto, setOperadorOutroTexto] = useState("");
   const [dataVirada, setDataVirada] = useState(() => new Date().toISOString().slice(0, 10));
   const [limiteBm, setLimiteBm] = useState("250");
   const [nomesBmTexto, setNomesBmTexto] = useState("");
@@ -271,6 +271,15 @@ function PaginaProducao() {
       }
     },
   });
+
+  // Lista de Operadores Predefinidos: André Alves, Ligya Teixeira, Francille e equipe
+  const opcoesOperadores = useMemo(() => {
+    const base = ["André Alves", "Ligya Teixeira", "Francille"];
+    const outrosEquipe = (equipeQuery.data || [])
+      .map((m) => m.nome?.trim())
+      .filter((n): n is string => Boolean(n) && n !== "Fornecedor CIRO" && !base.includes(n));
+    return [...base, ...outrosEquipe];
+  }, [equipeQuery.data]);
 
   // 2. Carrega Registros de Produção Diária (Lançamentos com métricas completas)
   const producaoQuery = useQuery({
@@ -444,8 +453,8 @@ function PaginaProducao() {
 
   // Resetar formulário
   const resetForm = () => {
-    setOperador("");
-    setOperadorManual(false);
+    setOperadorSelecionado("");
+    setOperadorOutroTexto("");
     setDataVirada(new Date().toISOString().slice(0, 10));
     setLimiteBm("250");
     setNomesBmTexto("");
@@ -471,7 +480,18 @@ function PaginaProducao() {
   const salvarProducaoMutation = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      if (!operador.trim()) throw new Error("Selecione ou informe quem realizou a viragem/criação da BM.");
+      
+      const operador = operadorSelecionado === "Outro" 
+        ? operadorOutroTexto.trim() 
+        : operadorSelecionado.trim();
+
+      if (!operador) {
+        throw new Error(
+          operadorSelecionado === "Outro"
+            ? "Digite o nome de quem virou a BM."
+            : "Selecione ou informe quem virou a BM."
+        );
+      }
       if (!dataVirada) throw new Error("Informe a data do lançamento de produção.");
 
       // Parse dos nomes das BMs (aceita linha por linha ou separado por vírgula)
@@ -1698,40 +1718,43 @@ function PaginaProducao() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* OPERADOR */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="op" className="text-xs font-semibold">
-                    Quem virou a BM? *
-                  </Label>
-                  <button
-                    type="button"
-                    onClick={() => setOperadorManual(!operadorManual)}
-                    className="text-[10px] text-blue-400 hover:underline"
-                  >
-                    {operadorManual ? "Escolher da Equipe" : "Digitar Manualmente"}
-                  </button>
-                </div>
+                <Label htmlFor="op" className="text-xs font-semibold">
+                  Quem virou a BM? *
+                </Label>
 
-                {operadorManual ? (
-                  <Input
-                    placeholder="Digite o nome da operadora..."
-                    value={operador}
-                    onChange={(e) => setOperador(e.target.value)}
-                    className="h-10 sm:h-9 text-xs sm:text-sm"
-                  />
-                ) : (
-                  <Select value={operador} onValueChange={setOperador}>
-                    <SelectTrigger id="op" className="h-10 sm:h-9 text-xs sm:text-sm">
-                      <SelectValue placeholder="Selecione a operadora" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Fornecedor CIRO">🔧 Fornecedor CIRO</SelectItem>
-                      {(equipeQuery.data || []).map((m) => (
-                        <SelectItem key={m.id} value={m.nome}>
-                          {m.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <Select
+                  value={operadorSelecionado}
+                  onValueChange={(val) => {
+                    setOperadorSelecionado(val);
+                    if (val !== "Outro") {
+                      setOperadorOutroTexto("");
+                    }
+                  }}
+                >
+                  <SelectTrigger id="op" className="h-10 sm:h-9 text-xs sm:text-sm">
+                    <SelectValue placeholder="Selecione quem virou a BM" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {opcoesOperadores.map((nome) => (
+                      <SelectItem key={nome} value={nome}>
+                        {nome}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="Outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {operadorSelecionado === "Outro" && (
+                  <div className="pt-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <Input
+                      id="op-outro"
+                      placeholder="Digite o nome de quem virou a BM..."
+                      value={operadorOutroTexto}
+                      onChange={(e) => setOperadorOutroTexto(e.target.value)}
+                      className="h-10 sm:h-9 text-xs sm:text-sm border-blue-500/50 focus:border-blue-500 bg-background/80"
+                      autoFocus
+                    />
+                  </div>
                 )}
               </div>
 
