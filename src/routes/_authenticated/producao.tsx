@@ -51,6 +51,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -68,6 +78,7 @@ import {
   salvarProducaoLocal,
   excluirProducaoLocal,
   excluirItemEstoqueLocal,
+  inserirLoteEstoqueLocal,
 } from "@/lib/estoque.functions";
 import { formatarData } from "@/lib/formatadores";
 import { cn } from "@/lib/utils";
@@ -217,6 +228,8 @@ function PaginaProducao() {
 
   // Estado do Modal de Registro
   const [modalAberto, setModalAberto] = useState(false);
+  // Estado para Confirmação de Exclusão de BM
+  const [bmParaExcluir, setBmParaExcluir] = useState<{ id: string; nome: string } | null>(null);
 
   // Campos do Formulário de Produção & Estoque
   const [operador, setOperador] = useState("");
@@ -580,16 +593,49 @@ function PaginaProducao() {
           const fallbackRecords = bmsToInsert.map((b) => ({
             id: b.id,
             empresa_id: b.empresa_id,
+            nome_bm: b.nome_bm,
+            limite_bm: b.limite_bm,
             tipo_ativo: b.tipo_ativo,
             quantidade_disponivel: 1,
             quantidade_reservada: 0,
             custo_medio_unitario: 0,
             status: "disponivel",
+            status_envio: "disponivel",
+            responsavel: b.responsavel,
+            data_criacao: b.data_criacao,
           }));
-          await supabase.from("estoque").insert(fallbackRecords as any);
+          const resFallback = await supabase.from("estoque").insert(fallbackRecords as any);
+          if (resFallback.error) {
+            console.warn("Aviso ao inserir no estoque remoto com fallback:", resFallback.error);
+          }
         }
       } catch (errEst) {
         console.warn("Erro ao sincronizar estoque no Supabase:", errEst);
+      }
+
+      // 4. Inserir lote localmente (se disponível)
+      try {
+        await inserirLoteEstoqueLocal({
+          data: {
+            empresa_id: empresa.id,
+            items: nomesValidos.map((nome) => ({
+              empresa_id: empresa.id,
+              tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
+              nome_bm: nome,
+              limite_bm: limiteBm,
+              status_envio: "disponivel",
+              status: "disponivel",
+              quantidade_disponivel: 1,
+              quantidade_reservada: 0,
+              responsavel: operador.trim(),
+              data_criacao: dataVirada,
+              origem: "producao",
+              producao_id: producaoId,
+            })),
+          },
+        });
+      } catch {
+        // Fallback local não bloqueante
       }
 
       return {
@@ -669,44 +715,39 @@ function PaginaProducao() {
     },
   });
 
-  // 10. Exclusão individual de BM do Estoque (com atualização otimista instantânea dos contadores)
+  // 10. Exclusão individual de BM do Estoque com Decremento e Atualização Otimista Imediata
   const excluirBmMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!empresa?.id) return;
-
-      // 1. Exclui no SQLite local
+      // 1. Remove do Supabase
       try {
-        await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
-      } catch (errLocal) {
-        console.warn("Aviso ao excluir item local:", errLocal);
-      }
-
-      // 2. Exclui no Supabase remoto
-      try {
-        const { error } = await supabase
-          .from("estoque")
-          .delete()
-          .eq("id", id)
-          .eq("empresa_id", empresa.id);
-        if (error) console.warn("Aviso ao excluir do estoque Supabase:", error);
+        const { error } = await supabase.from("estoque").delete().eq("id", id).eq("empresa_id", empresa?.id ?? "");
+        if (error) console.warn("Aviso ao remover do Supabase:", error);
       } catch (errRemoto) {
         console.warn("Erro ao excluir do Supabase remoto:", errRemoto);
       }
+
+      // 2. Remove localmente se disponível
+      try {
+        if (empresa?.id) {
+          await excluirItemEstoqueLocal({ data: { id, empresa_id: empresa.id } });
+        }
+      } catch (errLocal) {
+        console.warn("Aviso ao excluir item local:", errLocal);
+      }
     },
-    onMutate: async (idExcluido: string) => {
+    onMutate: async (idExcluir: string) => {
       await queryClient.cancelQueries({ queryKey: ["estoque-producao-bms", empresa?.id] });
       const anterior = queryClient.getQueryData(["estoque-producao-bms", empresa?.id]);
-      queryClient.setQueryData(["estoque-producao-bms", empresa?.id], (velho: any[] | undefined) => {
-        if (!velho) return [];
-        return velho.filter((item) => item.id !== idExcluido);
-      });
+      queryClient.setQueryData(["estoque-producao-bms", empresa?.id], (old: any[] = []) =>
+        old.filter((item: any) => item.id !== idExcluir)
+      );
       return { anterior };
     },
     onError: (err: Error, _id, context) => {
       if (context?.anterior) {
         queryClient.setQueryData(["estoque-producao-bms", empresa?.id], context.anterior);
       }
-      toast.error(`Erro ao excluir BM: ${err.message}`);
+      toast.error(`Erro ao excluir: ${err.message}`);
     },
     onSuccess: () => {
       toast.success("BM excluída com sucesso.");
@@ -1455,12 +1496,9 @@ function PaginaProducao() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-7 text-muted-foreground hover:text-red-400"
-                            onClick={() => {
-                              if (window.confirm(`Tem certeza de que deseja excluir a BM ${bm.nome}?`)) {
-                                excluirBmMutation.mutate(bm.id);
-                              }
-                            }}
+                            className="size-7 text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                            title="Excluir BM do estoque"
+                            onClick={() => setBmParaExcluir({ id: bm.id, nome: bm.nome })}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
@@ -1554,12 +1592,9 @@ function PaginaProducao() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 text-muted-foreground hover:text-red-400"
-                              onClick={() => {
-                                if (window.confirm(`Tem certeza de que deseja excluir a BM ${bm.nome}?`)) {
-                                  excluirBmMutation.mutate(bm.id);
-                                }
-                              }}
+                              className="size-8 text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                              title="Excluir BM do estoque"
+                              onClick={() => setBmParaExcluir({ id: bm.id, nome: bm.nome })}
                             >
                               <Trash2 className="size-4" />
                             </Button>
@@ -1777,6 +1812,37 @@ function PaginaProducao() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE BM */}
+      <AlertDialog open={Boolean(bmParaExcluir)} onOpenChange={(open) => !open && setBmParaExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <Trash2 className="size-5 text-red-500" />
+              Excluir BM do Estoque
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-slate-300">
+              Tem certeza de que deseja excluir a BM <strong className="text-white font-bold">{bmParaExcluir?.nome}</strong>?
+              O registro será removido permanentemente e o saldo disponível será decrementado imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluirBmMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluirBmMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+              onClick={() => {
+                if (bmParaExcluir) {
+                  excluirBmMutation.mutate(bmParaExcluir.id);
+                  setBmParaExcluir(null);
+                }
+              }}
+            >
+              {excluirBmMutation.isPending ? "Excluindo..." : "Excluir BM"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

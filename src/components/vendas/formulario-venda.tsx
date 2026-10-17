@@ -245,9 +245,22 @@ export function FormularioVenda({
   const contasEstoqueQuery = useQuery({
     queryKey: ["estoque-disponivel-venda", empresa?.id],
     enabled: Boolean(empresa?.id) && aberto,
-    staleTime: 1000 * 30,
+    staleTime: 0,
     queryFn: async () => {
       if (!empresa?.id) return [];
+
+      let remotos: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("estoque")
+          .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio, responsavel")
+          .eq("empresa_id", empresa.id)
+          .gt("quantidade_disponivel", 0)
+          .order("created_at", { ascending: false });
+        if (!error && data) remotos = data;
+      } catch (errRemoto) {
+        console.warn("Aviso ao buscar estoque remoto:", errRemoto);
+      }
 
       let locais: any[] = [];
       try {
@@ -255,19 +268,6 @@ export function FormularioVenda({
         if (res) locais = res;
       } catch (errLocal) {
         console.warn("Aviso ao buscar estoque local:", errLocal);
-      }
-
-      let remotos: any[] = [];
-      try {
-        const { data, error } = await supabase
-          .from("estoque")
-          .select("id, tipo_ativo, nome_bm, limite_bm, quantidade_disponivel, custo_medio_unitario, status, status_envio")
-          .eq("empresa_id", empresa.id)
-          .gt("quantidade_disponivel", 0)
-          .order("tipo_ativo");
-        if (!error && data) remotos = data;
-      } catch (errRemoto) {
-        console.warn("Aviso ao buscar estoque remoto:", errRemoto);
       }
 
       const mapa = new Map<string, any>();
@@ -574,7 +574,64 @@ export function FormularioVenda({
         if (idsParaBaixar.length > 0) {
           const statusEnvioFinal = deliveryStatus === "entregue" ? "entregue" : "reservada";
 
-          // 1. Baixa atômica prioritária no banco local SQLite
+          // 1. Atualiza diretamente a tabela estoque no Supabase (Fonte de Verdade)
+          try {
+            const { error: erroComVenda } = await supabase
+              .from("estoque")
+              .update({
+                status: "vendida",
+                status_envio: statusEnvioFinal,
+                quantidade_disponivel: 0,
+                destinatario: nomeCliente,
+                venda_id: vendaSalvaId,
+                cliente_id: clienteId || null,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .in("id", idsParaBaixar);
+
+            if (erroComVenda) {
+              // Fallback caso as colunas venda_id ou cliente_id não existam no schema remoto
+              await supabase
+                .from("estoque")
+                .update({
+                  status: "vendida",
+                  status_envio: statusEnvioFinal,
+                  quantidade_disponivel: 0,
+                  destinatario: nomeCliente,
+                  updated_at: new Date().toISOString(),
+                } as any)
+                .in("id", idsParaBaixar);
+            }
+          } catch (errSupabaseUpdate) {
+            console.error("Erro ao atualizar status das BMs no estoque do Supabase:", errSupabaseUpdate);
+          }
+
+          // 2. Registra o histórico individual de cada BM enviada (contas_enviadas) no Supabase
+          for (const bmId of idsParaBaixar) {
+            const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
+            const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
+            const limiteBMFinal = contaRef?.limite_bm || limiteAlvo || null;
+
+            try {
+              await supabase.from("contas_enviadas").insert({
+                empresa_id: empresa.id,
+                bm_id: bmId,
+                venda_id: vendaSalvaId,
+                nome_bm: nomeBMFinal,
+                limite_bm: limiteBMFinal,
+                destinatario_cliente: nomeCliente || "Cliente da Venda",
+                responsavel_envio: nomeRespEnvio,
+                data_envio: dataDespacho,
+                custo_unitario: contaRef?.custo_medio_unitario || 0,
+                valor_venda: numero(itemVenda.preco_unitario),
+                status_envio: statusEnvioFinal === "entregue" ? "enviada" : "reservada",
+              } as any);
+            } catch (eContas) {
+              console.warn("Aviso ao salvar histórico de conta enviada no Supabase:", eContas);
+            }
+          }
+
+          // 3. Atualização no banco local SQLite (se estiver no app desktop local)
           try {
             await baixarBmsVendaLocal({
               data: {
@@ -587,11 +644,9 @@ export function FormularioVenda({
               },
             });
           } catch (errLocalBaixa) {
-            console.warn("Aviso na baixa local (ou ativo já baixado):", errLocalBaixa);
-            throw errLocalBaixa;
+            console.warn("Baixa local ignorada (ambiente web ou servidor offline):", errLocalBaixa);
           }
 
-          // 2. Registro no histórico local de contas enviadas
           for (const bmId of idsParaBaixar) {
             const contaRef = (contasEstoqueQuery.data || []).find((c) => c.id === bmId);
             const nomeBMFinal = contaRef?.nome_bm || contaRef?.tipo_ativo || nomeMod;
@@ -613,11 +668,10 @@ export function FormularioVenda({
                   status_envio: "enviada",
                 },
               });
-            } catch (eHLocal) {
-              console.warn("Aviso ao salvar histórico de conta local:", eHLocal);
+            } catch {
+              // fallback local ignorado
             }
           }
-
           // 3. Atualização direta no Supabase (garante status 'vendida' e dedução do estoque)
           try {
             await supabase
@@ -684,6 +738,8 @@ export function FormularioVenda({
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["contas_enviadas"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios"] });
       void queryClient.invalidateQueries({ queryKey: ["historico_envios_estoque"] });
@@ -888,19 +944,20 @@ export function FormularioVenda({
                   const nomeMod = mod?.nome || "";
                   const limAlvo = (nomeMod.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] || "").toUpperCase();
 
-                  // Filtra apenas ativos disponíveis ou prontos para envio correspondentes à modalidade
+                  // Filtra apenas ativos rigorosamente disponíveis ou prontos para envio correspondentes à modalidade
                   const contasFiltradas = (contasEstoqueQuery.data || []).filter((c) => {
                     const st = (c.status_envio || c.status || "")
                       .toLowerCase()
                       .normalize("NFD")
                       .replace(/[\u0300-\u036f]/g, "");
-                    const statusValido = st.includes("disponivel") || st.includes("pronta") || st.includes("em_estoque");
-                    const indisponivel = st.includes("vendida") || st.includes("entregue") || st.includes("reservada");
-                    if ((!statusValido || indisponivel) && Number(c.quantidade_disponivel || 0) <= 0) return false;
+                    const isDisponivel = (st.includes("disponivel") || st.includes("pronta") || st.includes("em_estoque")) &&
+                      !st.includes("vendida") && !st.includes("entregue") && !st.includes("reservada") &&
+                      Number(c.quantidade_disponivel || 0) > 0;
+                    if (!isDisponivel) return false;
 
                     if (!limAlvo) return true;
                     const limC = (c.limite_bm || (c.tipo_ativo?.match(/\b(250|2K|10K|100K|Ilimitada)\b/i)?.[0] ?? "")).toUpperCase();
-                    return limC === limAlvo || c.tipo_ativo?.toUpperCase().includes(limAlvo);
+                    return limC === limAlvo || c.tipo_ativo?.toUpperCase().includes(limAlvo) || c.tipo_ativo?.toLowerCase().includes(nomeMod.toLowerCase());
                   });
 
                   // Array de IDs selecionados no item (suporte a seleção múltipla)
