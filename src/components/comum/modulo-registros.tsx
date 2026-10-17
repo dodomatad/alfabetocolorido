@@ -38,6 +38,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatarData, formatarMoeda } from "@/lib/formatadores";
 import { Combobox } from "@/components/ui/combobox";
 import { SeloStatusVenda } from "./selo-status";
+import { resilientInsert } from "@/lib/supabase-resilient";
+import { listarEstoqueLocal } from "@/lib/estoque.functions";
 
 export type Registro = Record<string, unknown>;
 
@@ -118,11 +120,31 @@ export function ModuloRegistros({
       if (!temPermissao(tabela.replace('ordens_', '').replace('itens_', '').replace('lancamentos_', ''), 'visualizar')) {
         return [];
       }
-      const { data, error } = await consultarTabela(tabela)
-        .select(selectCustom || "*")
-        .order(ordenarPor?.coluna ?? "created_at", { ascending: ordenarPor?.ascendente ?? false });
-      if (error) throw error;
-      const lista = data ?? [];
+      let lista: any[] = [];
+      try {
+        const { data, error } = await consultarTabela(tabela)
+          .select(selectCustom || "*")
+          .order(ordenarPor?.coluna ?? "created_at", { ascending: ordenarPor?.ascendente ?? false });
+        if (error) {
+          console.warn("Aviso na consulta remota:", error);
+        } else if (data) {
+          lista = data;
+        }
+      } catch (err) {
+        console.warn("Erro ao consultar dados:", err);
+      }
+
+      if (tabela === "estoque" && lista.length === 0 && empresa?.id) {
+        try {
+          const locais = await listarEstoqueLocal({ data: { empresa_id: empresa.id } });
+          if (locais && locais.length > 0) {
+            lista = locais;
+          }
+        } catch {
+          // ignora
+        }
+      }
+
       if (!filtroFixo) return lista;
       return lista.filter((r: Registro) => Object.entries(filtroFixo).every(([k, v]) => r[k] === v));
     },
@@ -230,7 +252,7 @@ export function ModuloRegistros({
         registroFinal = await antesDeSalvar(registro, valores);
       }
 
-      const { error } = await consultarTabela(tabela).insert(registroFinal);
+      const { error } = await resilientInsert(tabela, [registroFinal]);
       if (error) throw error;
     },
     onSuccess: () => {
