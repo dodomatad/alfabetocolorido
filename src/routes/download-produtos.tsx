@@ -35,7 +35,7 @@ const PRODUTOS = [
     tipo: "Material Principal",
     badge: "Principal",
     corBadge: "bg-emerald-500",
-    capa: "/colorindo-silabas/Capa_-_Colorindo_as_Silabas_Simples2-1024x1024.png",
+    capa: "/colorindo-silabas/logo-colorindo-v2.jpg",
   },
   {
     id: "portugues-1ano",
@@ -114,9 +114,9 @@ function PaginaDownloadProdutos() {
           </Link>
 
           <img
-            src="/colorindo-silabas/Logo_Licao_Kids-2-1.png"
-            alt="Logo Lição Kids"
-            className="h-9 w-auto object-contain"
+            src="/colorindo-silabas/logo-colorindo-v2.jpg"
+            alt="Logo Colorindo as Sílabas V2"
+            className="h-11 w-auto object-contain rounded-lg shadow-xs"
           />
         </div>
       </header>

@@ -31,11 +31,15 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
       },
       {
         property: "og:image",
-        content:
-          "https://centralcademi.com.br/wp-content/uploads/2026/08/Capa_-_Colorindo_as_Silabas_Simples2-1024x1024.png",
+        content: "/colorindo-silabas/logo-colorindo-v2.jpg",
       },
     ],
     links: [
+      {
+        rel: "icon",
+        type: "image/jpeg",
+        href: "/colorindo-silabas/logo-colorindo-v2.jpg",
+      },
       {
         rel: "preconnect",
         href: "https://fonts.googleapis.com",
@@ -165,8 +169,8 @@ function PaginaColorindoAsSilabas() {
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
-      {/* Top Badge: Compra 100% Segura */}
-      <header className="bg-white py-3 px-4 flex justify-center items-center border-b border-gray-100">
+      {/* Top Badge & Logo */}
+      <header className="bg-white py-3 px-4 flex flex-col items-center gap-3 border-b border-gray-100">
         <div className="bg-[#93D36F] text-black font-semibold text-xs sm:text-sm md:text-base px-6 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-2">
           <span>🔒</span>
           <span>Compra 100% segura e protegida</span>
@@ -187,11 +191,11 @@ function PaginaColorindoAsSilabas() {
             escrita
           </p>
 
-          {/* Capa Principal */}
-          <div className="my-6 max-w-[520px] w-full px-2">
+          {/* Capa / Logo Principal */}
+          <div className="my-6 max-w-[600px] w-full px-2">
             <img
-              src="https://centralcademi.com.br/wp-content/uploads/2026/08/Capa_-_Colorindo_as_Silabas_Simples2-1024x1024.png"
-              alt="Capa Colorindo as Sílabas Simples"
+              src="/colorindo-silabas/logo-colorindo-v2.jpg"
+              alt="Logo Colorindo as Sílabas V2"
               className="w-full h-auto drop-shadow-xl rounded-2xl mx-auto transition-transform hover:scale-[1.01]"
               loading="eager"
             />
@@ -208,7 +212,7 @@ function PaginaColorindoAsSilabas() {
           {/* Aviso de Entrega por E-mail */}
           <div className="mt-6 flex flex-row items-center justify-center gap-3 max-w-lg text-left px-2">
             <img
-              src="https://centralcademi.com.br/wp-content/uploads/2026/08/Email-1.png"
+              src="/colorindo-silabas/Email-1.png"
               alt="Ícone de E-mail"
               className="w-12 h-12 flex-shrink-0 object-contain"
             />
@@ -221,7 +225,7 @@ function PaginaColorindoAsSilabas() {
           {/* Selo Satisfação Garantida / Acesso Imediato */}
           <div className="mt-6 max-w-[540px] w-full">
             <img
-              src="https://centralcademi.com.br/wp-content/uploads/2026/08/Satisfacao-Garantida-Acesso-Imediato-1.png"
+              src="/colorindo-silabas/Satisfacao-Garantida-Acesso-Imediato-1.png"
               alt="Satisfação Garantida e Acesso Imediato"
               className="w-full h-auto mx-auto object-contain"
             />
@@ -333,11 +337,11 @@ function PaginaColorindoAsSilabas() {
             <span>⚡ ACESSO IMEDIATO</span>
           </div>
 
-          <div className="my-8 max-w-[420px] mx-auto">
+          <div className="my-8 max-w-[520px] mx-auto">
             <img
-              src="https://centralcademi.com.br/wp-content/uploads/2026/08/Capa_-_Colorindo_as_Silabas_Simples2-1024x1024.png"
-              alt="Apostila Colorindo as Sílabas Simples"
-              className="w-full h-auto drop-shadow-md rounded-xl"
+              src="/colorindo-silabas/logo-colorindo-v2.jpg"
+              alt="Apostila Colorindo as Sílabas V2"
+              className="w-full h-auto drop-shadow-md rounded-2xl"
               loading="lazy"
             />
           </div>
@@ -422,7 +426,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
               <div className="w-28 h-28 mb-4">
                 <img
-                  src="https://centralcademi.com.br/wp-content/uploads/2026/08/3-3-1.png"
+                  src="/colorindo-silabas/3-3-1.png"
                   alt="Chega no seu e-mail"
                   className="w-full h-full object-contain"
                   loading="lazy"
@@ -442,7 +446,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
               <div className="w-28 h-28 mb-4">
                 <img
-                  src="https://centralcademi.com.br/wp-content/uploads/2026/08/4-2-1.png"
+                  src="/colorindo-silabas/4-2-1.png"
                   alt="Baixe as atividades"
                   className="w-full h-full object-contain"
                   loading="lazy"
@@ -462,7 +466,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
               <div className="w-28 h-28 mb-4">
                 <img
-                  src="https://centralcademi.com.br/wp-content/uploads/2026/08/5-1-1-1.png"
+                  src="/colorindo-silabas/5-1-1-1.png"
                   alt="Realizar as atividades"
                   className="w-full h-full object-contain"
                   loading="lazy"
@@ -535,7 +539,7 @@ function PaginaColorindoAsSilabas() {
 
                 <div className="mt-6">
                   <img
-                    src="https://centralcademi.com.br/wp-content/uploads/2026/08/AINDA-DA-TEMPO-DE-LEVAR-A-MELHOR-OPCAO-1-1.png"
+                    src="/colorindo-silabas/AINDA-DA-TEMPO-DE-LEVAR-A-MELHOR-OPCAO-1-1.png"
                     alt="Ainda dá tempo de levar a melhor opção"
                     className="w-full h-auto object-contain mx-auto"
                     loading="lazy"
@@ -606,7 +610,7 @@ function PaginaColorindoAsSilabas() {
 
                 <div className="mt-6">
                   <img
-                    src="https://centralcademi.com.br/wp-content/uploads/2026/08/Satisfacao-Garantida-1-1.png"
+                    src="/colorindo-silabas/Satisfacao-Garantida-1-1.png"
                     alt="Satisfação Garantida 100%"
                     className="w-full h-auto object-contain mx-auto"
                     loading="lazy"
@@ -706,7 +710,7 @@ function PaginaColorindoAsSilabas() {
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12">
           <div className="w-56 sm:w-64 flex-shrink-0">
             <img
-              src="https://centralcademi.com.br/wp-content/uploads/2026/08/Kids41-Compressao-1-1.png"
+              src="/colorindo-silabas/Kids41-Compressao-1-1.png"
               alt="Selo 7 Dias de Garantia"
               className="w-full h-auto object-contain mx-auto"
               loading="lazy"
@@ -772,7 +776,7 @@ function PaginaColorindoAsSilabas() {
             {/* Passo 1 */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
               <img
-                src="https://centralcademi.com.br/wp-content/uploads/2026/08/order-2.png"
+                src="/colorindo-silabas/order-2.png"
                 alt="Conclua sua compra"
                 className="w-20 h-20 object-contain mb-4"
                 loading="lazy"
@@ -788,7 +792,7 @@ function PaginaColorindoAsSilabas() {
             {/* Passo 2 */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
               <img
-                src="https://centralcademi.com.br/wp-content/uploads/2026/08/member-card-2.png"
+                src="/colorindo-silabas/member-card-2.png"
                 alt="Entre na área de membros"
                 className="w-20 h-20 object-contain mb-4"
                 loading="lazy"
@@ -805,7 +809,7 @@ function PaginaColorindoAsSilabas() {
             {/* Passo 3 */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
               <img
-                src="https://centralcademi.com.br/wp-content/uploads/2026/08/download-2.png"
+                src="/colorindo-silabas/download-2.png"
                 alt="Baixe os arquivos"
                 className="w-20 h-20 object-contain mb-4"
                 loading="lazy"
@@ -888,9 +892,9 @@ function PaginaColorindoAsSilabas() {
           {/* Logo Central */}
           <div className="flex justify-center mb-10">
             <img
-              src="https://centralcademi.com.br/wp-content/uploads/2026/08/Logo_Licao_Kids-2-1.png"
-              alt="Logo Lição Kids"
-              className="h-16 w-auto object-contain"
+              src="/colorindo-silabas/logo-colorindo-v2.jpg"
+              alt="Logo Colorindo as Sílabas V2"
+              className="h-24 w-auto object-contain rounded-xl shadow-md"
               loading="lazy"
             />
           </div>
@@ -902,13 +906,13 @@ function PaginaColorindoAsSilabas() {
                 FORMAS DE PAGAMENTO
               </h4>
               <img
-                src="https://centralcademi.com.br/wp-content/uploads/2026/08/pagamento-1-1.png02-1-1.png"
+                src="/colorindo-silabas/pagamento-1-1.png02-1-1.png"
                 alt="Formas de Pagamento Aceitas"
                 className="max-w-[240px] h-auto object-contain"
                 loading="lazy"
               />
               <img
-                src="https://centralcademi.com.br/wp-content/uploads/2026/08/garantia-360-slim-1-1.png"
+                src="/colorindo-silabas/garantia-360-slim-1-1.png"
                 alt="Garantia 360"
                 className="max-w-[240px] h-auto object-contain mt-2"
                 loading="lazy"
