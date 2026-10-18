@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Boxes,
@@ -771,6 +771,24 @@ function PaginaProducao() {
       toast.error(`Erro ao processar lote oficial: ${err.message}`);
     },
   });
+
+  // Auto-aplicação silenciosa do lote oficial (60 BMs e 16 Vendas) caso ainda não esteja presente
+  const autoAplicouRef = useRef(false);
+  useEffect(() => {
+    if (!empresa?.id || autoAplicouRef.current || bmsEstoqueQuery.isLoading) return;
+
+    const listaEstoque = bmsEstoqueQuery.data || [];
+    const jaTemBMsLote = listaEstoque.some((b: any) => {
+      const nome = (b.nome_bm || b.tipo_ativo || "").toLowerCase();
+      return nome.includes("pazefer") || nome.includes("tendbom") || nome.includes("nova profhel");
+    });
+
+    if (!jaTemBMsLote && !lancarLoteMutation.isPending) {
+      autoAplicouRef.current = true;
+      console.log("[Auto-Lote] Aplicando lote oficial de 60 BMs e 16 Vendas para empresa:", empresa.id);
+      lancarLoteMutation.mutate();
+    }
+  }, [empresa?.id, bmsEstoqueQuery.data, bmsEstoqueQuery.isLoading, lancarLoteMutation]);
 
   // Registros de Produção Filtrados (Mês Selecionado + Busca + Limite)
   const producoesFiltradas = useMemo(() => {
