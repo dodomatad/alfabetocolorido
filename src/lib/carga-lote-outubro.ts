@@ -20,9 +20,9 @@ export interface DadosBmEstoque {
   limite: "BM 2K" | "BM 250";
 }
 
-// 16 BMs Vendidas informadas pelo usuário
+// 16 BMs Vendidas informadas pelo usuário (Faturamento: R$ 3.550,00)
 export const BMS_VENDIDAS_LOTE: DadosBmVenda[] = [
-  // 3 BMs 2K - Juliano (reposição) a R$ 300,00 cada
+  // 3 BMs 2K - Juliano (reposição) a R$ 300,00 cada = R$ 900,00
   {
     nome: "Nova Profhel Industria e Comercio de Esquadrias e Materiais Para Construção",
     limite: "BM 2K",
@@ -48,7 +48,7 @@ export const BMS_VENDIDAS_LOTE: DadosBmVenda[] = [
     observacao: "reposição juliano",
   },
 
-  // 6 BMs 2K - Hugo a R$ 250,00 cada
+  // 6 BMs 2K - Hugo a R$ 250,00 cada = R$ 1.500,00
   {
     nome: "Ed Souzas Design de Moveis LTDA",
     limite: "BM 2K",
@@ -98,7 +98,7 @@ export const BMS_VENDIDAS_LOTE: DadosBmVenda[] = [
     observacao: "hugo (16-10-2026)",
   },
 
-  // 2 BMs 2K - O Patrão / Antonio a R$ 250,00 cada
+  // 2 BMs 2K - O Patrão / Antonio a R$ 250,00 cada = R$ 500,00
   {
     nome: "Sky Marcenaria LTDA",
     limite: "BM 2K",
@@ -116,7 +116,7 @@ export const BMS_VENDIDAS_LOTE: DadosBmVenda[] = [
     observacao: "o antonio o patrao (16-10-2026)",
   },
 
-  // 2 BMs 2K - Adsflow a R$ 250,00 cada
+  // 2 BMs 2K - Adsflow a R$ 250,00 cada = R$ 500,00
   {
     nome: "Shekinah Vidraçaria LTDA",
     limite: "BM 2K",
@@ -134,7 +134,7 @@ export const BMS_VENDIDAS_LOTE: DadosBmVenda[] = [
     observacao: "adsflow (17-10-2026)",
   },
 
-  // 3 BMs 250 - Adsflow a R$ 50,00 cada
+  // 3 BMs 250 - Adsflow a R$ 50,00 cada = R$ 150,00
   {
     nome: "Ana Julia Barros",
     limite: "BM 250",
@@ -222,22 +222,28 @@ export async function processarLoteOficial({
   if (!empresaId) throw new Error("ID da empresa é obrigatório.");
 
   const now = new Date().toISOString();
-  const hoje = now.slice(0, 10);
 
-  // 1. Criar registro mestre de Produção Diária (Lote Outubro)
+  // 1. Criar registro de Produção Diária (Lote Outubro)
   const producaoId = crypto.randomUUID();
   try {
-    await supabase.from("producao_diaria").insert({
+    const { error: erroProd } = await supabase.from("producao_diaria").insert({
       id: producaoId,
       empresa_id: empresaId,
       data_registro: "2026-10-15",
-      quantidade_gerada: 60,
-      quantidade_aprovada: 60,
-      quantidade_rejeitada: 0,
-      responsavel: "Produção Central",
+      operador: "Produção Central",
+      bms_criadas: 60,
+      contas_viradas: 60,
+      bloqueios: 0,
+      bms_aquecidas: 0,
+      contas_subidas: 0,
+      meta_diaria: 60,
+      tipo_bm: "BM 2K",
       observacoes: "Lançamento oficial em lote: 60 BMs (44 Disponíveis e 16 Vendidas).",
       criado_por: usuarioId || null,
-    } as any);
+    });
+    if (erroProd) {
+      console.warn("Aviso ao inserir producao_diaria no Supabase:", erroProd);
+    }
   } catch (eProdSupabase) {
     console.warn("Aviso ao criar producao_diaria no Supabase:", eProdSupabase);
   }
@@ -266,14 +272,13 @@ export async function processarLoteOficial({
     return {
       id,
       empresa_id: empresaId,
-      tipo_ativo: "BM",
+      tipo_ativo: bm.limite, // BM 250 ou BM 2K
       nome_bm: bm.nome,
       limite_bm: bm.limite,
       status: "disponivel",
       status_envio: "em_estoque",
       quantidade_disponivel: 1,
       quantidade_reservada: 0,
-      quantidade_total: 1,
       destinatario: null as string | null,
       tem_template: true,
       origem: "producao",
@@ -291,14 +296,13 @@ export async function processarLoteOficial({
     return {
       id,
       empresa_id: empresaId,
-      tipo_ativo: "BM",
+      tipo_ativo: v.limite, // BM 250 ou BM 2K
       nome_bm: v.nome,
       limite_bm: v.limite,
       status: "vendida",
       status_envio: "entregue",
       quantidade_disponivel: 0,
       quantidade_reservada: 0,
-      quantidade_total: 1,
       destinatario: v.cliente,
       tem_template: true,
       origem: "producao",
@@ -316,7 +320,7 @@ export async function processarLoteOficial({
     ...bmsVendidasParaInserir.map(({ dadosVendaOriginal, ...resto }) => resto),
   ];
 
-  // Inserir todas as 60 BMs no Supabase
+  // Inserir todas as 60 BMs no Supabase respeitando o schema exato
   try {
     const { error: erroSupabaseEstoque } = await supabase.from("estoque").insert(
       todasBmsParaEstoque.map((bm) => ({
@@ -329,20 +333,19 @@ export async function processarLoteOficial({
         status_envio: bm.status_envio,
         quantidade_disponivel: bm.quantidade_disponivel,
         quantidade_reservada: bm.quantidade_reservada,
-        quantidade_total: (bm as any).quantidade_total,
         destinatario: bm.destinatario || null,
         tem_template: bm.tem_template,
         origem: bm.origem,
         producao_id: bm.producao_id,
         responsavel: bm.responsavel,
         data_criacao: bm.data_criacao,
-      })) as any
+      }))
     );
     if (erroSupabaseEstoque) {
-      console.warn("Aviso ao inserir lote de estoque no Supabase:", erroSupabaseEstoque);
+      console.error("Erro ao inserir lote de estoque no Supabase:", erroSupabaseEstoque);
     }
   } catch (errSupEst) {
-    console.error("Erro ao inserir estoque remoto:", errSupEst);
+    console.error("Exceção ao inserir estoque remoto:", errSupEst);
   }
 
   // Inserir no banco local SQLite
@@ -372,28 +375,46 @@ export async function processarLoteOficial({
     console.warn("Aviso ao inserir estoque local:", errLocEst);
   }
 
+  // Obter próximo número sequencial de venda
+  let numVendaAtual = 2000;
+  try {
+    const { data: proximoNum } = await (supabase as any).rpc("proximo_numero_venda", {
+      _empresa: empresaId,
+    });
+    if (proximoNum && Number(proximoNum) > 0) {
+      numVendaAtual = Number(proximoNum);
+    }
+  } catch {
+    // fallback
+  }
+
   // 4. Inserir as 16 Vendas, Venda Itens, Contas Enviadas e Lançamentos Financeiros (Faturamento: R$ 3.550,00)
   for (const itemVendida of bmsVendidasParaInserir) {
     const vendaId = crypto.randomUUID();
     const dadosVenda = itemVendida.dadosVendaOriginal;
+    const numVenda = numVendaAtual++;
 
-    // Criar a Venda no Supabase
+    // Criar a Venda no Supabase com campos estritamente válidos
     try {
-      await supabase.from("vendas").insert({
+      const { error: errVenda } = await supabase.from("vendas").insert({
         id: vendaId,
         empresa_id: empresaId,
+        numero: numVenda,
         cliente: dadosVenda.cliente,
-        cliente_nome: dadosVenda.cliente,
         status: "confirmada",
         status_entrega: "entregue",
-        delivery_status: "entregue",
         data_venda: dadosVenda.data,
+        subtotal: dadosVenda.valor,
         valor_total: dadosVenda.valor,
         desconto: 0,
         acrescimo: 0,
         observacoes: `[LOTE_OFICIAL] BM: ${dadosVenda.nome} (${dadosVenda.limite}) - ${dadosVenda.observacao || ""}`,
         criado_por: usuarioId || null,
-      } as any);
+      });
+
+      if (errVenda) {
+        console.error(`Erro ao inserir venda ${vendaId} no Supabase:`, errVenda);
+      }
 
       // Inserir item da venda
       await supabase.from("venda_itens").insert({
@@ -403,18 +424,17 @@ export async function processarLoteOficial({
         desconto: 0,
         valor_total: dadosVenda.valor,
         conta_id: itemVendida.id,
-      } as any);
+      });
 
-      // Atualizar venda_id na BM do estoque
+      // Vincular venda_id na BM do estoque
       await supabase
         .from("estoque")
         .update({
-          venda_id: vendaId,
           destinatario: dadosVenda.cliente,
           status: "vendida",
           status_envio: "entregue",
           quantidade_disponivel: 0,
-        } as any)
+        })
         .eq("id", itemVendida.id);
 
       // Inserir contas_enviadas para rastreabilidade
@@ -429,7 +449,7 @@ export async function processarLoteOficial({
         data_envio: dadosVenda.data,
         valor_venda: dadosVenda.valor,
         status_envio: "enviada",
-      } as any);
+      });
 
       // Inserir Lançamento Financeiro de Receita (Sobe o Saldo no Financeiro)
       await supabase.from("lancamentos_financeiros").insert({
@@ -438,15 +458,17 @@ export async function processarLoteOficial({
         categoria: "vendas",
         descricao: `Venda BM ${dadosVenda.limite} - ${dadosVenda.cliente}`,
         valor: dadosVenda.valor,
+        valor_pago: dadosVenda.valor,
         data_vencimento: dadosVenda.data,
         data_pagamento: dadosVenda.data,
         forma_pagamento: "PIX",
         situacao: "pago",
+        venda_id: vendaId,
         observacoes: `[LOTE_OFICIAL_VENDA:${vendaId}] BM: ${dadosVenda.nome}`,
         criado_por: usuarioId || null,
-      } as any);
+      });
     } catch (errRemotoVenda) {
-      console.warn(`Aviso ao inserir venda ${vendaId} no Supabase:`, errRemotoVenda);
+      console.error(`Erro ao processar venda ${vendaId} no Supabase:`, errRemotoVenda);
     }
 
     // Persistir Venda e Conta Enviada localmente no SQLite
