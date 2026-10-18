@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as ColorindoAsSilabasV2RouteImport } from './routes/colorindo-as-silabas-v2'
+import { Route as DownloadProdutosRouteImport } from './routes/download-produtos'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -46,6 +47,11 @@ const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
 const ColorindoAsSilabasV2Route = ColorindoAsSilabasV2RouteImport.update({
   id: '/colorindo-as-silabas-v2',
   path: '/colorindo-as-silabas-v2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadProdutosRoute = DownloadProdutosRouteImport.update({
+  id: '/download-produtos',
+  path: '/download-produtos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EntrarRoute = EntrarRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/colorindo-as-silabas-v2': typeof ColorindoAsSilabasV2Route
+  '/download-produtos': typeof DownloadProdutosRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/colorindo-as-silabas-v2': typeof ColorindoAsSilabasV2Route
+  '/download-produtos': typeof DownloadProdutosRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/colorindo-as-silabas-v2': typeof ColorindoAsSilabasV2Route
+  '/download-produtos': typeof DownloadProdutosRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/aceitar-convite'
     | '/aguardando-aprovacao'
     | '/colorindo-as-silabas-v2'
+    | '/download-produtos'
     | '/entrar'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/aceitar-convite'
     | '/aguardando-aprovacao'
     | '/colorindo-as-silabas-v2'
+    | '/download-produtos'
     | '/entrar'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/aceitar-convite'
     | '/aguardando-aprovacao'
     | '/colorindo-as-silabas-v2'
+    | '/download-produtos'
     | '/entrar'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -257,6 +269,7 @@ export interface RootRouteChildren {
   AceitarConviteRoute: typeof AceitarConviteRoute
   AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   ColorindoAsSilabasV2Route: typeof ColorindoAsSilabasV2Route
+  DownloadProdutosRoute: typeof DownloadProdutosRoute
   EntrarRoute: typeof EntrarRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       path: '/colorindo-as-silabas-v2'
       fullPath: '/colorindo-as-silabas-v2'
       preLoaderRoute: typeof ColorindoAsSilabasV2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download-produtos': {
+      id: '/download-produtos'
+      path: '/download-produtos'
+      fullPath: '/download-produtos'
+      preLoaderRoute: typeof DownloadProdutosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/entrar': {
@@ -438,6 +458,7 @@ const rootRouteChildren: RootRouteChildren = {
   AceitarConviteRoute: AceitarConviteRoute,
   AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   ColorindoAsSilabasV2Route: ColorindoAsSilabasV2Route,
+  DownloadProdutosRoute: DownloadProdutosRoute,
   EntrarRoute: EntrarRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,

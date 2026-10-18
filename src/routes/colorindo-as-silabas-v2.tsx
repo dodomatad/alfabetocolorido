@@ -59,51 +59,51 @@ const CHECKOUT_BASICO =
 const CHECKOUT_PREMIUM =
   "https://checkout.alfacademi.com.br/checkout/oferta-3u0mlpLV72S6Ascq";
 const LINK_AMOSTRA =
-  "https://drive.google.com/file/d/19PG-c9cD1whD5qbrtVAj-PZuAD3JQVap/view?usp=sharing";
+  "/colorindo-silabas/amostra-colorindo-as-silabas.pdf";
 const LINK_WHATSAPP =
   "https://wa.me/5551995499349?text=Ol%C3%A1%21%20Gostaria%20de%20saber%20mais%20sobre%20Colorindo%20as%20S%C3%ADlabas%20Simples";
 
 const CARROSSEL_1 = [
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/07-J-JA-JE-JI-JO-JU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/06-H-HA-HE-HI-HO-HU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/05-G-GA-GE-GI-GO-GU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/04-F-FA-FE-FI-FO-FU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/02-C-CA-CE-CI-CO-CU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/03-D-DA-DE-DI-DO-DU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/08-L-LA-LE-LI-LO-LU-para-colorir.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/01-B-BA-BE-BI-BO-BU-para-colorir.png",
+  "/colorindo-silabas/07-J-JA-JE-JI-JO-JU-para-colorir.png",
+  "/colorindo-silabas/06-H-HA-HE-HI-HO-HU-para-colorir.png",
+  "/colorindo-silabas/05-G-GA-GE-GI-GO-GU-para-colorir.png",
+  "/colorindo-silabas/04-F-FA-FE-FI-FO-FU-para-colorir.png",
+  "/colorindo-silabas/02-C-CA-CE-CI-CO-CU-para-colorir.png",
+  "/colorindo-silabas/03-D-DA-DE-DI-DO-DU-para-colorir.png",
+  "/colorindo-silabas/08-L-LA-LE-LI-LO-LU-para-colorir.png",
+  "/colorindo-silabas/01-B-BA-BE-BI-BO-BU-para-colorir.png",
 ];
 
 const CARROSSEL_2 = [
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_7.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_6.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_5.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_4.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_3.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_2.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_9.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Silabario_8.png",
+  "/colorindo-silabas/Silabario_7.png",
+  "/colorindo-silabas/Silabario_6.png",
+  "/colorindo-silabas/Silabario_5.png",
+  "/colorindo-silabas/Silabario_4.png",
+  "/colorindo-silabas/Silabario_3.png",
+  "/colorindo-silabas/Silabario_2.png",
+  "/colorindo-silabas/Silabario_9.png",
+  "/colorindo-silabas/Silabario_8.png",
 ];
 
 const DEPOIMENTOS = [
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/milla-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/cardoso-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Dias-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Jo-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Vanessa-2.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Rosangela-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Pri-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Tati-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Meiri-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Luh-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Vanessa-1-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Kheir-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Edina-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Screenshot_2-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Screenshot_1-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/cidianejarde-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/adri-1.png",
-  "https://centralcademi.com.br/wp-content/uploads/2026/08/Imagem-sem-titulo-1.png",
+  "/colorindo-silabas/milla-1.png",
+  "/colorindo-silabas/cardoso-1.png",
+  "/colorindo-silabas/Dias-1.png",
+  "/colorindo-silabas/Jo-1.png",
+  "/colorindo-silabas/Vanessa-2.png",
+  "/colorindo-silabas/Rosangela-1.png",
+  "/colorindo-silabas/Pri-1.png",
+  "/colorindo-silabas/Tati-1.png",
+  "/colorindo-silabas/Meiri-1.png",
+  "/colorindo-silabas/Luh-1.png",
+  "/colorindo-silabas/Vanessa-1-1.png",
+  "/colorindo-silabas/Kheir-1.png",
+  "/colorindo-silabas/Edina-1.png",
+  "/colorindo-silabas/Screenshot_2-1.png",
+  "/colorindo-silabas/Screenshot_1-1.png",
+  "/colorindo-silabas/cidianejarde-1.png",
+  "/colorindo-silabas/adri-1.png",
+  "/colorindo-silabas/Imagem-sem-titulo-1.png",
 ];
 
 const FAQS = [
@@ -302,15 +302,23 @@ function PaginaColorindoAsSilabas() {
           <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
             Baixar amostra grátis:
           </h3>
-          <a
-            href={LINK_AMOSTRA}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 bg-sky-500 hover:bg-sky-600 text-white font-bold text-lg sm:text-xl py-3 px-8 rounded-xl shadow-md transition-all active:translate-y-0.5"
-          >
-            <Download className="w-6 h-6 animate-bounce" />
-            <span>Clique aqui para baixar</span>
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href={LINK_AMOSTRA}
+              download="Amostra-Colorindo-as-Silabas.pdf"
+              className="inline-flex items-center gap-3 bg-sky-500 hover:bg-sky-600 text-white font-bold text-lg sm:text-xl py-3 px-8 rounded-xl shadow-md transition-all active:translate-y-0.5"
+            >
+              <Download className="w-6 h-6 animate-bounce" />
+              <span>Clique aqui para baixar</span>
+            </a>
+            <a
+              href="/download-produtos"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base py-3 px-6 rounded-xl shadow-md transition-all active:translate-y-0.5"
+            >
+              <ExternalLink className="w-5 h-5" />
+              <span>Ver Todos os PDFs</span>
+            </a>
+          </div>
         </div>
       </section>
 
