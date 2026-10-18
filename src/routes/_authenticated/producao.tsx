@@ -21,8 +21,6 @@ import {
   CalendarDays,
   Clock,
   RotateCcw,
-  Briefcase,
-  Megaphone,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -74,7 +72,6 @@ import { CabecalhoPagina } from "@/components/comum/cabecalho-pagina";
 import { CarregandoTabela } from "@/components/comum/estados";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
-import { resilientInsert } from "@/lib/supabase-resilient";
 import {
   listarEstoqueLocal,
   listarProducaoLocal,
@@ -83,6 +80,11 @@ import {
   excluirItemEstoqueLocal,
   inserirLoteEstoqueLocal,
 } from "@/lib/estoque.functions";
+import {
+  processarLoteOficial,
+  BMS_VENDIDAS_LOTE,
+  BMS_ESTOQUE_DISPONIVEL,
+} from "@/lib/carga-lote-outubro";
 import { formatarData } from "@/lib/formatadores";
 import { cn } from "@/lib/utils";
 import type { ProducaoDiaria, MotivoQuedaProducao } from "@/types/production";
@@ -160,36 +162,24 @@ function extrairInfoBM(item: any) {
   }
 
   const nomeExibicao = nomeCustom || (limiteExtraido ? `BM ${limiteExtraido.toUpperCase()}` : tipoAtivo || "BM");
-  const nomePortfolio = item?.nome_portfolio || item?.portfolio || null;
-  const nomeConta = item?.nome_conta || item?.conta || null;
   const responsavel = item?.responsavel || "—";
   const data = item?.data_criacao || item?.created_at || item?.updated_at || "";
   const destinatario = item?.destinatario || null;
 
-  const st = (item?.status_envio || item?.status || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const ehIndisponivel = st.includes("vendida") || st.includes("entregue") || st.includes("reservada");
+  const st = (item?.status_envio || item?.status || "").toLowerCase();
   const estaDisponivel =
-    !ehIndisponivel &&
-    (st.includes("disponivel") || st.includes("em_estoque") || st.includes("pronta")) &&
+    (st === "disponivel" || st === "em_estoque" || st === "pronta_envio") &&
     Number(item?.quantidade_disponivel ?? 1) > 0;
 
   return {
     id: item?.id,
     nome: nomeExibicao,
     limite: limiteExtraido,
-    nomePortfolio,
-    nomeConta,
     responsavel,
     data,
     destinatario,
     estaDisponivel,
-    status: item?.status || "disponivel",
-    status_envio: item?.status_envio || "disponivel",
-    producao_id: item?.producao_id || null,
-    raw: item,
+    status: st,
   };
 }
 
@@ -235,17 +225,17 @@ function PaginaProducao() {
 
   // Estado do Modal de Registro
   const [modalAberto, setModalAberto] = useState(false);
+  // Estado do Modal de Carga de Lote Oficial (60 BMs)
+  const [modalLoteAberto, setModalLoteAberto] = useState(false);
   // Estado para Confirmação de Exclusão de BM
   const [bmParaExcluir, setBmParaExcluir] = useState<{ id: string; nome: string } | null>(null);
 
   // Campos do Formulário de Produção & Estoque
-  const [operadorSelecionado, setOperadorSelecionado] = useState("");
-  const [operadorOutroTexto, setOperadorOutroTexto] = useState("");
+  const [operador, setOperador] = useState("");
+  const [operadorManual, setOperadorManual] = useState(false);
   const [dataVirada, setDataVirada] = useState(() => new Date().toISOString().slice(0, 10));
   const [limiteBm, setLimiteBm] = useState("250");
   const [nomesBmTexto, setNomesBmTexto] = useState("");
-  const [nomePortfolio, setNomePortfolio] = useState("");
-  const [nomeConta, setNomeConta] = useState("");
   const [bmsCriadas, setBmsCriadas] = useState("1");
   const [contasViradas, setContasViradas] = useState("1");
   const [bloqueios, setBloqueios] = useState("0");
@@ -271,15 +261,6 @@ function PaginaProducao() {
       }
     },
   });
-
-  // Lista de Operadores Predefinidos: André Alves, Ligya Teixeira, Francille e equipe
-  const opcoesOperadores = useMemo(() => {
-    const base = ["André Alves", "Ligya Teixeira", "Francille"];
-    const outrosEquipe = (equipeQuery.data || [])
-      .map((m) => m.nome?.trim())
-      .filter((n): n is string => Boolean(n) && n !== "Fornecedor CIRO" && !base.includes(n));
-    return [...base, ...outrosEquipe];
-  }, [equipeQuery.data]);
 
   // 2. Carrega Registros de Produção Diária (Lançamentos com métricas completas)
   const producaoQuery = useQuery({
@@ -453,13 +434,11 @@ function PaginaProducao() {
 
   // Resetar formulário
   const resetForm = () => {
-    setOperadorSelecionado("");
-    setOperadorOutroTexto("");
+    setOperador("");
+    setOperadorManual(false);
     setDataVirada(new Date().toISOString().slice(0, 10));
     setLimiteBm("250");
     setNomesBmTexto("");
-    setNomePortfolio("");
-    setNomeConta("");
     setBmsCriadas("1");
     setContasViradas("1");
     setBloqueios("0");
@@ -480,18 +459,7 @@ function PaginaProducao() {
   const salvarProducaoMutation = useMutation({
     mutationFn: async () => {
       if (!empresa?.id) throw new Error("Empresa não identificada.");
-      
-      const operador = operadorSelecionado === "Outro" 
-        ? operadorOutroTexto.trim() 
-        : operadorSelecionado.trim();
-
-      if (!operador) {
-        throw new Error(
-          operadorSelecionado === "Outro"
-            ? "Digite o nome de quem virou a BM."
-            : "Selecione ou informe quem virou a BM."
-        );
-      }
+      if (!operador.trim()) throw new Error("Selecione ou informe quem realizou a viragem/criação da BM.");
       if (!dataVirada) throw new Error("Informe a data do lançamento de produção.");
 
       // Parse dos nomes das BMs (aceita linha por linha ou separado por vírgula)
@@ -504,15 +472,6 @@ function PaginaProducao() {
       const viradasNum = Math.max(0, Number(contasViradas) || (linhas.length > 0 ? linhas.length : 1));
       const bloqueiosNum = Math.max(0, Number(bloqueios) || 0);
 
-      // Formata a data para o padrão de lote (ex: 17/10/2026)
-      const dataFormatada = dataVirada
-        ? dataVirada.split("-").reverse().join("/")
-        : new Date().toLocaleDateString("pt-BR");
-
-      const limitePadronizado = limiteBm.toUpperCase().startsWith("BM")
-        ? limiteBm.toUpperCase()
-        : `BM ${limiteBm.toUpperCase()}`;
-
       // Gera os nomes das BMs caso não tenham sido preenchidos manualmente
       const nomesValidos =
         linhas.length > 0
@@ -520,7 +479,7 @@ function PaginaProducao() {
           : Array.from(
               { length: Math.max(1, viradasNum) },
               (_, i) =>
-                `${limitePadronizado} - Lote ${dataFormatada} - #${String(i + 1).padStart(2, "0")}`
+                `BM-${limiteBm.toUpperCase()}-${dataVirada.replace(/-/g, "").slice(2)}-${String(i + 1).padStart(2, "0")}`
             );
 
       const producaoId = crypto.randomUUID();
@@ -528,59 +487,7 @@ function PaginaProducao() {
       const motivoValido =
         bloqueiosNum > 0 && motivoQueda !== "nenhum" ? (motivoQueda as MotivoQuedaProducao) : null;
 
-      // 1. Gera lista de BMs como itens únicos e serializados com IDs universais
-      const bmsToInsert = nomesValidos.map((nome, idx) => {
-        const bmId = crypto.randomUUID();
-        const lim = limiteBm.toUpperCase();
-
-        const portfolioFinal = nomePortfolio.trim()
-          ? (nomesValidos.length > 1 && nomePortfolio.includes("{n}")
-              ? nomePortfolio.replace("{n}", String(idx + 1))
-              : nomePortfolio.trim())
-          : null;
-
-        const contaFinal = nomeConta.trim()
-          ? (nomesValidos.length > 1 && nomeConta.includes("{n}")
-              ? nomeConta.replace("{n}", String(idx + 1).padStart(2, "0"))
-              : nomesValidos.length > 1
-                ? `${nomeConta.trim()} ${String(idx + 1).padStart(2, "0")}`
-                : nomeConta.trim())
-          : null;
-
-        const nomeFinal = (typeof nome === "string" ? nome : (nome as any).nome)?.trim() || `${limitePadronizado} #${idx + 1}`;
-
-        return {
-          id: bmId,
-          empresa_id: empresa.id,
-          nome: nomeFinal,
-          nome_bm: nomeFinal,
-          limite: lim,
-          limite_bm: lim,
-          tipo_ativo: `${nomeFinal} [${lim}]`,
-          nome_portfolio: portfolioFinal,
-          nome_conta: contaFinal,
-          status: "Disponível", // OBRIGATÓRIO: deve ser exatamente 'Disponível'
-          status_envio: "disponivel",
-          origem: "producao",
-          producao_id: producaoId,
-          template: false,
-          tem_template: false,
-          data_criacao: new Date().toISOString(),
-          data_registro: dataVirada || new Date().toISOString().slice(0, 10),
-          responsavel: operador.trim(),
-          criador_responsavel: operador.trim(),
-          quantidade: 1,
-          quantidade_disponivel: 1,
-          quantidade_reservada: 0,
-          custo_unitario: 0,
-          custo_medio_unitario: 0,
-          venda_id: null,
-          cliente_id: null,
-          user_id: session?.user?.id ?? null,
-        };
-      });
-
-      // 2. PERSISTIR LOCALMENTE COM DADOS COMPLETOS (SQLite via TanStack Start)
+      // 1. PERSISTIR LOCALMENTE COM DADOS COMPLETOS (SQLite via TanStack Start)
       try {
         await salvarProducaoLocal({
           data: {
@@ -591,17 +498,8 @@ function PaginaProducao() {
             tipo_ativo: `BM ${limiteBm.toUpperCase()}`,
             tipo_bm: `BM ${limiteBm.toUpperCase()}`,
             limite_bm: limiteBm,
-            nome_portfolio: nomePortfolio.trim() || null,
-            nome_conta: nomeConta.trim() || null,
             nome_bm: nomesValidos.join(", "),
             nomes_bm_lote: nomesValidos,
-            bms_detalhadas: bmsToInsert.map((b) => ({
-              id: b.id,
-              nome_bm: b.nome_bm,
-              limite_bm: b.limite_bm,
-              nome_portfolio: b.nome_portfolio,
-              nome_conta: b.nome_conta,
-            })),
             bms_criadas: criadasNum,
             contas_viradas: viradasNum,
             bloqueios: bloqueiosNum,
@@ -618,7 +516,7 @@ function PaginaProducao() {
         console.warn("Aviso ao salvar produção local:", errLocal);
       }
 
-      // 3. SALVAR NO REGISTRO DE PRODUÇÃO DIÁRIA DO SUPABASE (Apenas colunas suportadas no schema remoto)
+      // 2. SALVAR NO REGISTRO DE PRODUÇÃO DIÁRIA DO SUPABASE (Apenas colunas suportadas no schema remoto)
       try {
         const obsFinal =
           nomesValidos.length > 0
@@ -638,15 +536,15 @@ function PaginaProducao() {
           bloqueios: bloqueiosNum,
           observacoes: obsFinal,
           criado_por: session?.user?.id ?? null,
-          ...(nomePortfolio.trim() ? { nome_portfolio: nomePortfolio.trim() } : {}),
-          ...(nomeConta.trim() ? { nome_conta: nomeConta.trim() } : {}),
         };
 
         if (motivoValido) {
           dadosProducaoSupabase.motivo_queda = motivoValido;
         }
 
-        const { error: erroProducao } = await resilientInsert("producao_diaria", dadosProducaoSupabase);
+        const { error: erroProducao } = await supabase
+          .from("producao_diaria")
+          .insert(dadosProducaoSupabase);
 
         if (erroProducao) {
           console.warn("Aviso ao salvar producao_diaria no Supabase remoto:", erroProducao);
@@ -655,42 +553,74 @@ function PaginaProducao() {
         console.warn("Erro ao sincronizar producao_diaria no Supabase:", errProd);
       }
 
-      // 4. Inserir lote localmente (garante que cada BM individual fique salva e disponível)
+      // 3. INSERIR AS BMS NOMINAIS NO ESTOQUE DO SUPABASE (Com persistência individual e rastreabilidade total)
+      try {
+        const recordsEstoqueSupabase = nomesValidos.map((nome) => ({
+          empresa_id: empresa.id,
+          nome_bm: nome,
+          limite_bm: limiteBm,
+          tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
+          quantidade_disponivel: 1,
+          quantidade_reservada: 0,
+          custo_medio_unitario: 0,
+          status: "disponivel",
+          status_envio: "disponivel",
+          responsavel: operador.trim(),
+          data_criacao: dataVirada,
+          origem: "producao",
+          producao_id: producaoId,
+        }));
+
+        const { error: erroEstoque } = await supabase
+          .from("estoque")
+          .insert(recordsEstoqueSupabase as any);
+
+        if (erroEstoque) {
+          const fallbackRecords = nomesValidos.map((nome) => ({
+            empresa_id: empresa.id,
+            nome_bm: nome,
+            limite_bm: limiteBm,
+            tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
+            quantidade_disponivel: 1,
+            quantidade_reservada: 0,
+            custo_medio_unitario: 0,
+            status: "disponivel",
+            status_envio: "disponivel",
+            responsavel: operador.trim(),
+            data_criacao: dataVirada,
+          }));
+          const resFallback = await supabase.from("estoque").insert(fallbackRecords as any);
+          if (resFallback.error) {
+            console.warn("Aviso ao inserir no estoque remoto com fallback:", resFallback.error);
+          }
+        }
+      } catch (errEst) {
+        console.warn("Erro ao sincronizar estoque no Supabase:", errEst);
+      }
+
+      // 4. Inserir lote localmente (se disponível)
       try {
         await inserirLoteEstoqueLocal({
           data: {
             empresa_id: empresa.id,
-            items: bmsToInsert.map((b) => ({
-              id: b.id,
+            items: nomesValidos.map((nome) => ({
               empresa_id: empresa.id,
-              tipo_ativo: b.tipo_ativo,
-              nome_bm: b.nome_bm,
-              limite_bm: b.limite_bm,
-              nome_portfolio: b.nome_portfolio,
-              nome_conta: b.nome_conta,
+              tipo_ativo: `${nome} [${limiteBm.toUpperCase()}]`,
+              nome_bm: nome,
+              limite_bm: limiteBm,
               status_envio: "disponivel",
-              status: "Disponível",
+              status: "disponivel",
               quantidade_disponivel: 1,
               quantidade_reservada: 0,
-              responsavel: b.responsavel,
-              data_criacao: b.data_criacao,
+              responsavel: operador.trim(),
+              data_criacao: dataVirada,
               origem: "producao",
               producao_id: producaoId,
             })),
           },
         });
-      } catch (errLocal) {
-        console.warn("Aviso ao salvar estoque local:", errLocal);
-      }
-
-      // 5. INSERIR CADA BM INDIVIDUALMENTE NO ESTOQUE DO SUPABASE (Resiliente a colunas do schema cache)
-      try {
-        const { error: stockError } = await resilientInsert("estoque", bmsToInsert);
-        if (stockError) {
-          console.warn("Aviso ao sincronizar BMs no Supabase remoto:", stockError);
-        }
-      } catch (errStock) {
-        console.warn("Erro de rede ao subir BMs para o estoque remoto:", errStock);
+      } catch {
+        // Fallback local não bloqueante
       }
 
       return {
@@ -701,40 +631,33 @@ function PaginaProducao() {
     },
     onSuccess: (res) => {
       toast.success(
-        `✓ Produção salva e ${res.totalBms} BMs adicionadas ao estoque com sucesso!`
+        `✓ Produção salva com sucesso! ${res.viradas} conta(s) virada(s) e ${res.totalBms} BM(s) adicionada(s) ao estoque com limite ${res.limite}!`
       );
-      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
-      void queryClient.invalidateQueries({ queryKey: ["bm_inventory"] });
-      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
-      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
-      void queryClient.invalidateQueries({ queryKey: ["sales"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setModalAberto(false);
       resetForm();
     },
     onError: (err: Error) => {
-      console.error("Erro ao salvar produção:", err);
       toast.error(err.message || "Erro ao salvar produção.");
     },
   });
 
-  // 9. Exclusão de Lançamento de Produção Diária (com estorno seguro das BMs geradas)
+  // 9. Exclusão de Lançamento de Produção Diária (com limpeza das BMs geradas)
   const excluirProducaoMutation = useMutation({
     mutationFn: async ({ id, estornarEstoque = true }: { id: string; estornarEstoque?: boolean }) => {
       if (!empresa?.id) return;
 
       if (estornarEstoque) {
         try {
-          await supabase
-            .from("estoque")
-            .delete()
-            .eq("empresa_id", empresa.id)
-            .eq("producao_id", id);
+          await supabase.from("estoque").delete().eq("producao_id", id).eq("empresa_id", empresa.id);
         } catch (errEst) {
           console.warn("Aviso ao estornar BMs do estoque:", errEst);
         }
@@ -763,8 +686,8 @@ function PaginaProducao() {
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["vendas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
@@ -777,12 +700,8 @@ function PaginaProducao() {
   const excluirBmMutation = useMutation({
     mutationFn: async (id: string) => {
       // 1. Remove do Supabase
-      try {
-        const { error } = await supabase.from("estoque").delete().eq("id", id).eq("empresa_id", empresa?.id ?? "");
-        if (error) console.warn("Aviso ao remover do Supabase:", error);
-      } catch (errRemoto) {
-        console.warn("Erro ao excluir do Supabase remoto:", errRemoto);
-      }
+      const { error } = await supabase.from("estoque").delete().eq("id", id);
+      if (error) throw error;
 
       // 2. Remove localmente se disponível
       try {
@@ -794,7 +713,7 @@ function PaginaProducao() {
       }
     },
     onMutate: async (idExcluir: string) => {
-      await queryClient.cancelQueries({ queryKey: ["estoque-producao-bms", empresa?.id] });
+      await queryClient.cancelQueries({ queryKey: ["estoque-producao-bms"] });
       const anterior = queryClient.getQueryData(["estoque-producao-bms", empresa?.id]);
       queryClient.setQueryData(["estoque-producao-bms", empresa?.id], (old: any[] = []) =>
         old.filter((item: any) => item.id !== idExcluir)
@@ -808,18 +727,48 @@ function PaginaProducao() {
       toast.error(`Erro ao excluir: ${err.message}`);
     },
     onSuccess: () => {
-      toast.success("BM excluída com sucesso.");
-    },
-    onSettled: () => {
+      toast.success("BM removida do estoque.");
       void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
-      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
       void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
       void queryClient.invalidateQueries({ queryKey: ["vendas"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+
+  // 11. Mutação para Lançamento do Lote Oficial de Outubro (60 BMs, 16 Vendas, R$ 3.550,00)
+  const lancarLoteMutation = useMutation({
+    mutationFn: async () => {
+      if (!empresa?.id) throw new Error("Empresa não identificada.");
+      return await processarLoteOficial({
+        empresaId: empresa.id,
+        usuarioId: session?.user?.id ?? null,
+      });
+    },
+    onSuccess: (res) => {
+      toast.success(
+        `✓ Lote oficial lançado com sucesso! ${res.totalBms} BMs registradas (${res.disponiveis} disponíveis, ${res.vendidas} vendidas) e R$ ${res.faturamentoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} faturados!`
+      );
+      void queryClient.invalidateQueries({ queryKey: ["producao-diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["producao_diaria"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-producao-bms"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-lista"] });
+      void queryClient.invalidateQueries({ queryKey: ["bm_stock"] });
+      void queryClient.invalidateQueries({ queryKey: ["estoque-disponivel-venda"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas"] });
+      void queryClient.invalidateQueries({ queryKey: ["vendas-comissoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["lancamentos_financeiros"] });
+      void queryClient.invalidateQueries({ queryKey: ["financeiro-unificado"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      setModalLoteAberto(false);
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao processar lote oficial: ${err.message}`);
     },
   });
 
@@ -853,9 +802,7 @@ function PaginaProducao() {
         termo &&
         !info.nome.toLowerCase().includes(termo) &&
         !info.responsavel.toLowerCase().includes(termo) &&
-        !(info.destinatario || "").toLowerCase().includes(termo) &&
-        !(info.nomePortfolio || "").toLowerCase().includes(termo) &&
-        !(info.nomeConta || "").toLowerCase().includes(termo)
+        !(info.destinatario || "").toLowerCase().includes(termo)
       ) {
         return false;
       }
@@ -883,13 +830,23 @@ function PaginaProducao() {
         descricao="Lançamento diário de criação e viragem de BMs com entrada automática no Estoque"
         acoes={
           temPermissao("producao", "criar") && (
-            <Button
-              onClick={abrirModalNovo}
-              className="gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20 w-full sm:w-auto h-11 sm:h-9 text-xs sm:text-sm justify-center"
-            >
-              <Plus className="size-4" />
-              Lançar Produção & Viragem
-            </Button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => setModalLoteAberto(true)}
+                variant="outline"
+                className="gap-2 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs w-full sm:w-auto h-11 sm:h-9 text-xs sm:text-sm justify-center"
+              >
+                <Sparkles className="size-4 text-emerald-400" />
+                Lançar Lote Oficial (60 BMs & 16 Vendas)
+              </Button>
+              <Button
+                onClick={abrirModalNovo}
+                className="gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20 w-full sm:w-auto h-11 sm:h-9 text-xs sm:text-sm justify-center"
+              >
+                <Plus className="size-4" />
+                Lançar Produção & Viragem
+              </Button>
+            </div>
           )
         }
       />
@@ -1279,60 +1236,23 @@ function PaginaProducao() {
                           </div>
                         </div>
 
-                        {(() => {
-                          const bmsDoLote = bmsDoMes.filter(
-                            (b) => b.producao_id === prod.id || (prod.nome_bm && prod.nome_bm.includes(b.nome))
-                          );
-                          return (
-                            <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/30 space-y-1">
-                              {bmsDoLote.length > 0 ? (
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-semibold text-slate-300 block">BMs Geradas no Lote:</span>
-                                  <div className="flex flex-wrap gap-1">
-                                    {bmsDoLote.map((b) => (
-                                      <Badge
-                                        key={b.id}
-                                        variant="outline"
-                                        className={cn(
-                                          "gap-1 font-mono text-[10px] py-0.5 px-1.5 inline-flex items-center",
-                                          b.estaDisponivel
-                                            ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
-                                            : "border-zinc-700 bg-zinc-800/60 text-zinc-400"
-                                        )}
-                                      >
-                                        <span>{b.nome}</span>
-                                        <span
-                                          role="button"
-                                          tabIndex={0}
-                                          title={`Excluir BM ${b.nome}`}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setBmParaExcluir({ id: b.id, nome: b.nome });
-                                          }}
-                                          className="hover:text-red-400 text-muted-foreground/60 cursor-pointer ml-0.5 p-0.5 rounded transition"
-                                        >
-                                          <Trash2 className="size-2.5" />
-                                        </span>
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : prod.nome_bm ? (
-                                <p className="font-mono text-blue-300 line-clamp-2">
-                                  <strong>BMs:</strong> {prod.nome_bm}
-                                </p>
-                              ) : null}
-                              {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
-                                <p className="text-red-400 font-semibold">
-                                  Queda: {prod.motivo_queda.replace(/_/g, " ")}
-                                </p>
-                              )}
-                              {prod.observacoes && (
-                                <p className="italic text-slate-400 line-clamp-2">{prod.observacoes}</p>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        {(prod.nome_bm || prod.observacoes || prod.motivo_queda) && (
+                          <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/30 space-y-0.5">
+                            {prod.nome_bm && (
+                              <p className="font-mono text-blue-300 line-clamp-2">
+                                <strong>BMs:</strong> {prod.nome_bm}
+                              </p>
+                            )}
+                            {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
+                              <p className="text-red-400 font-semibold">
+                                Queda: {prod.motivo_queda.replace(/_/g, " ")}
+                              </p>
+                            )}
+                            {prod.observacoes && (
+                              <p className="italic text-slate-400 line-clamp-2">{prod.observacoes}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1419,60 +1339,22 @@ function PaginaProducao() {
                                 {aproveitamento}%
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-xs max-w-sm">
-                              {(() => {
-                                const bmsDoLote = bmsDoMes.filter(
-                                  (b) => b.producao_id === prod.id || (prod.nome_bm && prod.nome_bm.includes(b.nome))
-                                );
-                                return (
-                                  <div className="space-y-1">
-                                    {bmsDoLote.length > 0 ? (
-                                      <div className="flex flex-wrap gap-1 max-w-xs">
-                                        {bmsDoLote.map((b) => (
-                                          <Badge
-                                            key={b.id}
-                                            variant="outline"
-                                            className={cn(
-                                              "gap-1 font-mono text-[10px] py-0.5 px-1.5 inline-flex items-center",
-                                              b.estaDisponivel
-                                                ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
-                                                : "border-zinc-700 bg-zinc-800/60 text-zinc-400"
-                                            )}
-                                          >
-                                            <span>{b.nome}</span>
-                                            <span
-                                              role="button"
-                                              tabIndex={0}
-                                              title={`Excluir BM ${b.nome}`}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setBmParaExcluir({ id: b.id, nome: b.nome });
-                                              }}
-                                              className="hover:text-red-400 text-muted-foreground/60 cursor-pointer ml-0.5 p-0.5 rounded transition"
-                                            >
-                                              <Trash2 className="size-2.5" />
-                                            </span>
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    ) : prod.nome_bm ? (
-                                      <p className="font-mono text-[11px] text-blue-300 truncate" title={prod.nome_bm}>
-                                        {prod.nome_bm}
-                                      </p>
-                                    ) : null}
-                                    {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
-                                      <p className="text-[11px] text-red-400 font-semibold">
-                                        Queda: {prod.motivo_queda.replace(/_/g, " ")}
-                                      </p>
-                                    )}
-                                    {prod.observacoes && (
-                                      <p className="text-[11px] text-muted-foreground truncate" title={prod.observacoes}>
-                                        {prod.observacoes}
-                                      </p>
-                                    )}
-                                  </div>
-                                );
-                              })()}
+                            <TableCell className="text-xs max-w-xs">
+                              {prod.nome_bm && (
+                                <p className="font-mono text-[11px] text-blue-300 truncate" title={prod.nome_bm}>
+                                  {prod.nome_bm}
+                                </p>
+                              )}
+                              {prod.motivo_queda && prod.motivo_queda !== "nenhum" && (
+                                <p className="text-[11px] text-red-400 font-semibold mt-0.5">
+                                  Queda: {prod.motivo_queda.replace(/_/g, " ")}
+                                </p>
+                              )}
+                              {prod.observacoes && (
+                                <p className="text-[11px] text-muted-foreground truncate" title={prod.observacoes}>
+                                  {prod.observacoes}
+                                </p>
+                              )}
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap">
                               <Button
@@ -1539,14 +1421,10 @@ function PaginaProducao() {
                 {/* 1. CARDS PARA CELULAR (block md:hidden) */}
                 <div className="block md:hidden divide-y divide-border/30">
                   {bmsFiltradas.map((bm: any) => (
-                    <div key={bm.id} className="p-3.5 space-y-2.5 hover:bg-muted/20 transition">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <span className="font-mono text-sm font-bold text-white block truncate">
-                            {bm.nome}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                    <div key={bm.id} className="p-3.5 space-y-2 hover:bg-muted/20 transition">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold text-white">{bm.nome}</span>
+                        <div className="flex items-center gap-2">
                           <Badge
                             variant="outline"
                             className="border-blue-500/40 text-blue-400 bg-blue-500/10 font-bold text-[11px]"
@@ -1565,25 +1443,9 @@ function PaginaProducao() {
                         </div>
                       </div>
 
-                      {/* PORTFÓLIO DA BM E CONTA DE ANÚNCIOS */}
-                      <div className="space-y-1 bg-black/30 p-2.5 rounded-lg border border-border/40 text-xs">
-                        <div className="flex items-center gap-1.5 text-slate-200">
-                          <span className="text-blue-400 font-semibold shrink-0">🏢 Portfólio:</span>
-                          <span className="font-medium text-white truncate">
-                            {bm.nomePortfolio || "Não informado"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-slate-200">
-                          <span className="text-purple-400 font-semibold shrink-0">📢 Conta:</span>
-                          <span className="font-medium text-white truncate">
-                            {bm.nomeConta || "Não informada"}
-                          </span>
-                        </div>
-                      </div>
-
                       <div className="flex items-center justify-between text-xs text-slate-300">
-                        <span>Operador: <strong className="text-white font-medium">{bm.responsavel}</strong></span>
-                        <span className="text-muted-foreground text-[11px]">{bm.data ? formatarData(bm.data, fuso) : "—"}</span>
+                        <span>Operador: <strong>{bm.responsavel}</strong></span>
+                        <span className="text-muted-foreground">{bm.data ? formatarData(bm.data, fuso) : "—"}</span>
                       </div>
 
                       <div className="flex items-center justify-between pt-1 border-t border-border/30 text-xs">
@@ -1615,13 +1477,11 @@ function PaginaProducao() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/40 hover:bg-transparent">
-                        <TableHead className="whitespace-nowrap">Nome da BM / Ativo</TableHead>
-                        <TableHead className="whitespace-nowrap">Portfólio Empresarial (BM)</TableHead>
-                        <TableHead className="whitespace-nowrap">Conta de Anúncios</TableHead>
-                        <TableHead className="whitespace-nowrap">Limite</TableHead>
-                        <TableHead className="whitespace-nowrap">Operador</TableHead>
+                        <TableHead className="whitespace-nowrap">Nome da BM</TableHead>
+                        <TableHead className="whitespace-nowrap">Limite Virado</TableHead>
+                        <TableHead className="whitespace-nowrap">Quem Virou (Operador)</TableHead>
                         <TableHead className="whitespace-nowrap">Data de Entrada</TableHead>
-                        <TableHead className="whitespace-nowrap">Destinatário</TableHead>
+                        <TableHead className="whitespace-nowrap">Destinatário / Enviado Para</TableHead>
                         <TableHead className="text-center whitespace-nowrap">Status no Estoque</TableHead>
                         <TableHead className="text-right whitespace-nowrap">Ação</TableHead>
                       </TableRow>
@@ -1634,24 +1494,6 @@ function PaginaProducao() {
                         >
                           <TableCell className="font-bold text-white font-mono text-xs whitespace-nowrap">
                             {bm.nome}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {bm.nomePortfolio ? (
-                              <span className="inline-flex items-center gap-1 text-blue-300 font-medium bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded text-[11px]">
-                                🏢 {bm.nomePortfolio}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground/50 italic text-[11px]">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {bm.nomeConta ? (
-                              <span className="inline-flex items-center gap-1 text-purple-300 font-medium bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded text-[11px]">
-                                📢 {bm.nomeConta}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground/50 italic text-[11px]">—</span>
-                            )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Badge
@@ -1723,43 +1565,40 @@ function PaginaProducao() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* OPERADOR */}
               <div className="space-y-1.5">
-                <Label htmlFor="op" className="text-xs font-semibold">
-                  Quem virou a BM? *
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="op" className="text-xs font-semibold">
+                    Quem virou a BM? *
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setOperadorManual(!operadorManual)}
+                    className="text-[10px] text-blue-400 hover:underline"
+                  >
+                    {operadorManual ? "Escolher da Equipe" : "Digitar Manualmente"}
+                  </button>
+                </div>
 
-                <Select
-                  value={operadorSelecionado}
-                  onValueChange={(val) => {
-                    setOperadorSelecionado(val);
-                    if (val !== "Outro") {
-                      setOperadorOutroTexto("");
-                    }
-                  }}
-                >
-                  <SelectTrigger id="op" className="h-10 sm:h-9 text-xs sm:text-sm">
-                    <SelectValue placeholder="Selecione quem virou a BM" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opcoesOperadores.map((nome) => (
-                      <SelectItem key={nome} value={nome}>
-                        {nome}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="Outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {operadorSelecionado === "Outro" && (
-                  <div className="pt-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <Input
-                      id="op-outro"
-                      placeholder="Digite o nome de quem virou a BM..."
-                      value={operadorOutroTexto}
-                      onChange={(e) => setOperadorOutroTexto(e.target.value)}
-                      className="h-10 sm:h-9 text-xs sm:text-sm border-blue-500/50 focus:border-blue-500 bg-background/80"
-                      autoFocus
-                    />
-                  </div>
+                {operadorManual ? (
+                  <Input
+                    placeholder="Digite o nome da operadora..."
+                    value={operador}
+                    onChange={(e) => setOperador(e.target.value)}
+                    className="h-10 sm:h-9 text-xs sm:text-sm"
+                  />
+                ) : (
+                  <Select value={operador} onValueChange={setOperador}>
+                    <SelectTrigger id="op" className="h-10 sm:h-9 text-xs sm:text-sm">
+                      <SelectValue placeholder="Selecione a operadora" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Fornecedor CIRO">🔧 Fornecedor CIRO</SelectItem>
+                      {(equipeQuery.data || []).map((m) => (
+                        <SelectItem key={m.id} value={m.nome}>
+                          {m.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
 
@@ -1797,78 +1636,15 @@ function PaginaProducao() {
               </Select>
             </div>
 
-            {/* PORTFÓLIO E CONTA DE ANÚNCIOS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-muted/20 p-3 rounded-lg border border-border/50">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5 text-blue-400" />
-                  <Label htmlFor="portfolio" className="text-xs font-semibold">
-                    Portfólio da BM (BM Portfolio)
-                  </Label>
-                </div>
-                <Input
-                  id="portfolio"
-                  placeholder="Ex: Agência Prime Business"
-                  value={nomePortfolio}
-                  onChange={(e) => setNomePortfolio(e.target.value)}
-                  className="h-10 sm:h-9 text-xs sm:text-sm"
-                />
-                <span className="text-[10px] text-muted-foreground block">
-                  Use &#123;n&#125; para numeração automática em lote.
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Megaphone className="w-3.5 h-3.5 text-amber-400" />
-                  <Label htmlFor="conta" className="text-xs font-semibold">
-                    Nome da Conta de Anúncios
-                  </Label>
-                </div>
-                <Input
-                  id="conta"
-                  placeholder="Ex: Conta 01 - Tráfego"
-                  value={nomeConta}
-                  onChange={(e) => setNomeConta(e.target.value)}
-                  className="h-10 sm:h-9 text-xs sm:text-sm"
-                />
-                <span className="text-[10px] text-muted-foreground block">
-                  Identificação da conta vinculada ao ativo.
-                </span>
-              </div>
-            </div>
-
             {/* NOMES DAS BMS */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="nomes" className="text-xs font-semibold">
                   Nome(s) da(s) BM(s)
                 </Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-[10px] text-primary hover:bg-primary/10"
-                    onClick={() => {
-                      const prefix = `BM-${limiteBm.toUpperCase()}`;
-                      const linhas = nomesBmTexto.split("\n").filter((l) => l.trim().length > 0);
-                      const proximoNum = linhas.length + 1;
-                      const novoNome = `${prefix}-${String(proximoNum).padStart(2, "0")}`;
-                      const novoTexto = nomesBmTexto ? `${nomesBmTexto.trim()}\n${novoNome}` : novoNome;
-                      setNomesBmTexto(novoTexto);
-                      const total = novoTexto.split("\n").filter((l) => l.trim().length > 0).length;
-                      setBmsCriadas(String(total));
-                      setContasViradas(String(total));
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Adicionar BM ao Lote
-                  </Button>
-                  <span className="text-[10px] sm:text-[11px] text-muted-foreground">
-                    (1 por linha)
-                  </span>
-                </div>
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground">
+                  (1 por linha para cadastrar lote)
+                </span>
               </div>
               <Textarea
                 id="nomes"
@@ -2005,6 +1781,156 @@ function PaginaProducao() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* MODAL DE LANÇAMENTO OFICIAL DO LOTE DE 60 BMS E 16 VENDAS */}
+      <Dialog open={modalLoteAberto} onOpenChange={setModalLoteAberto}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-border/80">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Sparkles className="size-5 text-emerald-400" />
+              Lançamento Oficial: 60 BMs & 16 Vendas
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-300">
+              Confirme os dados antes de efetuar a gravação direta no Estoque, Produção Diária, Vendas e Financeiro.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* CARDS COM RESUMO DOS TOTAIS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-2">
+            <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800">
+              <span className="text-xs text-muted-foreground font-semibold block">Total do Lote</span>
+              <span className="text-2xl font-bold text-white">60 BMs</span>
+              <span className="text-[11px] text-zinc-400 block mt-0.5">Produção Outubro</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30">
+              <span className="text-xs text-emerald-400 font-semibold block">Estoque Disponível</span>
+              <span className="text-2xl font-bold text-emerald-300">44 BMs</span>
+              <span className="text-[11px] text-emerald-400/80 block mt-0.5">24 (250) + 20 (2K)</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-500/30">
+              <span className="text-xs text-blue-400 font-semibold block">BMs Vendidas</span>
+              <span className="text-2xl font-bold text-blue-300">16 BMs</span>
+              <span className="text-[11px] text-blue-400/80 block mt-0.5">Entregues aos clientes</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30">
+              <span className="text-xs text-amber-400 font-semibold block">Faturamento Total</span>
+              <span className="text-2xl font-bold text-amber-300">R$ 3.550</span>
+              <span className="text-[11px] text-amber-400/80 block mt-0.5">Receita no Financeiro</span>
+            </div>
+          </div>
+
+          {/* LISTAGEM DETALHADA COM TABS */}
+          <Tabs defaultValue="vendidas" className="w-full mt-2">
+            <TabsList className="grid grid-cols-2 w-full bg-zinc-900 border border-zinc-800">
+              <TabsTrigger value="vendidas" className="text-xs font-semibold data-[state=active]:bg-zinc-800">
+                16 BMs Vendidas (R$ 3.550,00)
+              </TabsTrigger>
+              <TabsTrigger value="estoque" className="text-xs font-semibold data-[state=active]:bg-zinc-800">
+                44 BMs Disponíveis em Estoque
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="vendidas" className="mt-3">
+              <div className="border border-border/60 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-zinc-900/90 sticky top-0">
+                    <TableRow className="border-border/60">
+                      <TableHead className="text-xs font-bold text-white">Nome da BM</TableHead>
+                      <TableHead className="text-xs font-bold text-white">Limite</TableHead>
+                      <TableHead className="text-xs font-bold text-white">Cliente / Destinatário</TableHead>
+                      <TableHead className="text-xs font-bold text-white text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {BMS_VENDIDAS_LOTE.map((v, i) => (
+                      <TableRow key={i} className="border-border/40 hover:bg-zinc-900/40 text-xs">
+                        <TableCell className="font-medium text-white max-w-[220px] truncate" title={v.nome}>
+                          {v.nome}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={v.limite === "BM 2K" ? "border-purple-500/40 text-purple-300 bg-purple-500/10" : "border-emerald-500/40 text-emerald-300 bg-emerald-500/10"}>
+                            {v.limite}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {v.cliente}
+                          {v.observacao && <span className="block text-[10px] text-muted-foreground">{v.observacao}</span>}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-emerald-400">
+                          R$ {v.valor.toFixed(2).replace(".", ",")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="estoque" className="mt-3">
+              <div className="border border-border/60 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-zinc-900/90 sticky top-0">
+                    <TableRow className="border-border/60">
+                      <TableHead className="text-xs font-bold text-white">#</TableHead>
+                      <TableHead className="text-xs font-bold text-white">Nome da BM</TableHead>
+                      <TableHead className="text-xs font-bold text-white">Limite</TableHead>
+                      <TableHead className="text-xs font-bold text-white">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {BMS_ESTOQUE_DISPONIVEL.map((b, i) => (
+                      <TableRow key={i} className="border-border/40 hover:bg-zinc-900/40 text-xs">
+                        <TableCell className="text-muted-foreground w-10">{i + 1}</TableCell>
+                        <TableCell className="font-medium text-white max-w-[300px] truncate" title={b.nome}>
+                          {b.nome}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={b.limite === "BM 2K" ? "border-purple-500/40 text-purple-300 bg-purple-500/10" : "border-emerald-500/40 text-emerald-300 bg-emerald-500/10"}>
+                            {b.limite}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px]">
+                            Disponível
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="border-t border-border/40 pt-3 flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setModalLoteAberto(false)}
+              disabled={lancarLoteMutation.isPending}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => lancarLoteMutation.mutate()}
+              disabled={lancarLoteMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-2 w-full sm:w-auto"
+            >
+              {lancarLoteMutation.isPending ? (
+                "Lançando Lote no Sistema..."
+              ) : (
+                <>
+                  <CheckCircle2 className="size-4" />
+                  Confirmar e Lançar Agora (R$ 3.550,00)
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
