@@ -73,9 +73,9 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
 });
 
 const CHECKOUT_BASICO =
-  "https://checkout.alfacademi.com.br/checkout/oferta-0MNFNWAE922IZesJ";
+  "https://pay.cakto.com.br/mswtxij_1243353";
 const CHECKOUT_PREMIUM =
-  "https://checkout.alfacademi.com.br/checkout/oferta-3u0mlpLV72S6Ascq";
+  "https://pay.cakto.com.br/mswtxij_1243353";
 const LINK_AMOSTRA =
   "/colorindo-silabas/amostra-colorindo-as-silabas.pdf";
 const LINK_WHATSAPP =
