@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
@@ -7,6 +8,7 @@ import { CarregandoCartoes, EstadoErro } from "@/components/comum/estados";
 import { useSessao } from "@/hooks/use-sessao";
 import { supabase } from "@/integrations/supabase/client";
 import { registrarLogAcesso } from "@/lib/logs.functions";
+import { processarLoteOficial } from "@/lib/carga-lote-outubro";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -28,6 +30,7 @@ export const Route = createFileRoute("/_authenticated")({
 function LayoutProtegido() {
   const { session, perfil, carregando, erro, recarregar, temPermissao } = useSessao();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { pathname } = router.state.location;
 
   useEffect(() => {
@@ -103,6 +106,42 @@ function LayoutProtegido() {
       }
     }
   }, [session, perfil, carregando, erro]);
+
+  // Garante que o Lote Oficial de Outubro (60 BMs, 16 Vendas, R$ 3.550,00) seja sincronizado para a empresa ativa
+  useEffect(() => {
+    if (session?.user && !carregando && perfil?.empresa_id) {
+      const empresaId = perfil.empresa_id;
+      const chaveLote = `lote-oficial-outubro-auto-${empresaId}`;
+      if (sessionStorage.getItem(chaveLote)) return;
+
+      const sincronizarLote = async () => {
+        try {
+          const { data: bmsExistentes } = await supabase
+            .from("estoque")
+            .select("id")
+            .eq("empresa_id", empresaId)
+            .ilike("nome_bm", "%Pazefer%")
+            .limit(1);
+
+          if (!bmsExistentes || bmsExistentes.length === 0) {
+            console.log("[Lote-Oficial-Global] Sincronizando 60 BMs e 16 Vendas para empresa:", empresaId);
+            await processarLoteOficial({
+              empresaId,
+              usuarioId: session.user.id,
+            });
+            sessionStorage.setItem(chaveLote, "true");
+            void queryClient.invalidateQueries();
+          } else {
+            sessionStorage.setItem(chaveLote, "true");
+          }
+        } catch (e) {
+          console.error("Erro na auto-sincronização do lote oficial:", e);
+        }
+      };
+
+      void sincronizarLote();
+    }
+  }, [session, perfil, carregando, queryClient]);
 
   if (carregando) {
     return <CarregandoCartoes />;
