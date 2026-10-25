@@ -11,6 +11,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { useFavicon } from "@/hooks/use-favicon";
+
 export const Route = createFileRoute("/download-produtos")({
   head: () => ({
     meta: [
@@ -18,6 +20,25 @@ export const Route = createFileRoute("/download-produtos")({
       {
         name: "description",
         content: "Acesse e baixe todos os seus materiais do Colorindo as Sílabas e bônus exclusivos em PDF.",
+      },
+    ],
+    links: [
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "32x32",
+        href: "/colorindo-silabas/favicon-colorindo-32.png",
+      },
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "192x192",
+        href: "/colorindo-silabas/favicon-colorindo-192.png",
+      },
+      {
+        rel: "apple-touch-icon",
+        sizes: "180x180",
+        href: "/colorindo-silabas/favicon-colorindo-180.png",
       },
     ],
   }),
@@ -100,6 +121,10 @@ const PRODUTOS = [
 ];
 
 function PaginaDownloadProdutos() {
+  useFavicon(
+    "/colorindo-silabas/favicon-colorindo-32.png",
+    "/colorindo-silabas/favicon-colorindo-180.png",
+  );
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-['Inter',sans-serif]">
       {/* Barra Superior */}

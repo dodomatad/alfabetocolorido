@@ -14,6 +14,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+import { useFavicon } from "@/hooks/use-favicon";
+
 export const Route = createFileRoute("/colorindo-as-silabas-v2")({
   head: () => ({
     meta: [
@@ -37,8 +39,20 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
     links: [
       {
         rel: "icon",
-        type: "image/jpeg",
-        href: "/colorindo-silabas/logo-colorindo-v2.jpg",
+        type: "image/png",
+        sizes: "32x32",
+        href: "/colorindo-silabas/favicon-colorindo-32.png",
+      },
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "192x192",
+        href: "/colorindo-silabas/favicon-colorindo-192.png",
+      },
+      {
+        rel: "apple-touch-icon",
+        sizes: "180x180",
+        href: "/colorindo-silabas/favicon-colorindo-180.png",
       },
       {
         rel: "preconnect",
@@ -129,6 +143,10 @@ const FAQS = [
 ];
 
 function PaginaColorindoAsSilabas() {
+  useFavicon(
+    "/colorindo-silabas/favicon-colorindo-32.png",
+    "/colorindo-silabas/favicon-colorindo-180.png",
+  );
   const [modalAberto, setModalAberto] = useState(false);
   const [segundosRestantes, setSegundosRestantes] = useState(15 * 60);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
