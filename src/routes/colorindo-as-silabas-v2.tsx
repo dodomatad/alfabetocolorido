@@ -318,30 +318,6 @@ function PaginaColorindoAsSilabas() {
             ))}
           </div>
         </div>
-
-        {/* Baixar Amostra Grátis */}
-        <div className="max-w-xl mx-auto bg-gray-50 border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm">
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
-            Baixar amostra grátis:
-          </h3>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a
-              href={LINK_AMOSTRA}
-              download="Amostra-Colorindo-as-Silabas.pdf"
-              className="inline-flex items-center gap-3 bg-sky-500 hover:bg-sky-600 text-white font-bold text-lg sm:text-xl py-3 px-8 rounded-xl shadow-md transition-all active:translate-y-0.5"
-            >
-              <Download className="w-6 h-6 animate-bounce" />
-              <span>Clique aqui para baixar</span>
-            </a>
-            <a
-              href="/download-produtos"
-              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base py-3 px-6 rounded-xl shadow-md transition-all active:translate-y-0.5"
-            >
-              <ExternalLink className="w-5 h-5" />
-              <span>Ver Todos os PDFs</span>
-            </a>
-          </div>
-        </div>
       </section>
 
       {/* O que você vai receber ao adquirir */}
@@ -935,22 +911,6 @@ function PaginaColorindoAsSilabas() {
                 className="max-w-[240px] h-auto object-contain mt-2"
                 loading="lazy"
               />
-            </div>
-
-            {/* Atendimento */}
-            <div className="flex flex-col items-center md:items-start space-y-2">
-              <h4 className="font-bold text-white text-base uppercase tracking-wider">
-                DÚVIDAS?
-              </h4>
-              <div className="flex items-center gap-2 mt-2">
-                <MessageCircle className="w-5 h-5 text-emerald-400" />
-                <span className="font-bold text-white text-lg">
-                  51 98523-5758
-                </span>
-              </div>
-              <p className="text-xs text-gray-400">
-                de segunda a sexta das 09:00h às 18:00h
-              </p>
             </div>
 
             {/* Links Úteis */}
