@@ -220,12 +220,12 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           {/* Botão de Ação Principal */}
-          <button
-            onClick={rolarParaOferta}
+          <a
+            href={CHECKOUT_PREMIUM}
             className="w-full max-w-[480px] bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl py-4 sm:py-5 px-8 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3"
           >
             EU QUERO
-          </button>
+          </a>
 
           {/* Aviso de Entrega por E-mail */}
           <div className="mt-6 flex flex-row items-center justify-center gap-3 max-w-lg text-left px-2">
@@ -369,12 +369,12 @@ function PaginaColorindoAsSilabas() {
           </h3>
 
           <div className="mt-6 flex justify-center">
-            <button
-              onClick={rolarParaOferta}
-              className="w-full max-w-[440px] bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer"
+            <a
+              href={CHECKOUT_PREMIUM}
+              className="w-full max-w-[440px] text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer inline-block"
             >
               Sim, quero garantir o material
-            </button>
+            </a>
           </div>
 
           <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500">
@@ -524,12 +524,12 @@ function PaginaColorindoAsSilabas() {
               </div>
 
               <div>
-                <button
-                  onClick={() => setModalAberto(true)}
-                  className="w-full bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-3.5 px-6 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase"
+                <a
+                  href={CHECKOUT_PREMIUM}
+                  className="w-full inline-block text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-3.5 px-6 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase"
                 >
                   quero essa opção!
-                </button>
+                </a>
 
                 <div className="mt-6">
                   <img
@@ -652,12 +652,12 @@ function PaginaColorindoAsSilabas() {
             </div>
           </div>
 
-          <button
-            onClick={rolarParaOferta}
-            className="mt-2 bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-3.5 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer uppercase"
+          <a
+            href={CHECKOUT_PREMIUM}
+            className="mt-2 inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-3.5 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer uppercase"
           >
             Quero acessar agora e usar hoje
-          </button>
+          </a>
         </div>
       </section>
 
@@ -832,12 +832,12 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           <div className="mt-10">
-            <button
-              onClick={rolarParaOferta}
-              className="bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-10 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase"
+            <a
+              href={CHECKOUT_PREMIUM}
+              className="inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-10 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase"
             >
               QUERO MEU ACESSO AGORA
-            </button>
+            </a>
           </div>
         </div>
       </section>
