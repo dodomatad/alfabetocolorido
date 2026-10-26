@@ -4,11 +4,7 @@ import {
   FileText,
   CheckCircle2,
   Printer,
-  Sparkles,
   ArrowLeft,
-  HelpCircle,
-  MessageCircle,
-  ShieldCheck,
 } from "lucide-react";
 
 import { useFavicon } from "@/hooks/use-favicon";
@@ -16,10 +12,11 @@ import { useFavicon } from "@/hooks/use-favicon";
 export const Route = createFileRoute("/download-produtos")({
   head: () => ({
     meta: [
-      { title: "Download dos Produtos – Lição Kids" },
+      { title: "Central de Downloads – Colorindo as Sílabas Simples" },
       {
         name: "description",
-        content: "Acesse e baixe todos os seus materiais do Colorindo as Sílabas e bônus exclusivos em PDF.",
+        content:
+          "Acesse e baixe todos os seus materiais do Colorindo as Sílabas e bônus exclusivos em PDF.",
       },
     ],
     links: [
@@ -49,7 +46,8 @@ const PRODUTOS = [
   {
     id: "silabas-principal",
     titulo: "Colorindo as Sílabas Simples 1° Ano",
-    descricao: "Material completo com 40 atividades lúdicas de pintura por código, traçado de sílabas e percepção visual.",
+    descricao:
+      "Material principal completo com 40 páginas de atividades lúdicas de pintura por código, traçado de sílabas e percepção visual.",
     arquivo: "/colorindo-silabas/colorindo-as-silabas-completo.pdf",
     nomeDownload: "Colorindo-as-Silabas-Simples-1Ano.pdf",
     paginas: "40 Páginas",
@@ -60,63 +58,55 @@ const PRODUTOS = [
   },
   {
     id: "portugues-1ano",
-    titulo: "Bônus: Português 1° Ano",
-    descricao: "Caderno extra de exercícios com alfabetização, formação de palavras, leitura guiada e treino de escrita.",
+    titulo: "Bônus #1: Português 1° Ano",
+    descricao:
+      "Caderno extra de exercícios com encontros vocálicos, formação de palavras, separação silábica e leitura de frases.",
     arquivo: "/colorindo-silabas/portugues-1ano-bonus.pdf",
     nomeDownload: "Bonus-Portugues-1Ano.pdf",
-    paginas: "Atividades Extras",
+    paginas: "Caderno Bônus",
     tipo: "Bônus Exclusivo",
-    badge: "Bônus",
+    badge: "Bônus #1",
     corBadge: "bg-indigo-500",
     capa: "/colorindo-silabas/01-B-BA-BE-BI-BO-BU-para-colorir.png",
   },
   {
     id: "matematica-1ano",
-    titulo: "Bônus: Matemática 1° Ano",
-    descricao: "Atividades de contagem, associação de números com quantidades, noções de grandeza e desafios ilustrados.",
+    titulo: "Bônus #2: Matemática 1° Ano",
+    descricao:
+      "Atividades de sequência numérica, antecessor e sucessor, adição, subtração e desafios matemáticos do 1° ano.",
     arquivo: "/colorindo-silabas/matematica-1ano-bonus.pdf",
     nomeDownload: "Bonus-Matematica-1Ano.pdf",
-    paginas: "Atividades Extras",
+    paginas: "Caderno Bônus",
     tipo: "Bônus Exclusivo",
-    badge: "Bônus",
+    badge: "Bônus #2",
     corBadge: "bg-amber-500",
     capa: "/colorindo-silabas/Silabario_7.png",
   },
   {
     id: "folclore-1ano",
-    titulo: "Bônus: Folclore 1° Ano",
-    descricao: "Atividades temáticas sobre lendas folclóricas brasileiras com desenhos para colorir e caça-palavras.",
+    titulo: "Bônus #3: Folclore 1° Ano",
+    descricao:
+      "Atividades temáticas sobre lendas folclóricas brasileiras, parlendas rimadas, adivinhas e formação silábica.",
     arquivo: "/colorindo-silabas/folclore-1ano-bonus.pdf",
     nomeDownload: "Bonus-Folclore-1Ano.pdf",
-    paginas: "Atividades Extras",
+    paginas: "Caderno Bônus",
     tipo: "Bônus Exclusivo",
-    badge: "Bônus",
+    badge: "Bônus #3",
     corBadge: "bg-rose-500",
     capa: "/colorindo-silabas/05-G-GA-GE-GI-GO-GU-para-colorir.png",
   },
   {
     id: "silabario-completo",
-    titulo: "Silabário Ilustrado para Impressão",
-    descricao: "Fichas completas com as famílias silábicas para fixar na parede do quarto ou sala de aula e recortar.",
+    titulo: "Bônus #4: Silabário Ilustrado Completo",
+    descricao:
+      "Fichas e pranchas completas com as famílias silábicas em alta resolução A4 para fixar na parede ou imprimir.",
     arquivo: "/colorindo-silabas/silabario-completo.pdf",
     nomeDownload: "Silabario-Ilustrado-Completo.pdf",
-    paginas: "Guia Visual",
+    paginas: "16 Páginas A4",
     tipo: "Material de Apoio",
-    badge: "Guia Rápido",
+    badge: "Bônus #4",
     corBadge: "bg-cyan-600",
     capa: "/colorindo-silabas/Silabario_3.png",
-  },
-  {
-    id: "amostra-gratis",
-    titulo: "Amostra Grátis Demonstrativa",
-    descricao: "Caderno resumo com exemplos de atividades selecionadas para demonstração e compartilhamento.",
-    arquivo: "/colorindo-silabas/amostra-colorindo-as-silabas.pdf",
-    nomeDownload: "Amostra-Colorindo-as-Silabas.pdf",
-    paginas: "Amostra Oficial",
-    tipo: "Amostra",
-    badge: "Demonstração",
-    corBadge: "bg-gray-600",
-    capa: "/colorindo-silabas/07-J-JA-JE-JI-JO-JU-para-colorir.png",
   },
 ];
 
@@ -135,7 +125,7 @@ function PaginaDownloadProdutos() {
             className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para a página de vendas</span>
+            <span>Voltar para a página inicial</span>
           </Link>
 
           <img
@@ -151,7 +141,7 @@ function PaginaDownloadProdutos() {
         <div className="max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold px-4 py-1.5 rounded-full uppercase tracking-wider mb-4">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Acesso Imediato Liberado</span>
+            <span>Acesso Imediato Liberado • Kit Completo</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight">
@@ -159,8 +149,9 @@ function PaginaDownloadProdutos() {
           </h1>
 
           <p className="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Seus arquivos em formato <b>PDF em alta resolução</b> estão prontos.
-            Clique no botão de cada material para baixar diretamente no seu computador ou celular.
+            Seus arquivos em formato <b>PDF em alta resolução (Padrão A4)</b>{" "}
+            estão prontos. Clique no botão verde de cada caderno para baixar
+            diretamente no seu celular ou computador.
           </p>
         </div>
       </section>
@@ -193,7 +184,9 @@ function PaginaDownloadProdutos() {
                 <div className="p-6">
                   <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
                     <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{item.tipo} • {item.paginas}</span>
+                    <span>
+                      {item.tipo} • {item.paginas}
+                    </span>
                   </div>
 
                   <h3 className="text-xl font-bold text-gray-900 leading-snug">
@@ -234,8 +227,9 @@ function PaginaDownloadProdutos() {
                 📄 Papel Recomendado
               </h4>
               <p>
-                Para pintura e lápis de cor, utilize papel sulfite A4 comum (75g).
-                Se for usar canetinha ou tinta guache, papel de 90g ou 120g evita que a tinta vaze.
+                Para pintura e lápis de cor, utilize papel sulfite A4 comum
+                (75g). Se for usar canetinha ou tinta guache, papel de 90g ou
+                120g evita que a tinta passe para o verso.
               </p>
             </div>
 
@@ -244,8 +238,9 @@ function PaginaDownloadProdutos() {
                 🖨️ Configuração de Impressão
               </h4>
               <p>
-                Os PDFs já estão configurados no formato padrão A4 retrato (100% escala).
-                Você pode optar por imprimir frente e verso ou folhas soltas para a criança pintar.
+                Os PDFs já estão configurados no formato padrão A4 retrato
+                (100% escala). Basta abrir o arquivo e enviar direto para a
+                impressora.
               </p>
             </div>
 
@@ -254,39 +249,17 @@ function PaginaDownloadProdutos() {
                 ♾️ Acesso Vitalício
               </h4>
               <p>
-                Você pode baixar os arquivos para o seu computador, tablet ou celular e imprimir quantas vezes desejar ao longo do ano.
+                Você pode salvar os arquivos no seu computador, tablet ou
+                celular e imprimir quantas vezes desejar ao longo do ano.
               </p>
             </div>
           </div>
-        </section>
-
-        {/* Suporte WhatsApp */}
-        <section className="mt-10 bg-emerald-50 border border-emerald-200 rounded-3xl p-6 sm:p-8 text-center flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="text-left">
-            <h3 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-emerald-600" />
-              <span>Precisa de ajuda com o download?</span>
-            </h3>
-            <p className="text-sm text-emerald-800 mt-1">
-              Nossa equipe de suporte pedagógico e técnico atende de segunda a sexta, das 09h às 18h.
-            </p>
-          </div>
-
-          <a
-            href="https://wa.me/5551995499349?text=Ol%C3%A1%21%20Preciso%20de%20ajuda%20com%20o%20download%20das%20minhas%20atividades%20de%20silabas"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-base py-3 px-6 rounded-xl shadow-md transition-all active:translate-y-0.5 flex-shrink-0"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>Falar com o Suporte</span>
-          </a>
         </section>
       </main>
 
       {/* Rodapé Simples */}
       <footer className="bg-gray-900 text-gray-400 py-8 px-4 text-center text-xs border-t border-gray-800 mt-16">
-        <p>© 2025 Lição Kids • Central de Downloads de Materiais Pedagógicos</p>
+        <p>© 2026 Colorindo as Sílabas Simples • Central Oficial de Downloads</p>
       </footer>
     </div>
   );

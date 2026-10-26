@@ -4,14 +4,9 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  Download,
-  Mail,
-  MessageCircle,
-  ShieldCheck,
   Clock,
   Sparkles,
-  X,
-  ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 
 import { useFavicon } from "@/hooks/use-favicon";
@@ -19,17 +14,20 @@ import { useFavicon } from "@/hooks/use-favicon";
 export const Route = createFileRoute("/colorindo-as-silabas-v2")({
   head: () => ({
     meta: [
-      { title: "Colorindo as Sílabas V2 – Central Cademi" },
+      { title: "Colorindo as Sílabas Simples 1° Ano – Kit Completo em PDF" },
       {
         name: "description",
         content:
           "Transforme o aprendizado das SÍLABAS em uma brincadeira divertida que ajuda a criança a avançar na leitura e na escrita.",
       },
-      { property: "og:title", content: "Colorindo as Sílabas V2 – Central Cademi" },
+      {
+        property: "og:title",
+        content: "Colorindo as Sílabas Simples 1° Ano – Kit Completo em PDF",
+      },
       {
         property: "og:description",
         content:
-          "40 atividades prontas, lúdicas e organizadas para o 1° Ano. Acesso imediato em PDF.",
+          "40 atividades prontas, lúdicas e organizadas para o 1° Ano + 4 Bônus Exclusivos. Acesso imediato em PDF.",
       },
       {
         property: "og:image",
@@ -72,14 +70,20 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
   component: PaginaColorindoAsSilabas,
 });
 
-const CHECKOUT_BASICO =
+// ============================================================================
+// CONFIGURAÇÃO CENTRAL DE CHECKOUT E TRACKING (MÉTODO KEVANO / SOP-03 & SOP-11)
+// Assim que criarmos o nosso próprio checkout na Cakto e o nosso Pixel/Utmify,
+// basta colar os IDs abaixo (ou definir nas variáveis VITE_* da Vercel).
+// ============================================================================
+const CHECKOUT_BASE_URL =
+  (import.meta as any).env?.VITE_CHECKOUT_URL ||
   "https://pay.cakto.com.br/mswtxij_1243353";
-const CHECKOUT_PREMIUM =
-  "https://pay.cakto.com.br/mswtxij_1243353";
-const LINK_AMOSTRA =
-  "/colorindo-silabas/amostra-colorindo-as-silabas.pdf";
-const LINK_WHATSAPP =
-  "https://wa.me/5551995499349?text=Ol%C3%A1%21%20Gostaria%20de%20saber%20mais%20sobre%20Colorindo%20as%20S%C3%ADlabas%20Simples";
+
+const META_PIXEL_ID =
+  (import.meta as any).env?.VITE_META_PIXEL_ID || "";
+
+const UTMIFY_PIXEL_ID =
+  (import.meta as any).env?.VITE_UTMIFY_PIXEL_ID || "";
 
 const CARROSSEL_1 = [
   "/colorindo-silabas/07-J-JA-JE-JI-JO-JU-para-colorir.png",
@@ -128,40 +132,133 @@ const FAQS = [
   {
     pergunta: "Quais as Formas de Pagamento?",
     resposta:
-      "PIX, Cartão de Crédito ou Boleto Bancário.\nPor cartão de crédito e pix, a compensação é imediata.\nPor boleto a compensação pode acontecer em até 72h úteis, devido a comunicação interbancária.",
+      "PIX ou Cartão de Crédito.\nPagando via PIX ou Cartão de Crédito, a liberação do acesso é imediata e você já pode baixar e imprimir todas as atividades na mesma hora.",
   },
   {
     pergunta: "Tem garantia?",
     resposta:
-      "Sim, são 7 dias de garantia incondicional. Caso você não goste, devolvemos o seu investimento sem burocracia.",
+      "Sim! Você conta com 7 dias de garantia incondicional. Caso o material não atenda à sua expectativa, devolvemos 100% do seu investimento direto pela plataforma de pagamento.",
   },
   {
     pergunta: "Como vou ter acesso ao Material?",
     resposta:
-      "Após a compensação do pagamento, você receberá o acesso por e-mail.\nO conteúdo estará disponível integralmente e já pronto para baixar, imprimir e realizar.\nOs arquivos estão em PDF em alta resolução (não disponível em formato editável).",
+      "Assim que o pagamento é confirmado, você recebe automaticamente o acesso à Central de Downloads e também no seu e-mail cadastrado.\nO conteúdo é 100% digital em formato PDF de alta resolução (configurado para folha A4 comum), pronto para baixar no celular ou computador e imprimir quantas vezes quiser.",
+  },
+  {
+    pergunta: "Para qual idade é indicado?",
+    resposta:
+      "É ideal para crianças de 5 a 8 anos (Educação Infantil e 1°/2° Ano do Ensino Fundamental) que estão aprendendo a juntar as famílias silábicas simples e desenvolvendo a leitura e escrita.",
   },
 ];
+
+function construirUrlCheckoutComUtms(baseUrl: string): string {
+  if (typeof window === "undefined") return baseUrl;
+  try {
+    const urlDestino = new URL(baseUrl);
+    const paramsAtuais = new URLSearchParams(window.location.search);
+
+    // Persiste UTMs e fbclid no sessionStorage para não perder em navegação interna
+    const chavesRastreio = [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "fbclid",
+      "gclid",
+      "ttclid",
+      "src",
+      "sck",
+    ];
+
+    chavesRastreio.forEach((chave) => {
+      const valorUrl = paramsAtuais.get(chave);
+      if (valorUrl) {
+        sessionStorage.setItem(`kevano_${chave}`, valorUrl);
+        urlDestino.searchParams.set(chave, valorUrl);
+      } else {
+        const valorSalvo = sessionStorage.getItem(`kevano_${chave}`);
+        if (valorSalvo && !urlDestino.searchParams.has(chave)) {
+          urlDestino.searchParams.set(chave, valorSalvo);
+        }
+      }
+    });
+
+    // Repassa quaisquer outros parâmetros presentes na URL atual
+    paramsAtuais.forEach((valor, chave) => {
+      if (!urlDestino.searchParams.has(chave)) {
+        urlDestino.searchParams.set(chave, valor);
+      }
+    });
+
+    // Se houver utm_content ou utm_campaign e não houver sck, preenche sck para rastreio no checkout
+    const utmContent = urlDestino.searchParams.get("utm_content");
+    const utmCampaign = urlDestino.searchParams.get("utm_campaign");
+    if (!urlDestino.searchParams.has("sck") && (utmContent || utmCampaign)) {
+      urlDestino.searchParams.set("sck", utmContent || utmCampaign || "direto");
+    }
+
+    return urlDestino.toString();
+  } catch {
+    return baseUrl;
+  }
+}
 
 function PaginaColorindoAsSilabas() {
   useFavicon(
     "/colorindo-silabas/favicon-colorindo-32.png",
     "/colorindo-silabas/favicon-colorindo-180.png",
   );
-  const [modalAberto, setModalAberto] = useState(false);
   const [segundosRestantes, setSegundosRestantes] = useState(15 * 60);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
+  const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    (window as any).pixelId = "691cb8a66228ee189bdda0b7";
-    const script = document.createElement("script");
-    script.async = true;
-    script.defer = true;
-    script.src = "https://cdn.utmify.com.br/scripts/pixel/pixel.js";
-    document.head.appendChild(script);
-    return () => {
-      script.remove();
-    };
+
+    // 1. Atualiza o link do checkout com todas as UTMs + fbclid da campanha
+    setCheckoutUrlFinal(construirUrlCheckoutComUtms(CHECKOUT_BASE_URL));
+
+    // 2. Inicializa nosso Meta Pixel próprio (quando configurado) — Emissor Único SOP-03
+    if (META_PIXEL_ID) {
+      const w = window as any;
+      if (!w.fbq) {
+        const n: any = (w.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        });
+        if (!w._fbq) w._fbq = n;
+        n.push = n;
+        n.loaded = true;
+        n.version = "2.0";
+        n.queue = [];
+        const t = document.createElement("script");
+        t.async = true;
+        t.src = "https://connect.facebook.net/en_US/fbevents.js";
+        document.head.appendChild(t);
+      }
+      w.fbq("init", META_PIXEL_ID);
+      w.fbq("track", "PageView");
+      w.fbq("track", "ViewContent", {
+        content_name: "Colorindo as Silabas Simples 1 Ano",
+        content_ids: ["colorindo-silabas-v2"],
+        content_type: "product",
+        value: 14.9,
+        currency: "BRL",
+      });
+    }
+
+    // 3. Inicializa nosso Pixel Utmify próprio (apenas quando criar a NOSSA conta Utmify)
+    if (UTMIFY_PIXEL_ID) {
+      (window as any).pixelId = UTMIFY_PIXEL_ID;
+      const script = document.createElement("script");
+      script.async = true;
+      script.defer = true;
+      script.src = "https://cdn.utmify.com.br/scripts/pixel/pixel.js";
+      document.head.appendChild(script);
+      return () => {
+        script.remove();
+      };
+    }
   }, []);
 
   useEffect(() => {
@@ -174,10 +271,24 @@ function PaginaColorindoAsSilabas() {
   const minutos = Math.floor(segundosRestantes / 60);
   const segundos = segundosRestantes % 60;
 
-  const rolarParaOferta = () => {
+  const rolarParaOferta = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const el = document.getElementById("oferta");
     if (el) {
+      e.preventDefault();
       el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const dispararInitiateCheckout = () => {
+    if (typeof window !== "undefined" && (window as any).fbq && META_PIXEL_ID) {
+      (window as any).fbq("track", "InitiateCheckout", {
+        content_name: "Colorindo as Silabas Simples 1 Ano - Kit Completo",
+        content_ids: ["colorindo-silabas-v2"],
+        content_type: "product",
+        num_items: 1,
+        value: 14.9,
+        currency: "BRL",
+      });
     }
   };
 
@@ -187,11 +298,11 @@ function PaginaColorindoAsSilabas() {
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
-      {/* Top Badge & Logo */}
+      {/* Top Badge */}
       <header className="bg-white py-3 px-4 flex flex-col items-center gap-3 border-b border-gray-100">
         <div className="bg-[#93D36F] text-black font-semibold text-xs sm:text-sm md:text-base px-6 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-2">
           <span>🔒</span>
-          <span>Compra 100% segura e protegida</span>
+          <span>Compra 100% segura • Acesso Imediato em PDF</span>
         </div>
       </header>
 
@@ -205,26 +316,27 @@ function PaginaColorindoAsSilabas() {
           <p className="mt-4 text-lg sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
             Transforme o aprendizado das{" "}
             <span className="text-[#FF6799] font-extrabold">SÍLABAS</span> em uma
-            brincadeira divertida que ajuda a criança a avançar na leitura e na
-            escrita
+            brincadeira divertida de pintura por código que ajuda a criança a
+            avançar na leitura e na escrita
           </p>
 
           {/* Capa / Logo Principal */}
-          <div className="my-6 max-w-[600px] w-full px-2">
+          <div className="my-6 max-w-[580px] w-full px-2">
             <img
               src="/colorindo-silabas/logo-colorindo-v2.jpg"
-              alt="Logo Colorindo as Sílabas V2"
+              alt="Colorindo as Sílabas Simples 1° Ano"
               className="w-full h-auto drop-shadow-xl rounded-2xl mx-auto transition-transform hover:scale-[1.01]"
               loading="eager"
             />
           </div>
 
-          {/* Botão de Ação Principal */}
+          {/* Botão de Ação Principal -> Rola para a Oferta ou vai pro Checkout */}
           <a
-            href={CHECKOUT_PREMIUM}
-            className="w-full max-w-[480px] bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl py-4 sm:py-5 px-8 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3"
+            href="#oferta"
+            onClick={rolarParaOferta}
+            className="w-full max-w-[480px] bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3"
           >
-            EU QUERO
+            QUERO O KIT COMPLETO AGORA
           </a>
 
           {/* Aviso de Entrega por E-mail */}
@@ -235,8 +347,8 @@ function PaginaColorindoAsSilabas() {
               className="w-12 h-12 flex-shrink-0 object-contain"
             />
             <p className="text-xs sm:text-sm font-medium text-[#444444] leading-snug">
-              Após a compra, você recebe acesso ao arquivo em formato PDF, no seu
-              e-mail cadastrado.
+              Após a compra, você recebe acesso imediato aos arquivos em formato
+              PDF para baixar e imprimir quantas vezes quiser.
             </p>
           </div>
 
@@ -253,8 +365,8 @@ function PaginaColorindoAsSilabas() {
 
       {/* Faixa Rosa: 1° Ano */}
       <section className="bg-[#FF6799] py-4 text-center">
-        <h2 className="text-white text-3xl sm:text-4xl font-extrabold tracking-wide">
-          1° Ano
+        <h2 className="text-white text-2xl sm:text-4xl font-extrabold tracking-wide">
+          INDICADO PARA CRIANÇAS DE 5 A 8 ANOS (1° ANO)
         </h2>
       </section>
 
@@ -262,21 +374,22 @@ function PaginaColorindoAsSilabas() {
       <section className="py-14 px-4 bg-white text-center overflow-hidden">
         <div className="max-w-4xl mx-auto mb-10">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
-            Exemplos de Atividades
+            Exemplos Reais das Atividades
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
-            Com atividades de pintura por código de sílabas, a criança aprende a
-            reconhecer sílabas simples enquanto colore, desenvolvendo também
-            atenção, concentração e percepção visual.
+            Com o método de <b>Pintura por Código de Sílabas</b>, a criança
+            aprende a reconhecer e juntar as sílabas simples enquanto colore,
+            desenvolvendo leitura, atenção, concentração e coordenação motora sem
+            choro na hora da tarefa.
           </p>
 
           <div className="mt-5 inline-block">
             <h3 className="text-xl sm:text-2xl font-bold text-[#333333]">
               <span className="bg-[#FFE6A3] font-black px-2 py-0.5 rounded">
-                40 atividades
+                40 atividades principais + 4 bônus
               </span>{" "}
-              prontas, lúdicas e organizadas
+              prontas para imprimir em folha A4
             </h3>
           </div>
         </div>
@@ -324,14 +437,14 @@ function PaginaColorindoAsSilabas() {
       <section className="py-14 px-4 bg-gray-50">
         <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-10 md:p-12 shadow-md border border-gray-100 text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase tracking-tight">
-            veja o que você vai receber ao adquirir
+            Veja tudo o que você recebe hoje
           </h2>
 
           <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
-            <span>⚡ ACESSO IMEDIATO</span>
+            <span>⚡ ACESSO IMEDIATO + 4 BÔNUS EXCLUSIVOS</span>
           </div>
 
-          <div className="my-8 max-w-[520px] mx-auto">
+          <div className="my-8 max-w-[500px] mx-auto">
             <img
               src="/colorindo-silabas/logo-colorindo-v2.jpg"
               alt="Apostila Colorindo as Sílabas V2"
@@ -341,19 +454,20 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           <h3 className="text-xl sm:text-2xl font-bold text-[#333333] mb-6">
-            Tudo foi organizado para ser simples e fácil de aplicar
+            Tudo organizado passo a passo para ser simples e fácil de aplicar:
           </h3>
 
           <ul className="text-left space-y-4 max-w-2xl mx-auto text-gray-700 text-sm sm:text-base font-medium">
             {[
-              "Famílias Silábicas Simples – Reconhecimento e aprendizagem das principais famílias silábicas",
-              "Formação de Sílabas – Junção das consoantes com as vogais A, E, I, O e U",
-              "Pontilhado – Prática da escrita de sílabas e palavras para desenvolver o traçado",
+              "Famílias Silábicas Simples – Reconhecimento e aprendizagem das famílias silábicas de A a Z",
+              "Pintura por Código de Sílabas – A criança lê a sílaba para descobrir qual cor usar em cada parte do desenho",
+              "Formação de Sílabas – Junção prática das consoantes com as vogais A, E, I, O e U",
+              "Pontilhado e Caligrafia – Prática da escrita de sílabas e palavras para desenvolver o traçado firme",
               "Associação entre Imagens e Palavras – Identificação de palavras a partir de figuras ilustradas",
-              "Pintura por Código de Sílabas – Reconhecimento da sílaba correta para colorir cada parte do desenho",
-              "Reconhecimento das Vogais – Formação das famílias silábicas a partir das diferentes vogais",
-              "Coordenação Motora e Percepção Visual – Atividades de escrita, pontilhado e pintura de forma lúdica",
-              "Leitura e Escrita – Treino das sílabas e de palavras simples do cotidiano",
+              "BÔNUS #1: Caderno de Atividades Extras – Português 1° Ano (em PDF)",
+              "BÔNUS #2: Caderno de Atividades Extras – Matemática 1° Ano (em PDF)",
+              "BÔNUS #3: Caderno Temático – Folclore Brasileiro 1° Ano (em PDF)",
+              "BÔNUS #4: Silabário Ilustrado Completo para Impressão e Parede (em PDF)",
             ].map((item, idx) => (
               <li key={idx} className="flex items-start gap-3">
                 <span className="flex-shrink-0 mt-0.5 bg-emerald-100 text-emerald-600 rounded-full p-1">
@@ -364,21 +478,18 @@ function PaginaColorindoAsSilabas() {
             ))}
           </ul>
 
-          <h3 className="mt-8 text-xl sm:text-2xl font-black text-gray-800 uppercase tracking-wide">
-            E MUITO MAIS...
-          </h3>
-
-          <div className="mt-6 flex justify-center">
+          <div className="mt-8 flex justify-center">
             <a
-              href={CHECKOUT_PREMIUM}
-              className="w-full max-w-[440px] text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer inline-block"
+              href={checkoutUrlFinal}
+              onClick={dispararInitiateCheckout}
+              className="w-full max-w-[460px] text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer inline-block uppercase"
             >
-              Sim, quero garantir o material
+              Sim, quero garantir o kit completo!
             </a>
           </div>
 
           <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500">
-            Você recebe tudo na hora, direto no seu e-mail
+            Liberado na hora via PIX ou Cartão • Arquivos em PDF prontos para imprimir
           </p>
         </div>
       </section>
@@ -386,9 +497,12 @@ function PaginaColorindoAsSilabas() {
       {/* Depoimentos */}
       <section className="py-14 px-4 bg-white text-center">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] mb-10">
-            Depoimentos @licaokids_
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] mb-3">
+            Quem já aplicou com seus pequenos recomenda
           </h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-10">
+            Veja o retorno real de mães e educadoras que utilizam nossas atividades no dia a dia:
+          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {DEPOIMENTOS.map((src, idx) => (
@@ -421,18 +535,18 @@ function PaginaColorindoAsSilabas() {
               <div className="w-28 h-28 mb-4">
                 <img
                   src="/colorindo-silabas/3-3-1.png"
-                  alt="Chega no seu e-mail"
+                  alt="Acesso imediato"
                   className="w-full h-full object-contain"
                   loading="lazy"
                 />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-3">
-                Chega no seu e-mail
+                1. Liberação Imediata
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Conteúdo digital, <b>formato PDF</b> para impressão, após
-                efetuar o pagamento você receberá o <b>acesso via e-mail</b> a
-                todo material para poder baixá-lo.
+                Conteúdo 100% digital em <b>formato PDF</b>. Assim que confirmar
+                o pagamento, seu acesso é liberado na tela e enviado ao seu{" "}
+                <b>e-mail</b>.
               </p>
             </div>
 
@@ -447,12 +561,12 @@ function PaginaColorindoAsSilabas() {
                 />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-3">
-                Baixe as atividades
+                2. Baixe e Imprima em A4
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Os arquivos estão organizados por <b>módulos</b> para facilitar a
-                impressão, baixe para seu <b>PC ou celular</b>, você pode
-                imprimir quantas vezes desejar.
+                Os arquivos são separados por <b>cadernos</b> para facilitar a
+                impressão. Baixe no seu <b>celular ou computador</b> e imprima
+                quantas vezes desejar.
               </p>
             </div>
 
@@ -467,149 +581,150 @@ function PaginaColorindoAsSilabas() {
                 />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-3">
-                Realizar as atividades
+                3. Diversão e Leitura
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Mão na massa, é hora de <b>realiza-las</b> com o seu pequeno (a)!
-                Boa diversão, realize as atividades <b>no seu tempo.</b>
+                Com lápis de cor na mão, a criança aprende as{" "}
+                <b>famílias silábicas</b> pintando por código em apenas 15
+                minutinhos por dia!
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Oferta / Pricing Cards */}
+      {/* OFERTA ÚNICA DE ALTA CONVERSÃO (DE R$ 97,00 POR R$ 14,90 — 1 ÚNICA LINHA DE CHECKOUT) */}
       <section id="oferta" className="py-16 px-4 bg-white scroll-mt-6">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 text-rose-600 font-bold text-sm uppercase tracking-widest mb-2">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 font-extrabold text-xs sm:text-sm uppercase tracking-widest px-4 py-1.5 rounded-full mb-3 border border-rose-200">
             <Clock className="w-4 h-4" />
-            <span>🕒 OFERTA VÁLIDA POR TEMPO LIMITADO</span>
+            <span>🔥 CONDIÇÃO ESPECIAL COM 85% DE DESCONTO HOJE</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222]">
-            Aproveite Enquanto está{" "}
-            <span className="text-[#d97c53]">em Promoção!</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] leading-tight">
+            Leve o Pacote Completo{" "}
+            <span className="text-[#FF6799]">+ Todos os Bônus</span>
           </h2>
+          <p className="mt-2 text-base sm:text-lg text-gray-600 max-w-xl mx-auto">
+            Acesso imediato e vitalício a todos os 5 materiais em PDF pelo valor
+            de um único exemplar:
+          </p>
 
-          {/* Cards de Preço */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto">
-            {/* Card Plano Básico */}
-            <div className="bg-gray-50 border-2 border-gray-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                  Plano Básico
-                </h3>
-
-                <ul className="text-left space-y-3 mb-8 text-gray-700 text-sm font-medium">
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <span>
-                      40 pág. Colorindo as Sílabas Simples 1° Ano (Em PDF)
-                    </span>
-                  </li>
-                </ul>
-
-                <p className="text-sm font-medium text-gray-500 mb-4">
-                  Clique no botão abaixo e garanta já o seu!
-                </p>
-
-                <div className="my-4">
-                  <span className="text-4xl sm:text-5xl font-black text-gray-900">
-                    R$10,00
-                  </span>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">
-                    Pagamento Único
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <a
-                  href={CHECKOUT_PREMIUM}
-                  className="w-full inline-block text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-3.5 px-6 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase"
-                >
-                  quero essa opção!
-                </a>
-
-                <div className="mt-6">
-                  <img
-                    src="/colorindo-silabas/AINDA-DA-TEMPO-DE-LEVAR-A-MELHOR-OPCAO-1-1.png"
-                    alt="Ainda dá tempo de levar a melhor opção"
-                    className="w-full h-auto object-contain mx-auto"
-                    loading="lazy"
-                  />
-                </div>
-              </div>
+          {/* Card Único Centralizado — De R$ 97,00 por R$ 14,90 */}
+          <div className="mt-10 max-w-xl mx-auto relative bg-gradient-to-b from-[#FFFDF7] to-[#FFF8E7] border-4 border-[#FFB800] rounded-3xl p-6 sm:p-10 flex flex-col justify-between shadow-2xl ring-4 ring-[#FFB800]/20">
+            {/* Badge Topo */}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4200] text-white text-xs sm:text-sm font-black px-5 py-1.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
+              <Sparkles className="w-4 h-4" />
+              <span>⚡ KIT COMPLETO + 4 BÔNUS INCLUSOS</span>
             </div>
 
-            {/* Card Plano Premium (Destaque) */}
-            <div className="relative bg-gradient-to-b from-[#FFFDF7] to-[#FFF8E7] border-3 border-[#FFB800] rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xl ring-4 ring-[#FFB800]/20">
-              {/* Badge Mais Vendido */}
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4200] text-white text-xs sm:text-sm font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1">
-                <Sparkles className="w-4 h-4" />
-                <span>⚡ MAIS VENDIDO</span>
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mt-3 mb-2 uppercase">
+                Colorindo as Sílabas Simples 1° Ano
+              </h3>
+
+              <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3.5 py-1 rounded-full uppercase tracking-wide mb-5">
+                ✓ ACESSO IMEDIATO + DIREITO DE IMPRESSÃO ILIMITADO
               </div>
 
-              <div>
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-2 mb-2">
-                  PLANO PREMIUM
-                </h3>
-
-                <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-4">
-                  ✓ TODOS OS BÔNUS INCLUSOS
-                </div>
-
-                <div className="text-sm text-gray-400 line-through font-semibold">
-                  Valor Total R$ 97,00
-                </div>
-
-                <div className="text-xs uppercase text-gray-600 font-bold mt-1">
-                  Hoje Pagamento Único
-                </div>
-
-                <div className="my-2">
-                  <span className="text-4xl sm:text-5xl font-black text-emerald-600">
-                    R$14,90
+              {/* Bloco de Ancoragem de Preço: De R$ 97,00 por R$ 14,90 */}
+              <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-inner my-2">
+                <div className="text-sm sm:text-base text-gray-500 font-semibold">
+                  Valor total dos materiais vendidos separadamente:{" "}
+                  <span className="line-through text-rose-600 font-extrabold">
+                    R$ 97,00
                   </span>
-                  <p className="text-xs font-bold text-gray-600 mt-1">
-                    Ou 3x de R$ 5,96 no cartão
-                  </p>
                 </div>
 
-                <ul className="text-left space-y-2.5 my-6 text-gray-800 text-sm font-medium">
-                  {[
-                    "Colorindo as Sílabas Simples",
-                    "Português 1° Ano",
-                    "Folclore 1° Ano",
-                    "Matemática 1° Ano",
-                    "Envio imediato por e-mail (em PDF)",
-                    "Acesso vitalício",
-                    "Clique no botão abaixo e garanta já o seu! ↴",
-                  ].map((feat, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <span className="font-semibold">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="text-xs uppercase text-emerald-700 font-extrabold mt-2 tracking-wider">
+                  HOJE • PAGAMENTO ÚNICO DE:
+                </div>
+
+                <div className="my-1 flex items-baseline justify-center gap-1">
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-700">
+                    R$
+                  </span>
+                  <span className="text-5xl sm:text-6xl font-black text-emerald-600 tracking-tight">
+                    14,90
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-sm font-bold text-gray-600">
+                  à vista no PIX ou Cartão (ou em até 3x de R$ 5,52)
+                </p>
               </div>
 
-              <div>
-                <a
-                  href={CHECKOUT_PREMIUM}
-                  className="w-full inline-block text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all uppercase animate-pulse hover:animate-none"
-                >
-                  sim, quero o PLANO PREMIUM
-                </a>
+              {/* Stack Completo de Entregáveis com Preços Ancorados */}
+              <ul className="text-left space-y-3 my-6 text-gray-800 text-sm sm:text-base font-medium">
+                {[
+                  {
+                    nome: "Caderno Principal: 40 Atividades Colorindo as Sílabas Simples 1° Ano",
+                    ancora: "R$ 37,00",
+                  },
+                  {
+                    nome: "Bônus #1: Caderno de Atividades Português 1° Ano",
+                    ancora: "R$ 19,90",
+                  },
+                  {
+                    nome: "Bônus #2: Caderno de Atividades Matemática 1° Ano",
+                    ancora: "R$ 19,90",
+                  },
+                  {
+                    nome: "Bônus #3: Caderno de Atividades Folclore 1° Ano",
+                    ancora: "R$ 14,90",
+                  },
+                  {
+                    nome: "Bônus #4: Silabário Ilustrado Completo para Impressão",
+                    ancora: "R$ 14,90",
+                  },
+                  {
+                    nome: "Envio imediato em PDF de Alta Resolução (Padrão A4)",
+                    ancora: "Incluso",
+                  },
+                  {
+                    nome: "Acesso Vitalício + Garantia Incondicional de 7 Dias",
+                    ancora: "Incluso",
+                  },
+                ].map((feat, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start justify-between gap-2 border-b border-amber-100/80 pb-2 last:border-none"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold text-gray-800">
+                        {feat.nome}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded whitespace-nowrap">
+                      {feat.ancora === "Incluso" ? "✓ Incluso" : `(${feat.ancora})`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-                <div className="mt-6">
-                  <img
-                    src="/colorindo-silabas/Satisfacao-Garantida-1-1.png"
-                    alt="Satisfação Garantida 100%"
-                    className="w-full h-auto object-contain mx-auto"
-                    loading="lazy"
-                  />
-                </div>
+            <div>
+              <a
+                href={checkoutUrlFinal}
+                onClick={dispararInitiateCheckout}
+                className="w-full inline-block text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-['Montserrat',sans-serif] font-extrabold text-lg sm:text-2xl py-4 sm:py-5 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all uppercase cursor-pointer"
+              >
+                QUERO TUDO POR R$ 14,90 AGORA!
+              </a>
+
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-gray-600">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Ambiente Criptografado • Liberação Automática na Hora</span>
+              </div>
+
+              <div className="mt-5">
+                <img
+                  src="/colorindo-silabas/Satisfacao-Garantida-1-1.png"
+                  alt="Satisfação Garantida 100%"
+                  className="w-full max-w-[340px] h-auto object-contain mx-auto"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -621,12 +736,12 @@ function PaginaColorindoAsSilabas() {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-snug">
             Milhares de <span className="text-[#fdce00]">famílias</span> e
-            professores já utilizam nossos{" "}
-            <span className="text-[#fdce00]">materiais</span> no dia a dia.
+            educadores já aplicam nossas{" "}
+            <span className="text-[#fdce00]">atividades</span> todos os dias.
           </h2>
 
           <p className="mt-3 text-base sm:text-lg text-gray-300">
-            Aproveite a oferta por tempo limitado
+            Aproveite o desconto de R$ 97,00 por R$ 14,90 antes que o contador zere:
           </p>
 
           {/* Countdown Clock */}
@@ -653,49 +768,12 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           <a
-            href={CHECKOUT_PREMIUM}
-            className="mt-2 inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-3.5 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer uppercase"
+            href={checkoutUrlFinal}
+            onClick={dispararInitiateCheckout}
+            className="mt-2 inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer uppercase"
           >
-            Quero acessar agora e usar hoje
+            Quero acessar agora e imprimir hoje
           </a>
-        </div>
-      </section>
-
-      {/* Suporte WhatsApp */}
-      <section className="py-12 px-4 bg-white text-center border-b border-gray-100">
-        <div className="max-w-xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#222222]">
-            DÚVIDAS?
-          </h2>
-          <h4 className="mt-2 text-sm sm:text-base font-bold text-gray-600 uppercase tracking-wide">
-            FALE COM A NOSSA EQUIPE NO WHATSAPP:
-          </h4>
-
-          <a
-            href={LINK_WHATSAPP}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-base sm:text-lg py-3.5 px-8 rounded-xl shadow-md transition-all active:translate-y-0.5 uppercase"
-          >
-            <MessageCircle className="w-6 h-6 fill-white" />
-            <span>ENVIE UMA MENSAGEM</span>
-          </a>
-        </div>
-      </section>
-
-      {/* Qualidade Garantida Lição Kids */}
-      <section className="py-12 px-4 bg-gray-50 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#222222]">
-            Qualidade garantida{" "}
-            <span className="text-[#2CAA33]">@LICAOKIDS_</span>
-          </h2>
-          <p className="mt-4 text-base sm:text-lg text-gray-700 leading-relaxed font-normal">
-            Todas atividades pertencem à <b>Lição Kids</b>, uma marca referência em
-            alfabetização infantil, com mais de <b>100 mil clientes</b> e mais
-            de <b>20 produtos pedagógicos</b> em nossa galeria. Materiais
-            completos, atualizados e aprovados por educadores de todo o Brasil.
-          </p>
         </div>
       </section>
 
@@ -717,7 +795,8 @@ function PaginaColorindoAsSilabas() {
             </h2>
 
             <p>
-              Isso significa que, <b>a qualquer momento</b>, se você achar que:
+              Você tem <b>7 dias completos</b> para baixar, olhar todas as
+              páginas e testar com sua criança. Se por qualquer motivo achar que:
             </p>
 
             <ul className="space-y-2 pl-2">
@@ -733,25 +812,15 @@ function PaginaColorindoAsSilabas() {
 
             <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl">
               <p className="font-bold text-emerald-900">
-                👉 você pode solicitar o reembolso.
+                👉 você pode solicitar 100% do reembolso na plataforma.
               </p>
               <p className="font-extrabold text-emerald-950 mt-1">
                 7 dias de garantia incondicional
               </p>
               <p className="text-xs sm:text-sm text-emerald-800">
-                Sem burocracia. Sem explicação obrigatória.
+                Sem burocracia. Risco zero para você.
               </p>
             </div>
-
-            <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
-              Essa garantia existe porque acreditamos no valor prático do nosso
-              material. Você não está comprando uma promessa. Está comprando{" "}
-              <b>
-                atividades prontas, testadas e validadas por pais e professores.
-              </b>{" "}
-              Se não fizer sentido para você, o risco fica totalmente do nosso
-              lado.
-            </p>
           </div>
         </div>
       </section>
@@ -762,7 +831,7 @@ function PaginaColorindoAsSilabas() {
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
             Como é o Acesso
             <span className="block text-lg sm:text-xl font-normal text-gray-600 mt-1">
-              (Passo a Passo)
+              (Simples, Rápido e Automático)
             </span>
           </h2>
 
@@ -776,10 +845,11 @@ function PaginaColorindoAsSilabas() {
                 loading="lazy"
               />
               <h3 className="text-lg font-bold text-gray-900 mb-2">
-                Conclua sua compra
+                1. Conclua sua compra
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Após o pagamento, seu acesso é liberado automaticamente.
+                Após o pagamento via PIX ou Cartão, seu acesso é liberado
+                automaticamente na mesma hora.
               </p>
             </div>
 
@@ -787,16 +857,16 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
               <img
                 src="/colorindo-silabas/member-card-2.png"
-                alt="Entre na área de membros"
+                alt="Acesse a Central de Downloads"
                 className="w-20 h-20 object-contain mb-4"
                 loading="lazy"
               />
               <h3 className="text-lg font-bold text-gray-900 mb-2">
-                Entre na área de membros
+                2. Acesse a Área de Membros
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Você recebe os dados para acessar a <b>área de membros</b>, onde
-                todo o material fica organizado.
+                Você é direcionado para a <b>Central de Downloads</b> e também
+                recebe o link direto no seu e-mail.
               </p>
             </div>
 
@@ -809,34 +879,32 @@ function PaginaColorindoAsSilabas() {
                 loading="lazy"
               />
               <h3 className="text-lg font-bold text-gray-900 mb-2">
-                Baixe os arquivos
+                3. Baixe os PDFs em A4
               </h3>
               <ul className="text-left space-y-1.5 text-xs sm:text-sm text-gray-700 font-medium mb-3">
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Atividades em PDF</span>
+                  <span>Atividades prontas em PDF</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>O produto é 100% digital</span>
+                  <span>Produto 100% digital</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Não editável</span>
+                  <span>Imprima quantas vezes quiser</span>
                 </li>
               </ul>
-              <p className="text-xs text-gray-500">
-                Tudo organizado por módulos, para facilitar o uso.
-              </p>
             </div>
           </div>
 
           <div className="mt-10">
             <a
-              href={CHECKOUT_PREMIUM}
+              href={checkoutUrlFinal}
+              onClick={dispararInitiateCheckout}
               className="inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-10 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase"
             >
-              QUERO MEU ACESSO AGORA
+              QUERO MEU ACESSO AGORA POR R$ 14,90
             </a>
           </div>
         </div>
@@ -880,10 +948,9 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Rodapé */}
+      {/* Rodapé Próprio Blindado (Sem links para concorrentes) */}
       <footer className="bg-gray-900 text-gray-300 py-14 px-4 border-t border-gray-800 text-sm">
         <div className="max-w-5xl mx-auto">
-          {/* Logo Central */}
           <div className="flex justify-center mb-10">
             <img
               src="/colorindo-silabas/logo-colorindo-v2.jpg"
@@ -893,7 +960,7 @@ function PaginaColorindoAsSilabas() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-center md:text-left mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-center md:text-left mb-10 max-w-3xl mx-auto">
             {/* Formas de Pagamento & Garantia */}
             <div className="flex flex-col items-center md:items-start space-y-4">
               <h4 className="font-bold text-white text-base uppercase tracking-wider">
@@ -907,37 +974,25 @@ function PaginaColorindoAsSilabas() {
               />
               <img
                 src="/colorindo-silabas/garantia-360-slim-1-1.png"
-                alt="Garantia 360"
+                alt="Garantia 7 Dias"
                 className="max-w-[240px] h-auto object-contain mt-2"
                 loading="lazy"
               />
             </div>
 
-            {/* Links Úteis */}
+            {/* Links Legais Internos (Bomba 8 Resolvida) */}
             <div className="flex flex-col items-center md:items-start space-y-2.5">
               <h4 className="font-bold text-white text-base uppercase tracking-wider">
-                LINKS
+                INFORMAÇÕES LEGAIS
               </h4>
               <a
-                href="https://licaocursivas.com.br/suporte-contato/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Contato
-              </a>
-              <a
-                href="https://lojalicaokids.com/index.php/politica-de-privacidade/"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/politica-de-privacidade.html"
                 className="hover:text-white transition-colors"
               >
                 Política de Privacidade
               </a>
               <a
-                href="https://lojalicaokids.com/index.php/termos/"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/termos-de-uso.html"
                 className="hover:text-white transition-colors"
               >
                 Termos de Uso
@@ -946,79 +1001,10 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           <div className="pt-8 border-t border-gray-800 text-center text-xs text-gray-400">
-            <p>Todos os direitos reservados | Lição Kids 2025</p>
+            <p>© 2026 Colorindo as Sílabas Simples • Todos os direitos reservados</p>
           </div>
         </div>
       </footer>
-
-      {/* Modal Popup Upgrade Premium */}
-      {modalAberto && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-gradient-to-b from-[#FFFDF7] to-[#FFF9EE] border-3 border-[#FFB800] rounded-3xl p-6 sm:p-8 shadow-2xl text-center">
-            {/* Botão Fechar */}
-            <button
-              onClick={() => setModalAberto(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 bg-white/80 rounded-full p-1.5 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <span className="inline-block bg-amber-500 text-white font-extrabold text-xs uppercase px-3 py-1 rounded-full tracking-wider mb-2">
-              Upgrade Premium
-            </span>
-
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Pacote Premium
-            </h3>
-
-            <div className="my-3">
-              <span className="text-4xl sm:text-5xl font-black text-emerald-600">
-                R$14,90
-              </span>
-              <p className="text-xs uppercase font-extrabold text-gray-600 mt-1">
-                Acesso VITALÍCIO
-              </p>
-            </div>
-
-            <div className="bg-white/80 rounded-2xl p-4 border border-amber-200 text-left my-4">
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 border-b border-gray-100 pb-1">
-                INCLUI:
-              </h4>
-              <ul className="space-y-2 text-xs sm:text-sm text-gray-800 font-medium">
-                {[
-                  "Colorindo as Sílabas Simples",
-                  "Português 1° Ano",
-                  "Folclore 1° Ano",
-                  "Matemática 1° Ano",
-                  "Acesso vitalício ao conteúdo",
-                  "Clique no botão abaixo e garanta já o seu ↴",
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <a
-                href={CHECKOUT_PREMIUM}
-                className="w-full inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-base sm:text-lg py-3.5 px-4 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all uppercase cursor-pointer"
-              >
-                QUERO O PREMIUM POR R$ 14,90
-              </a>
-
-              <a
-                href={CHECKOUT_BASICO}
-                className="w-full inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
-              >
-                Quero só o Colorindo as Sílabas Simples R$ 10,00
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

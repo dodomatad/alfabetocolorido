@@ -1,58 +1,34 @@
 {
-  "name": "Gestão BMs",
-  "short_name": "Gestão BMs",
-  "start_url": "/",
+  "name": "Colorindo as Sílabas Simples – 1° Ano",
+  "short_name": "Colorindo as Sílabas",
+  "start_url": "/colorindo-as-silabas-v2",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#ffffff",
+  "theme_color": "#FF6799",
   "icons": [
     {
-      "src": "/logo-bm.png",
-      "sizes": "512x512",
+      "src": "/colorindo-silabas/favicon-colorindo-32.png",
+      "sizes": "32x32",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/logo-bm.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/favicon.png",
-      "sizes": "64x64",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
+      "src": "/colorindo-silabas/favicon-colorindo-180.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
+      "src": "/colorindo-silabas/favicon-colorindo-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-512.png",
+      "src": "/colorindo-silabas/favicon-colorindo-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }

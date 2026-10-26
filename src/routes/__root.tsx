@@ -19,16 +19,16 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          A página que você procura não existe ou foi movida.
         </p>
         <div className="mt-6">
           <Link
-            to="/"
+            to="/colorindo-as-silabas-v2"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Ir para Colorindo as Sílabas
           </Link>
         </div>
       </div>
@@ -47,10 +47,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Não foi possível carregar esta página
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Tente atualizar a página ou voltar para o início.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -60,13 +60,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Tentar novamente
           </button>
           <a
-            href="/"
+            href="/colorindo-as-silabas-v2"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Voltar ao início
           </a>
         </div>
       </div>
@@ -79,26 +79,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Gestão BMs" },
-      { name: "description", content: "Sistema interno de gestão de vendas, produção, estoque, entregas e financeiro de BMs." },
-      { name: "author", content: "Gestão BMs" },
-      { property: "og:title", content: "Gestão BMs" },
-      { property: "og:description", content: "Sistema interno de gestão de vendas, produção, estoque e financeiro." },
+      { title: "Colorindo as Sílabas Simples – 1° Ano" },
+      {
+        name: "description",
+        content:
+          "Transforme o aprendizado das sílabas em uma brincadeira divertida de pintura por código que ajuda a criança a avançar na leitura e na escrita.",
+      },
+      { name: "author", content: "Colorindo as Sílabas" },
+      { property: "og:title", content: "Colorindo as Sílabas Simples – 1° Ano" },
+      {
+        property: "og:description",
+        content: "40 atividades prontas, lúdicas e organizadas para o 1° Ano + Bônus Exclusivos em PDF.",
+      },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/logo-bm.png" },
-      { name: "twitter:image", content: "/logo-bm.png" },
-      { name: "theme-color", content: "#0a0a0a" },
+      { property: "og:image", content: "/colorindo-silabas/logo-colorindo-v2.jpg" },
+      { name: "twitter:image", content: "/colorindo-silabas/logo-colorindo-v2.jpg" },
+      { name: "theme-color", content: "#FF6799" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", type: "image/png", href: "/logo-bm.png" },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "shortcut icon", href: "/logo-bm.png" },
-      { rel: "apple-touch-icon", href: "/logo-bm.png" },
-      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/colorindo-silabas/favicon-colorindo-32.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/colorindo-silabas/favicon-colorindo-192.png" },
+      { rel: "shortcut icon", href: "/colorindo-silabas/favicon-colorindo-32.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/colorindo-silabas/favicon-colorindo-180.png" },
       { rel: "manifest", href: "/manifest.json" },
     ],
   }),
@@ -128,7 +134,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ProvedorSessao>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </ProvedorSessao>
       <Toaster position="top-right" richColors closeButton />
