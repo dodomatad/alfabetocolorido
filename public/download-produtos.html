@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Central de Downloads – Colorindo as Sílabas Simples</title>
+  <title>Meus Produtos · Mundo da Alfabetização</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/colorindo-silabas/favicon-colorindo-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/colorindo-silabas/favicon-colorindo-180.png">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,217 +13,295 @@
     .font-heading { font-family: 'Montserrat', sans-serif; }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen">
+<body class="bg-[#F8FAFC] text-gray-900 min-h-screen">
 
-  <!-- Topbar -->
-  <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/colorindo-as-silabas-v2" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        <span>Voltar à página inicial</span>
-      </a>
-      <img src="/colorindo-silabas/logo-colorindo-v2.jpg" alt="Logo" class="h-10 w-auto rounded-lg shadow-xs">
+  <!-- Topbar Alfacademi Style -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/colorindo-silabas/logo-colorindo-v2.jpg" alt="Logo" class="h-10 w-auto rounded-lg shadow-sm object-contain">
+        <div>
+          <span class="font-extrabold text-base sm:text-lg text-gray-900 tracking-tight block">Mundo da Alfabetização</span>
+          <span class="text-[11px] text-emerald-600 font-semibold tracking-wide uppercase block">Área de Membros Oficial</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-4">
+        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          Acesso Vitalício
+        </span>
+        <div class="h-9 w-9 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-300">
+          LT
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="bg-gradient-to-b from-white to-gray-50 py-10 px-4 border-b border-gray-200 text-center">
-    <div class="max-w-3xl mx-auto">
-      <div class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold px-4 py-1.5 rounded-full uppercase tracking-wider mb-4">
-        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-        <span>Acesso Imediato Liberado • Kit Completo</span>
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 py-8 sm:py-10">
+    <!-- Welcome Section -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 mb-8 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 inline-block mb-3">
+            Seu Acervo Vitalício
+          </span>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight font-heading">
+            Meus Produtos & Materiais em PDF
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-2xl leading-relaxed">
+            Parabéns pelo investimento na educação do seu filho(a)! Seus materiais digitais ficam disponíveis aqui para sempre. Baixe os arquivos abaixo e imprima quantas vezes precisar.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 self-start md:self-auto bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+            5+
+          </div>
+          <div class="text-left">
+            <span class="block text-xs text-gray-500 font-medium">Materiais Liberados</span>
+            <span class="block text-sm font-bold text-gray-900">Acesso Imediato</span>
+          </div>
+        </div>
       </div>
-
-      <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight font-heading">
-        Central de Downloads dos Materiais
-      </h1>
-
-      <p class="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-        Seus arquivos em formato <b>PDF em alta resolução (Padrão A4)</b> estão prontos.
-        Clique no botão de cada material para baixar diretamente no seu celular ou computador.
-      </p>
     </div>
-  </section>
 
-  <!-- Grid de Produtos -->
-  <main class="max-w-6xl mx-auto px-4 py-10">
+    <!-- Product Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
       
-      <!-- Card 1: Principal -->
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+      <!-- Card 1: Principal Sílabas Simples -->
+      <article class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
         <div>
-          <div class="relative bg-gray-100 p-4 flex items-center justify-center border-b border-gray-100 h-52">
-            <span class="absolute top-3 right-3 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider bg-emerald-500">
-              Principal
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-100 flex items-center justify-center p-3">
+            <img src="/colorindo-silabas/covers/capa-silabas-simples.jpg" alt="Colorindo as Sílabas Simples" class="w-full h-full object-contain drop-shadow-md rounded-lg">
+            <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-emerald-600 text-white shadow-sm">
+              Material Principal
             </span>
-            <img src="/colorindo-silabas/logo-colorindo-v2.jpg" alt="Colorindo as Sílabas" class="max-h-44 w-auto object-contain drop-shadow-md rounded">
           </div>
-          <div class="p-6">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              Material Principal • 40 Páginas
+          <div class="p-5">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5 font-medium">
+              <span>40 Páginas A4</span>
+              <span>5.5 MB</span>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 leading-snug">
-              Colorindo as Sílabas Simples 1° Ano
-            </h3>
-            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-              Material completo com 40 páginas de atividades lúdicas de pintura por código, traçado de sílabas e percepção visual.
+            <h3 class="text-lg font-bold text-gray-900 leading-snug">Colorindo as Sílabas Simples 1° Ano</h3>
+            <p class="mt-2 text-xs text-gray-600 leading-relaxed line-clamp-3">
+              40 páginas com atividades lúdicas de código de cores, traçado de sílabas de B a Z, associação visual e Certificado de Leitor(a) Mirim.
             </p>
           </div>
         </div>
-        <div class="p-6 pt-0">
-          <a href="/colorindo-silabas/colorindo-as-silabas-completo.pdf" download="Colorindo-as-Silabas-Simples-1Ano.pdf" class="w-full inline-flex items-center justify-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-heading font-bold text-base py-3.5 px-4 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase text-center">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span>Baixar PDF Completo</span>
+        <div class="p-5 pt-0">
+          <a href="/colorindo-silabas/colorindo-as-silabas-completo.pdf" download="Colorindo-as-Silabas-Simples-1Ano.pdf" target="_blank" class="w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Baixar Material (PDF)</span>
           </a>
         </div>
-      </div>
+      </article>
 
-      <!-- Card 2: Português -->
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+      <!-- Card 2: Português 1° Ano (97 Pags) -->
+      <article class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
         <div>
-          <div class="relative bg-gray-100 p-4 flex items-center justify-center border-b border-gray-100 h-52">
-            <span class="absolute top-3 right-3 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-500">
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-100 flex items-center justify-center p-3">
+            <img src="/colorindo-silabas/covers/capa-portugues-1ano.jpg" alt="Português 1° Ano" class="w-full h-full object-contain drop-shadow-md rounded-lg">
+            <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-indigo-600 text-white shadow-sm">
               Bônus #1
             </span>
-            <img src="/colorindo-silabas/01-B-BA-BE-BI-BO-BU-para-colorir.png" alt="Português 1° Ano" class="max-h-44 w-auto object-contain drop-shadow-md rounded">
           </div>
-          <div class="p-6">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              Bônus Exclusivo • Caderno Bônus
+          <div class="p-5">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5 font-medium">
+              <span>97 Páginas A4</span>
+              <span>11.4 MB</span>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 leading-snug">
-              Bônus #1: Português 1° Ano
-            </h3>
-            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-              Caderno extra de exercícios com encontros vocálicos, formação de palavras, separação silábica e leitura de frases.
+            <h3 class="text-lg font-bold text-gray-900 leading-snug">Português 1° Ano – Apostila Master</h3>
+            <p class="mt-2 text-xs text-gray-600 leading-relaxed line-clamp-3">
+              97 páginas com formação de palavras, leitura, ordem alfabética, frases e atividades lúdicas de recortar e colar.
             </p>
           </div>
         </div>
-        <div class="p-6 pt-0">
-          <a href="/colorindo-silabas/portugues-1ano-bonus.pdf" download="Bonus-Portugues-1Ano.pdf" class="w-full inline-flex items-center justify-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-heading font-bold text-base py-3.5 px-4 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase text-center">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span>Baixar PDF Bônus</span>
+        <div class="p-5 pt-0">
+          <a href="/colorindo-silabas/portugues-1ano-bonus.pdf" download="Apostila-Portugues-1Ano.pdf" target="_blank" class="w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Baixar Material (PDF)</span>
           </a>
         </div>
-      </div>
+      </article>
 
-      <!-- Card 3: Matemática -->
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+      <!-- Card 3: Matemática 1° Ano (66 Pags) -->
+      <article class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
         <div>
-          <div class="relative bg-gray-100 p-4 flex items-center justify-center border-b border-gray-100 h-52">
-            <span class="absolute top-3 right-3 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider bg-amber-500">
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-100 flex items-center justify-center p-3">
+            <img src="/colorindo-silabas/covers/capa-matematica-1ano.jpg" alt="Matemática 1° Ano" class="w-full h-full object-contain drop-shadow-md rounded-lg">
+            <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-amber-600 text-white shadow-sm">
               Bônus #2
             </span>
-            <img src="/colorindo-silabas/Silabario_7.png" alt="Matemática 1° Ano" class="max-h-44 w-auto object-contain drop-shadow-md rounded">
           </div>
-          <div class="p-6">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              Bônus Exclusivo • Caderno Bônus
+          <div class="p-5">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5 font-medium">
+              <span>66 Páginas A4</span>
+              <span>10.6 MB</span>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 leading-snug">
-              Bônus #2: Matemática 1° Ano
-            </h3>
-            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-              Atividades de sequência numérica, antecessor e sucessor, adição, subtração e desafios matemáticos do 1° ano.
+            <h3 class="text-lg font-bold text-gray-900 leading-snug">Matemática 1° Ano – Kit Essencial</h3>
+            <p class="mt-2 text-xs text-gray-600 leading-relaxed line-clamp-3">
+              66 páginas de numerais, sequência numérica, operações de adição e subtração, situações-problema e tabuada ilustrada.
             </p>
           </div>
         </div>
-        <div class="p-6 pt-0">
-          <a href="/colorindo-silabas/matematica-1ano-bonus.pdf" download="Bonus-Matematica-1Ano.pdf" class="w-full inline-flex items-center justify-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-heading font-bold text-base py-3.5 px-4 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase text-center">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span>Baixar PDF Bônus</span>
+        <div class="p-5 pt-0">
+          <a href="/colorindo-silabas/matematica-1ano-bonus.pdf" download="Caderno-Matematica-1Ano.pdf" target="_blank" class="w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Baixar Material (PDF)</span>
           </a>
         </div>
-      </div>
+      </article>
 
-      <!-- Card 4: Folclore -->
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+      <!-- Card 4: Folclore Brasileiro (41 Pags) -->
+      <article class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
         <div>
-          <div class="relative bg-gray-100 p-4 flex items-center justify-center border-b border-gray-100 h-52">
-            <span class="absolute top-3 right-3 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider bg-rose-500">
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-100 flex items-center justify-center p-3">
+            <img src="/colorindo-silabas/covers/capa-folclore-1ano.jpg" alt="Folclore Brasileiro" class="w-full h-full object-contain drop-shadow-md rounded-lg">
+            <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-rose-600 text-white shadow-sm">
               Bônus #3
             </span>
-            <img src="/colorindo-silabas/05-G-GA-GE-GI-GO-GU-para-colorir.png" alt="Folclore 1° Ano" class="max-h-44 w-auto object-contain drop-shadow-md rounded">
           </div>
-          <div class="p-6">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              Bônus Exclusivo • Caderno Bônus
+          <div class="p-5">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5 font-medium">
+              <span>41 Páginas A4</span>
+              <span>6.2 MB</span>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 leading-snug">
-              Bônus #3: Folclore 1° Ano
-            </h3>
-            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-              Atividades temáticas sobre lendas folclóricas brasileiras, parlendas rimadas, adivinhas e formação silábica.
+            <h3 class="text-lg font-bold text-gray-900 leading-snug">Folclore Brasileiro 1° Ano</h3>
+            <p class="mt-2 text-xs text-gray-600 leading-relaxed line-clamp-3">
+              41 páginas com personagens do folclore (Saci, Iara, Curupira), parlendas, quebra-cabeças e atividades interdisciplinares.
             </p>
           </div>
         </div>
-        <div class="p-6 pt-0">
-          <a href="/colorindo-silabas/folclore-1ano-bonus.pdf" download="Bonus-Folclore-1Ano.pdf" class="w-full inline-flex items-center justify-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-heading font-bold text-base py-3.5 px-4 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase text-center">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span>Baixar PDF Bônus</span>
+        <div class="p-5 pt-0">
+          <a href="/colorindo-silabas/folclore-1ano-bonus.pdf" download="Caderno-Folclore-1Ano.pdf" target="_blank" class="w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Baixar Material (PDF)</span>
           </a>
         </div>
-      </div>
+      </article>
 
-      <!-- Card 5: Silabário Completo -->
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+      <!-- Card 5: Silabário Ilustrado (22 Pags) -->
+      <article class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
         <div>
-          <div class="relative bg-gray-100 p-4 flex items-center justify-center border-b border-gray-100 h-52">
-            <span class="absolute top-3 right-3 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider bg-teal-500">
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-100 flex items-center justify-center p-3">
+            <img src="/colorindo-silabas/covers/capa-silabario.jpg" alt="Silabário Ilustrado" class="w-full h-full object-contain drop-shadow-md rounded-lg">
+            <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-cyan-700 text-white shadow-sm">
               Bônus #4
             </span>
-            <img src="/colorindo-silabas/Silabario_2.png" alt="Silabário Completo" class="max-h-44 w-auto object-contain drop-shadow-md rounded">
           </div>
-          <div class="p-6">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              Material de Apoio • 16 Páginas A4
+          <div class="p-5">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5 font-medium">
+              <span>22 Páginas A4</span>
+              <span>2.9 MB</span>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 leading-snug">
-              Bônus #4: Silabário Ilustrado Completo
-            </h3>
-            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-              Fichas e pranchas completas com as famílias silábicas para fixar na parede do quarto ou sala de aula e imprimir.
+            <h3 class="text-lg font-bold text-gray-900 leading-snug">Silabário Ilustrado Completo</h3>
+            <p class="mt-2 text-xs text-gray-600 leading-relaxed line-clamp-3">
+              22 páginas com fichas em alta resolução de todas as famílias silábicas para fixar no quarto ou na mesa de estudos.
             </p>
           </div>
         </div>
-        <div class="p-6 pt-0">
-          <a href="/colorindo-silabas/silabario-completo.pdf" download="Silabario-Ilustrado.pdf" class="w-full inline-flex items-center justify-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-heading font-bold text-base py-3.5 px-4 rounded-xl shadow-[0_4px_0_0_#168D1F] transition-all cursor-pointer uppercase text-center">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span>Baixar Silabário PDF</span>
+        <div class="p-5 pt-0">
+          <a href="/colorindo-silabas/silabario-completo.pdf" download="Silabario-Ilustrado-Completo.pdf" target="_blank" class="w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Baixar Material (PDF)</span>
           </a>
         </div>
-      </div>
+      </article>
+
+      <!-- Card 6: ORDER BUMP Sílabas Cursivas (Dinâmico: Trava com Cadeado vs Liberado) -->
+      <article id="card-cursivas" class="rounded-2xl border transition-all flex flex-col justify-between overflow-hidden shadow-sm bg-gradient-to-b from-amber-50/50 to-white border-amber-200">
+        <div>
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-100 flex items-center justify-center p-3">
+            <img src="/colorindo-silabas/covers/capa-silabas-cursivas.jpg" alt="Colorindo com as Sílabas Cursivas" class="w-full h-full object-contain drop-shadow-md rounded-lg opacity-90">
+            <span id="badge-cursivas" class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-amber-500 text-white shadow-sm flex items-center gap-1">
+              🔒 Oferta Adicional
+            </span>
+          </div>
+          <div class="p-5">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5 font-medium">
+              <span>44 Páginas A4</span>
+              <span>13.5 MB Total</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 leading-snug">Colorindo com as Sílabas Cursivas</h3>
+            <p id="desc-cursivas" class="mt-2 text-xs text-gray-600 leading-relaxed">
+              Kit completo com 44 páginas de atividades para preparar a criança para a escrita cursiva, com pontilhado, famílias silábicas e silabário cursivo.
+            </p>
+          </div>
+        </div>
+
+        <div id="acoes-cursivas" class="p-5 pt-0">
+          <!-- Bloqueado por padrão -->
+          <div class="bg-amber-100/60 border border-amber-300/80 rounded-xl p-3.5 text-center">
+            <span class="block text-xs font-extrabold text-amber-900 mb-1">
+              🔒 Não incluso no pacote de R$ 14,90
+            </span>
+            <p class="text-[11px] text-amber-800 leading-tight mb-3">
+              Deseja desbloquear as 44 páginas de Sílabas Cursivas para seu pequeno agora?
+            </p>
+            <a href="https://pay.cakto.com.br/mswtxij_1243353" target="_blank" class="w-full bg-gray-900 hover:bg-black text-amber-300 font-bold text-xs py-2.5 px-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5">
+              <span>🔒 Desbloquear Cursivas por R$ 9,90</span>
+            </a>
+          </div>
+        </div>
+      </article>
 
     </div>
 
-    <!-- Dicas de Impressão -->
-    <section class="mt-14 bg-white rounded-3xl border border-gray-200 p-6 sm:p-10 shadow-sm">
-      <div class="flex items-center gap-3 text-emerald-700 font-bold text-xl sm:text-2xl mb-4">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-        <h2>Dicas para Imprimir suas Atividades</h2>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600 mt-6">
-        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
-          <h4 class="font-bold text-gray-800 text-base mb-1">📄 Papel Recomendado</h4>
-          <p>Para lápis de cor e giz de cera, use papel sulfite A4 comum (75g). Para canetinha ou guache, 90g ou 120g evita vazar.</p>
+    <!-- Footer Guarantee -->
+    <div class="mt-12 bg-white rounded-2xl border border-gray-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
-          <h4 class="font-bold text-gray-800 text-base mb-1">🖨️ Configuração</h4>
-          <p>Os PDFs já vêm configurados no formato padrão A4 retrato (escala 100%). Pronto para mandar para a impressora.</p>
-        </div>
-        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
-          <h4 class="font-bold text-gray-800 text-base mb-1">♾️ Acesso Vitalício</h4>
-          <p>Você pode baixar os arquivos para seu celular ou computador e imprimir quantas vezes desejar ao longo do ano.</p>
+        <div>
+          <h4 class="font-bold text-sm text-gray-900">Garantia Incondicional de 7 Dias</h4>
+          <p class="text-xs text-gray-500">Se precisar de ajuda ou reimpressão, seu acervo continuará disponível aqui.</p>
         </div>
       </div>
-    </section>
+      <p class="text-xs text-gray-400">© 2026 Mundo da Alfabetização · Todos os direitos reservados</p>
+    </div>
   </main>
 
-  <!-- Rodapé -->
-  <footer class="bg-gray-900 text-gray-400 py-8 px-4 text-center text-xs border-t border-gray-800 mt-16">
-    <p>© 2026 Colorindo as Sílabas Simples • Central Oficial de Downloads</p>
-  </footer>
+  <!-- Script Inteligente de Desbloqueio Dinâmico -->
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var temAcesso = params.get('acesso') === 'cursivas' || params.get('bump') === 'cursivas' || localStorage.getItem('acesso_cursivas') === 'true';
 
+      if (temAcesso) {
+        localStorage.setItem('acesso_cursivas', 'true');
+        var card = document.getElementById('card-cursivas');
+        var badge = document.getElementById('badge-cursivas');
+        var desc = document.getElementById('desc-cursivas');
+        var acoes = document.getElementById('acoes-cursivas');
+
+        if (card) {
+          card.className = "rounded-2xl border transition-all flex flex-col justify-between overflow-hidden shadow-sm bg-white border-emerald-300 ring-2 ring-emerald-500/20";
+        }
+        if (badge) {
+          badge.className = "absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-emerald-600 text-white shadow-sm flex items-center gap-1";
+          badge.innerHTML = "🔓 Order Bump Adquirido";
+        }
+        if (desc) {
+          desc.innerText = "Parabéns! Você adquiriu o kit de Sílabas Cursivas. Baixe abaixo a apostila de 22 páginas de treino cursivo + Silabário Cursivo Ilustrado.";
+        }
+        if (acoes) {
+          acoes.innerHTML = `
+            <div class="flex flex-col gap-2">
+              <a href="/colorindo-silabas/colorindo-silabas-cursivas-orderbump.pdf" download="Colorindo-Silabas-Cursivas.pdf" target="_blank" class="w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Baixar Caderno Cursivas (22 Pags)</span>
+              </a>
+              <a href="/colorindo-silabas/silabario-cursivas-orderbump.pdf" download="Silabario-Cursivas.pdf" target="_blank" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 px-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Baixar Silabário Cursivo (22 Pags)</span>
+              </a>
+            </div>
+          `;
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
