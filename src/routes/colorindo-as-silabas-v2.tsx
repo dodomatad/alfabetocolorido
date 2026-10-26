@@ -80,7 +80,7 @@ const CHECKOUT_BASE_URL =
   "https://pay.cakto.com.br/mswtxij_1243353";
 
 const META_PIXEL_ID =
-  (import.meta as any).env?.VITE_META_PIXEL_ID || "";
+  (import.meta as any).env?.VITE_META_PIXEL_ID || "1440658961371185";
 
 const UTMIFY_PIXEL_ID =
   (import.meta as any).env?.VITE_UTMIFY_PIXEL_ID || "";
