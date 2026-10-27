@@ -27,7 +27,7 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
       {
         property: "og:description",
         content:
-          "40 atividades prontas, lúdicas e organizadas para o 1° Ano + 4 Bônus Exclusivos. Acesso imediato em PDF.",
+          "Kit Completo de Alfabetização 1° Ano (Mais de 490 Páginas de Atividades em PDF). Acesso imediato em PDF.",
       },
       {
         property: "og:image",
@@ -387,9 +387,9 @@ function PaginaColorindoAsSilabas() {
           <div className="mt-5 inline-block">
             <h3 className="text-xl sm:text-2xl font-bold text-[#333333]">
               <span className="bg-[#FFE6A3] font-black px-2 py-0.5 rounded">
-                40 atividades principais + 4 bônus
+                4 Cadernos Completos (Mais de 490 Páginas)
               </span>{" "}
-              prontas para imprimir em folha A4
+              prontos para imprimir em folha A4
             </h3>
           </div>
         </div>
@@ -441,7 +441,7 @@ function PaginaColorindoAsSilabas() {
           </h2>
 
           <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
-            <span>⚡ ACESSO IMEDIATO + 4 BÔNUS EXCLUSIVOS</span>
+            <span>⚡ ACESSO IMEDIATO • PACOTE COMPLETO 4 EM 1</span>
           </div>
 
           <div className="my-8 max-w-[500px] mx-auto">
@@ -464,10 +464,10 @@ function PaginaColorindoAsSilabas() {
               "Formação de Sílabas – Junção prática das consoantes com as vogais A, E, I, O e U",
               "Pontilhado e Caligrafia – Prática da escrita de sílabas e palavras para desenvolver o traçado firme",
               "Associação entre Imagens e Palavras – Identificação de palavras a partir de figuras ilustradas",
-              "BÔNUS #1: Caderno de Atividades Extras – Português 1° Ano (em PDF)",
-              "BÔNUS #2: Caderno de Atividades Extras – Matemática 1° Ano (em PDF)",
-              "BÔNUS #3: Caderno Temático – Folclore Brasileiro 1° Ano (em PDF)",
-              "BÔNUS #4: Silabário Ilustrado Completo para Impressão e Parede (em PDF)",
+              "Caderno Colorindo as Sílabas Simples – Pintura por código de cores de B a Z + Gabarito colorido",
+              "Caderno Completo de Português 1° Ano – 136 páginas com alfabetização, recorte e cole e silabário",
+              "Caderno Completo de Matemática 1° Ano – 276 páginas de numerais, operações e tabuada ilustrada",
+              "Caderno Temático Folclore Brasileiro 1° Ano – 41 páginas ilustradas com lendas, quebra-cabeças e leitura",
             ].map((item, idx) => (
               <li key={idx} className="flex items-start gap-3">
                 <span className="flex-shrink-0 mt-0.5 bg-emerald-100 text-emerald-600 rounded-full p-1">
@@ -603,7 +603,7 @@ function PaginaColorindoAsSilabas() {
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] leading-tight">
             Leve o Pacote Completo{" "}
-            <span className="text-[#FF6799]">+ Todos os Bônus</span>
+            <span className="text-[#FF6799]">(Os 4 Cadernos de 1° Ano)</span>
           </h2>
           <p className="mt-2 text-base sm:text-lg text-gray-600 max-w-xl mx-auto">
             Acesso imediato e vitalício a todos os 5 materiais em PDF pelo valor
@@ -658,31 +658,27 @@ function PaginaColorindoAsSilabas() {
               <ul className="text-left space-y-3 my-6 text-gray-800 text-sm sm:text-base font-medium">
                 {[
                   {
-                    nome: "Caderno Principal: 40 Atividades Colorindo as Sílabas Simples 1° Ano",
+                    nome: "Caderno Oficial: Colorindo as Sílabas Simples 1° Ano (Pintura por Código + Gabarito)",
                     ancora: "R$ 37,00",
                   },
                   {
-                    nome: "Bônus #1: Caderno de Atividades Português 1° Ano",
+                    nome: "Caderno Completo: Português 1° Ano (136 Páginas · Alfabetização, Recorte e Cole e Silabário)",
+                    ancora: "R$ 29,90",
+                  },
+                  {
+                    nome: "Caderno Completo: Matemática 1° Ano (276 Páginas · Números, Operações e Tabuada)",
+                    ancora: "R$ 29,90",
+                  },
+                  {
+                    nome: "Caderno Temático: Folclore Brasileiro 1° Ano (41 Páginas · Lendas, Parlendas e Quebra-Cabeças)",
                     ancora: "R$ 19,90",
                   },
                   {
-                    nome: "Bônus #2: Caderno de Atividades Matemática 1° Ano",
-                    ancora: "R$ 19,90",
-                  },
-                  {
-                    nome: "Bônus #3: Caderno de Atividades Folclore 1° Ano",
-                    ancora: "R$ 14,90",
-                  },
-                  {
-                    nome: "Bônus #4: Silabário Ilustrado Completo para Impressão",
-                    ancora: "R$ 14,90",
-                  },
-                  {
-                    nome: "Envio imediato em PDF de Alta Resolução (Padrão A4)",
+                    nome: "Envio imediato dos Arquivos em PDF de Alta Resolução (Padrão A4)",
                     ancora: "Incluso",
                   },
                   {
-                    nome: "Acesso Vitalício + Garantia Incondicional de 7 Dias",
+                    nome: "Acesso Vitalício no Celular e Computador + Garantia de 7 Dias",
                     ancora: "Incluso",
                   },
                 ].map((feat, idx) => (
