@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/", "destination": "/colorindo-as-silabas-v2" },
     { "source": "/download-produtos.html", "destination": "/download-produtos" },
     { "source": "/download-completo.html", "destination": "/download-completo" },
     { "source": "/download-cursivas.html", "destination": "/download-cursivas" },
