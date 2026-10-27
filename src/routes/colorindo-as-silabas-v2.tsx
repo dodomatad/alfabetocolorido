@@ -606,8 +606,8 @@ function PaginaColorindoAsSilabas() {
             <span className="text-[#FF6799]">(Os 4 Cadernos de 1° Ano)</span>
           </h2>
           <p className="mt-2 text-base sm:text-lg text-gray-600 max-w-xl mx-auto">
-            Acesso imediato e vitalício a todos os 5 materiais em PDF pelo valor
-            de um único exemplar:
+            Acesso imediato e vitalício aos 4 cadernos completos em PDF (mais de 490 páginas)
+            pelo valor simbólico de um único lanche:
           </p>
 
           {/* Card Único Centralizado — De R$ 97,00 por R$ 14,90 */}
@@ -615,7 +615,7 @@ function PaginaColorindoAsSilabas() {
             {/* Badge Topo */}
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4200] text-white text-xs sm:text-sm font-black px-5 py-1.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
               <Sparkles className="w-4 h-4" />
-              <span>⚡ KIT COMPLETO + 4 BÔNUS INCLUSOS</span>
+              <span>🔥 COMBO COMPLETO 4 EM 1 • MAIS DE 490 PÁGINAS</span>
             </div>
 
             <div>
