@@ -1,19 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Download,
   Lock,
-  Unlock,
   CheckCircle2,
-  Printer,
-  Sparkles,
   BookOpen,
   Search,
   ArrowLeft,
-  ChevronRight,
   ShieldCheck,
   Star,
-  MessageCircle,
   FileText,
   Play
 } from "lucide-react";
@@ -63,22 +58,10 @@ export default function PaginaDownloadProdutos() {
   );
 
   const [busca, setBusca] = useState("");
-  const [temAcessoCursivas, setTemAcessoCursivas] = useState(false);
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoItem | null>(null);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const acessoUrl = params.get("acesso");
-    const bumpUrl = params.get("bump");
-    const jaTemSalvo = localStorage.getItem("acesso_cursivas") === "true";
-
-    if (acessoUrl === "cursivas" || bumpUrl === "cursivas" || jaTemSalvo) {
-      setTemAcessoCursivas(true);
-      localStorage.setItem("acesso_cursivas", "true");
-    }
-  }, []);
-
+  // Lista oficial de produtos do Pacote Principal (R$ 14,90)
+  // Cursivas aparece como OFERTA ADICIONAL BLOQUEADA (sem links de download aqui)
   const produtos: ProdutoItem[] = [
     {
       id: "silabas-simples",
@@ -112,26 +95,13 @@ export default function PaginaDownloadProdutos() {
     {
       id: "silabas-cursivas",
       titulo: "Colorindo com as Sílabas Cursivas",
-      subtitulo: "Order Bump Exclusivo · 2 Arquivos em PDF (44 Páginas)",
+      subtitulo: "Material Exclusivo · 44 Páginas (Não Incluso)",
       categoria: "Caligrafia & Cursivas",
       numArquivos: 2,
       totalPaginas: "44 Páginas A4",
       capa: "/colorindo-silabas/covers/capa-silabas-cursivas.jpg",
       isOrderBump: true,
-      arquivos: [
-        {
-          nome: "Colorindo_Silabas_Cursivas.pdf",
-          tamanho: "6.2 MB",
-          url: "/colorindo-silabas/originais/produto_76_silabas_cursivas/Colorindo_Silabas_Cursivas.pdf",
-          arquivoNome: "Colorindo-Silabas-Cursivas-22Pags.pdf",
-        },
-        {
-          nome: "Silabario_Cursivas.pdf",
-          tamanho: "7.0 MB",
-          url: "/colorindo-silabas/originais/produto_76_silabas_cursivas/Silabario_Cursivas.pdf",
-          arquivoNome: "Silabario-Cursivo-22Pags.pdf",
-        },
-      ],
+      arquivos: [], // Vazio de propósito: nesta página não há arquivos para baixar
     },
     {
       id: "portugues-1ano",
@@ -270,7 +240,7 @@ export default function PaginaDownloadProdutos() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-10">
-        {/* SE UM PRODUTO ESTIVER SELECIONADO: TELA DETALHADA COM LISTA DE ARQUIVOS (Estilo Alfacademi) */}
+        {/* SE UM PRODUTO ESTIVER SELECIONADO: TELA DETALHADA COM LISTA DE ARQUIVOS */}
         {produtoAtivo ? (
           <div>
             {/* Botão Voltar */}
@@ -305,36 +275,36 @@ export default function PaginaDownloadProdutos() {
                 <div className="mt-4 flex items-center justify-center md:justify-start gap-2">
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
                     <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                    {produtoAtivo.numArquivos} arquivos disponíveis
+                    {produtoAtivo.isOrderBump ? "Material Exclusivo Adicional" : `${produtoAtivo.numArquivos} arquivos disponíveis`}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Se for Cursivas e NÃO comprou: exibe mensagem com botão de compra */}
-            {produtoAtivo.isOrderBump && !temAcessoCursivas ? (
-              <div className="bg-amber-50 border border-amber-300 rounded-3xl p-8 text-center max-w-2xl mx-auto mb-10 shadow-sm">
-                <div className="w-14 h-14 rounded-2xl bg-amber-200 text-amber-800 flex items-center justify-center mx-auto mb-4 font-bold">
-                  <Lock className="w-7 h-7" />
+            {/* Se for Cursivas: TRAVA TOTAL COM CADEADO E BOTÃO DE COMPRA (SEM DOWNLOADS) */}
+            {produtoAtivo.isOrderBump ? (
+              <div className="bg-gradient-to-b from-amber-50 to-white border-2 border-amber-300 rounded-3xl p-8 sm:p-10 text-center max-w-2xl mx-auto mb-10 shadow-md">
+                <div className="w-16 h-16 rounded-2xl bg-amber-200 text-amber-900 flex items-center justify-center mx-auto mb-4 font-bold shadow-inner">
+                  <Lock className="w-8 h-8" />
                 </div>
-                <h2 className="text-2xl font-black text-amber-950 mb-2">
+                <h2 className="text-2xl sm:text-3xl font-black text-amber-950 mb-2">
                   Material Exclusivo · Oferta Adicional
                 </h2>
                 <p className="text-sm text-amber-900 leading-relaxed max-w-lg mx-auto mb-6">
-                  Este produto faz parte do <strong>Kit Sílabas Cursivas</strong> (Order Bump) e não está incluído no pacote básico de R$ 14,90. Deseja adicionar agora por apenas R$ 10,00?
+                  Este kit de <strong>44 páginas com atividades de Sílabas Cursivas e Silabário Cursivo</strong> é uma oferta adicional e <strong>não faz parte do pacote básico de R$ 14,90</strong>.
                 </p>
                 <a
                   href="https://pay.cakto.com.br/mswtxij_1243353"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-extrabold text-base py-3.5 px-8 rounded-2xl shadow-md transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-black text-base py-4 px-8 rounded-2xl shadow-lg transition-all cursor-pointer"
                 >
                   <Lock className="w-5 h-5" />
-                  <span>Desbloquear Cursivas por R$ 10,00</span>
+                  <span>Desbloquear Cursivas por Apenas R$ 10,00</span>
                 </a>
               </div>
             ) : (
-              /* Lista de Arquivos para Download */
+              /* Lista de Arquivos para Download dos Produtos Liberados */
               <div className="space-y-4 mb-12">
                 <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider mb-2 flex items-center gap-2">
                   <Download className="w-4 h-4 text-emerald-600" />
@@ -375,7 +345,7 @@ export default function PaginaDownloadProdutos() {
               </div>
             )}
 
-            {/* Avaliação & Suporte (Copiado da Alfacademi) */}
+            {/* Avaliação & Suporte */}
             <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs">
               <h3 className="text-lg font-bold text-gray-900 mb-2">
                 Avaliação do “{produtoAtivo.titulo}”
@@ -410,7 +380,7 @@ export default function PaginaDownloadProdutos() {
             </div>
           </div>
         ) : (
-          /* SE NENHUM PRODUTO ESTIVER SELECIONADO: GRADE GERAL DE PRODUTOS (Idêntico ao Alfacademi) */
+          /* SE NENHUM PRODUTO ESTIVER SELECIONADO: GRADE GERAL DE PRODUTOS */
           <div>
             {/* Hero Section */}
             <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 mb-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -427,8 +397,8 @@ export default function PaginaDownloadProdutos() {
               </div>
 
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2 self-start md:self-auto">
-                <strong className="text-xl font-black text-emerald-700">5</strong>
-                <span className="text-xs font-semibold text-emerald-900">produtos disponíveis</span>
+                <strong className="text-xl font-black text-emerald-700">4</strong>
+                <span className="text-xs font-semibold text-emerald-900">produtos liberados</span>
               </div>
             </div>
 
@@ -449,7 +419,7 @@ export default function PaginaDownloadProdutos() {
             {/* Product Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtrados.map((produto) => {
-                const isBloqueado = produto.isOrderBump && !temAcessoCursivas;
+                const isBloqueado = produto.isOrderBump;
 
                 return (
                   <article
@@ -473,7 +443,7 @@ export default function PaginaDownloadProdutos() {
                         />
                         {isBloqueado ? (
                           <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-amber-500 text-white shadow-xs flex items-center gap-1">
-                            <Lock className="w-3 h-3" /> Oferta Adicional
+                            <Lock className="w-3 h-3" /> Bloqueado
                           </span>
                         ) : (
                           <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
