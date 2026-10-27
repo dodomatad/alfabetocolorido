@@ -259,6 +259,14 @@ function PaginaColorindoAsSilabas() {
         script.remove();
       };
     }
+
+    // 4. Tracker oficial da Cakto (contagem de visitas e persistência de 90 dias)
+    if (typeof window !== "undefined") {
+      const caktoScript = document.createElement("script");
+      caktoScript.async = true;
+      caktoScript.src = "https://api.cakto.com.br/api/product/checkout/tracker.js";
+      document.body.appendChild(caktoScript);
+    }
   }, []);
 
   useEffect(() => {

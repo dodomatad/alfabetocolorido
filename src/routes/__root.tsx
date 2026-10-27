@@ -107,6 +107,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", sizes: "180x180", href: "/colorindo-silabas/favicon-colorindo-180.png" },
       { rel: "manifest", href: "/manifest.json" },
     ],
+    scripts: [
+      {
+        src: "https://api.cakto.com.br/api/product/checkout/tracker.js",
+        async: true,
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
