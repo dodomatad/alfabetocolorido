@@ -123,6 +123,8 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         {children}
         <Scripts />
+        {/* Tracker oficial da Cakto: contagem de visitas e persistência de UTMs */}
+        <script src="https://api.cakto.com.br/api/product/checkout/tracker.js" async></script>
       </body>
     </html>
   );
