@@ -438,7 +438,7 @@ function PaginaColorindoAsSilabas() {
       </div>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-[#E1F0FD] to-[#CFE8FD] pt-8 sm:pt-10 pb-12 px-4 text-center">
+      <section className="bg-white pt-8 sm:pt-10 pb-12 px-4 text-center">
         <div className="max-w-[760px] mx-auto flex flex-col items-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] tracking-tight leading-tight">
             Seu filho lendo com fluência em poucas semanas
