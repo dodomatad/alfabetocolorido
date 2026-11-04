@@ -1125,10 +1125,10 @@ function PaginaColorindoAsSilabas() {
                 <button
                   type="button"
                   onClick={() => setModalUpsellAberto(true)}
-                  className="w-full border-2 border-[#0D9488] text-[#0D9488] hover:bg-[#0D9488] hover:text-white font-extrabold py-3.5 px-6 rounded-2xl transition-all text-center text-base flex items-center justify-center gap-2 cursor-pointer"
+                  className="group w-full bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] hover:brightness-105 active:translate-y-1 text-white font-black py-4 px-6 rounded-2xl shadow-[0_5px_0_0_#065F56,0_14px_28px_rgba(13,148,136,0.38)] transition-all text-center text-base sm:text-lg flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/30"
                 >
-                  <span>Quero o Kit Básico</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Quero o Kit Básico</span>
+                  <ArrowRight className="w-5 h-5 stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
                 </button>
 
                 <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
