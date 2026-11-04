@@ -100,6 +100,10 @@ const CHECKOUT_BASE_URL =
   (import.meta as any).env?.VITE_CHECKOUT_URL ||
   "https://pay.cakto.com.br/mswtxij_1243353";
 
+const CHECKOUT_UPSELL_URL =
+  (import.meta as any).env?.VITE_CHECKOUT_UPSELL_URL ||
+  "https://pay.cakto.com.br/pkgw8o8";
+
 const META_PIXEL_ID =
   (import.meta as any).env?.VITE_META_PIXEL_ID || "1440658961371185";
 
@@ -236,6 +240,7 @@ function PaginaColorindoAsSilabas() {
   const [segundosRestantes, setSegundosRestantes] = useState(15 * 60);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
+  const [checkoutUpsellFinal, setCheckoutUpsellFinal] = useState(CHECKOUT_UPSELL_URL);
   const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
   const [passoAtivo, setPassoAtivo] = useState(0);
   const [passoPausado, setPassoPausado] = useState(false);
@@ -315,6 +320,7 @@ function PaginaColorindoAsSilabas() {
 
     // 1. Atualiza o link do checkout com todas as UTMs + fbclid da campanha
     setCheckoutUrlFinal(construirUrlCheckoutComUtms(CHECKOUT_BASE_URL));
+    setCheckoutUpsellFinal(construirUrlCheckoutComUtms(CHECKOUT_UPSELL_URL));
 
     // 2. Inicializa nosso Meta Pixel próprio (quando configurado) — Emissor Único SOP-03
     if (META_PIXEL_ID) {
@@ -1691,7 +1697,7 @@ function PaginaColorindoAsSilabas() {
 
             {/* Botão Principal: Sim, quero o Premium por R$ 28,00 */}
             <a
-              href={checkoutUrlFinal || "https://pay.cakto.com.br/mswtxij_1243353"}
+              href={checkoutUpsellFinal || "https://pay.cakto.com.br/pkgw8o8"}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => {
