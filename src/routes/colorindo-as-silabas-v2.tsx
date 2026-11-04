@@ -868,7 +868,7 @@ function PaginaColorindoAsSilabas() {
                   </span>
                   <div className="flex items-baseline justify-center gap-1 my-1">
                     <span className="text-4xl sm:text-5xl font-black text-[#FF4D80] tracking-tight">
-                      R$ 39,90
+                      R$ 27,90
                     </span>
                   </div>
                   <span className="text-xs text-gray-400 font-semibold block">
@@ -876,7 +876,7 @@ function PaginaColorindoAsSilabas() {
                   </span>
                   <div className="mt-2">
                     <span className="inline-block bg-[#FFF0F5] text-[#FF4D80] text-xs font-extrabold px-3 py-1 rounded-full">
-                      Economize R$ 40,10
+                      Economize R$ 52,10
                     </span>
                   </div>
                 </div>
