@@ -587,7 +587,7 @@ function PaginaColorindoAsSilabas() {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase tracking-tight">
               Veja tudo o que você recebe hoje
             </h2>
-            <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-xs sm:text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
+            <div className="mt-3 inline-flex items-center justify-center gap-1 sm:gap-1.5 bg-blue-100 text-blue-800 font-bold text-[11px] sm:text-xs md:text-sm px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-wide sm:tracking-wider border border-blue-200 shadow-sm max-w-[95%] sm:max-w-none mx-auto">
               <span>⚡ ACESSO IMEDIATO • PACOTE COMPLETO 4 EM 1</span>
             </div>
           </div>
