@@ -1085,7 +1085,7 @@ function PaginaColorindoAsSilabas() {
 
                 {/* Bloco de Preço */}
                 <div className="mt-6 text-center">
-                  <span className="line-through text-gray-400 text-xs sm:text-sm font-semibold block">
+                  <span className="line-through text-black text-[12.6px] sm:text-[14.7px] font-semibold block">
                     De R$ 80,00
                   </span>
                   <div className="flex items-baseline justify-center gap-1 my-1">
@@ -1205,7 +1205,7 @@ function PaginaColorindoAsSilabas() {
 
                 {/* Bloco de Preço */}
                 <div className="mt-6 text-center">
-                  <span className="line-through text-gray-400 text-xs sm:text-sm font-semibold block">
+                  <span className="line-through text-black text-[12.6px] sm:text-[14.7px] font-semibold block">
                     De R$ 27,90
                   </span>
                   <div className="flex items-baseline justify-center gap-1 my-1">
