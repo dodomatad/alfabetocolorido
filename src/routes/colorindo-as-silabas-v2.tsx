@@ -79,6 +79,12 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&family=Poppins:wght@400;600;700&display=swap",
       },
     ],
+    scripts: [
+      {
+        children:
+          "if('scrollRestoration' in history){history.scrollRestoration='manual';}window.scrollTo(0,0);",
+      },
+    ],
   }),
   component: PaginaColorindoAsSilabas,
 });
@@ -226,6 +232,42 @@ function PaginaColorindoAsSilabas() {
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
   const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
+
+  // Sempre força o início no topo da página ao entrar/carregar
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    if (window.location.hash) {
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+
+    const resetarRolagem = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    };
+
+    resetarRolagem();
+    const t1 = setTimeout(resetarRolagem, 10);
+    const t2 = setTimeout(resetarRolagem, 50);
+    const t3 = setTimeout(resetarRolagem, 150);
+    const t4 = setTimeout(resetarRolagem, 300);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
