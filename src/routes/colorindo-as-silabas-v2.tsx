@@ -382,11 +382,22 @@ function PaginaColorindoAsSilabas() {
   const minutos = Math.floor(segundosRestantes / 60);
   const segundos = segundosRestantes % 60;
 
-  const rolarParaOferta = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const rolarParaOferta = (e: React.MouseEvent<HTMLElement>) => {
     const el = document.getElementById("oferta");
     if (el) {
       e.preventDefault();
       el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const rolarParaKitPremium = (e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    const el = document.getElementById("kit-premium");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      const fallback = document.getElementById("oferta");
+      if (fallback) fallback.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -411,7 +422,7 @@ function PaginaColorindoAsSilabas() {
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
       {/* Top Announcement Bar - Sticky com Cronômetro Integrado Sutil */}
       <div
-        onClick={rolarParaOferta}
+        onClick={rolarParaKitPremium}
         className="sticky top-0 z-50 bg-[#FF3B69] text-white py-2 px-3 sm:px-4 shadow-md backdrop-blur-md cursor-pointer hover:bg-[#F42E5E] transition-colors"
         title="Clique para ir até a oferta"
       >
@@ -463,10 +474,10 @@ function PaginaColorindoAsSilabas() {
             />
           </div>
 
-          {/* Botão de Ação Principal -> Rola para a Oferta ou vai pro Checkout */}
+          {/* Botão de Ação Principal -> Rola direto para o Kit Premium */}
           <a
-            href="#oferta"
-            onClick={rolarParaOferta}
+            href="#kit-premium"
+            onClick={rolarParaKitPremium}
             className="cta-pulse cta-shimmer group w-full max-w-[500px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
             <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO O KIT COMPLETO AGORA</span>
@@ -1125,7 +1136,10 @@ function PaginaColorindoAsSilabas() {
             </div>
 
             {/* PLANO 2: KIT PREMIUM (DESTAQUE / MAIS VENDIDO) */}
-            <div className="bg-white rounded-3xl border-2 border-[#FF4D80] p-6 sm:p-8 flex flex-col justify-between shadow-xl relative pt-10 ring-4 ring-[#FF4D80]/10 hover:shadow-2xl transition-shadow">
+            <div
+              id="kit-premium"
+              className="bg-white rounded-3xl border-2 border-[#FF4D80] p-6 sm:p-8 flex flex-col justify-between shadow-xl relative pt-10 ring-4 ring-[#FF4D80]/10 hover:shadow-2xl transition-shadow scroll-mt-20 sm:scroll-mt-24"
+            >
               {/* Badge Topo */}
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4D80] text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
                 <Sparkles className="w-3.5 h-3.5" />
