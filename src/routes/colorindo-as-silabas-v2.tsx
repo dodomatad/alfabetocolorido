@@ -423,7 +423,7 @@ function PaginaColorindoAsSilabas() {
       {/* Top Announcement Bar - Sticky com Cronômetro Integrado Sutil */}
       <div
         onClick={rolarParaKitPremium}
-        className="sticky top-0 z-50 bg-[#FF3B69] text-white py-2 px-3 sm:px-4 shadow-md backdrop-blur-md cursor-pointer hover:bg-[#F42E5E] transition-colors"
+        className="sticky top-0 z-50 bg-[#DC2626] text-white py-2 px-3 sm:px-4 shadow-md backdrop-blur-md cursor-pointer hover:bg-[#B91C1C] transition-colors"
         title="Clique para ir até a oferta"
       >
         <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 sm:gap-3.5 text-xs sm:text-sm font-bold flex-wrap">
@@ -436,17 +436,17 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white text-[#1E293B] px-3 sm:px-3.5 py-1 rounded-full shadow-md border border-white/90">
-            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5] text-[#FF3B69] animate-pulse" />
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5] text-[#DC2626] animate-pulse" />
             <span className="font-extrabold text-[11px] sm:text-xs uppercase tracking-wider text-[#1E293B]">
               Expira em:
             </span>
             <div className="flex items-center gap-1 font-mono font-black">
-              <span className="bg-[#FF3B69] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
+              <span className="bg-[#DC2626] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
                 {String(minutos).padStart(2, "0")}
               </span>
               <span className="text-[10px] sm:text-[11px] font-black text-[#1E293B] uppercase">min</span>
-              <span className="text-[#FF3B69] font-black text-xs sm:text-sm leading-none">:</span>
-              <span className="bg-[#FF3B69] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
+              <span className="text-[#DC2626] font-black text-xs sm:text-sm leading-none">:</span>
+              <span className="bg-[#DC2626] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
                 {String(segundos).padStart(2, "0")}
               </span>
               <span className="text-[10px] sm:text-[11px] font-black text-[#1E293B] uppercase">seg</span>
