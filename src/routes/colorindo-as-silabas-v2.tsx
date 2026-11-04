@@ -440,7 +440,7 @@ function PaginaColorindoAsSilabas() {
       {/* Hero Section */}
       <section className="bg-white pt-8 sm:pt-10 pb-12 px-4 text-center">
         <div className="max-w-[760px] mx-auto flex flex-col items-center">
-          <h1 className="text-3xl min-[400px]:text-[34px] sm:text-5xl md:text-[54px] lg:text-[58px] font-black text-[#111827] tracking-tight leading-[1.15] max-w-3xl mx-auto">
+          <h1 className="text-[29.1px] min-[400px]:text-[33px] sm:text-[46.5px] md:text-[52.4px] lg:text-[56.3px] font-black text-[#111827] tracking-tight leading-[1.15] max-w-3xl mx-auto">
             Seu filho lendo com{" "}
             <span className="text-[#FF2D6C] underline decoration-[#FFB3C6] decoration-[3px] sm:decoration-[5px] underline-offset-[6px] sm:underline-offset-[10px]">
               fluência em poucas semanas
