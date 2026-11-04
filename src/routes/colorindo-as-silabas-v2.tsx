@@ -147,6 +147,9 @@ const DEPOIMENTOS = [
   "/colorindo-silabas/Imagem-sem-titulo-1.png",
 ];
 
+const DEPOIMENTOS_LINHA_1 = DEPOIMENTOS.slice(0, 9);
+const DEPOIMENTOS_LINHA_2 = DEPOIMENTOS.slice(9, 18);
+
 const FAQS = [
   {
     pergunta: "Quais as Formas de Pagamento?",
@@ -771,26 +774,55 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Depoimentos */}
-      <section className="py-14 px-4 bg-white text-center">
-        <div className="max-w-4xl mx-auto">
+      {/* Depoimentos - Carrossel Automático Contínuo */}
+      <section className="py-14 sm:py-16 bg-white text-center overflow-hidden">
+        <div className="max-w-4xl mx-auto px-4 mb-8">
+          <div className="inline-flex items-center gap-1.5 bg-[#FFF0F5] text-[#FF4D80] px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-3">
+            <Sparkles className="w-4 h-4" />
+            <span>Mais de 3.200 Famílias e Educadoras Satisfeitas</span>
+          </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] mb-3">
             Quem já aplicou com seus pequenos recomenda
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-10">
+          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
             Veja o retorno real de mães e educadoras que utilizam nossas atividades no dia a dia:
           </p>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {DEPOIMENTOS.map((src, idx) => (
+        {/* Carrossel Infinito Duplo com Rolagem Automática */}
+        <div className="relative w-full overflow-hidden space-y-4">
+          {/* Sombras suaves nas laterais */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-12 sm:w-28 bg-gradient-to-r from-white to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-12 sm:w-28 bg-gradient-to-l from-white to-transparent z-10" />
+
+          {/* Linha 1: Rolagem para a Esquerda */}
+          <div className="flex gap-4 w-max animate-scroll-left hover:[animation-play-state:paused] py-1">
+            {[...DEPOIMENTOS_LINHA_1, ...DEPOIMENTOS_LINHA_1].map((src, idx) => (
               <div
-                key={idx}
-                className="bg-gray-50 rounded-xl p-3 border border-gray-100 shadow-sm flex items-center justify-center hover:shadow-md transition-shadow"
+                key={`dep-l1-${idx}`}
+                className="w-72 sm:w-80 h-28 sm:h-32 flex-shrink-0 bg-[#FBFBFA] rounded-2xl p-3 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center"
               >
                 <img
                   src={src}
                   alt={`Depoimento ${idx + 1}`}
-                  className="max-h-28 w-auto object-contain rounded"
+                  className="max-h-20 sm:max-h-24 w-auto max-w-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Linha 2: Rolagem para a Direita */}
+          <div className="flex gap-4 w-max animate-scroll-right hover:[animation-play-state:paused] py-1">
+            {[...DEPOIMENTOS_LINHA_2, ...DEPOIMENTOS_LINHA_2].map((src, idx) => (
+              <div
+                key={`dep-l2-${idx}`}
+                className="w-72 sm:w-80 h-28 sm:h-32 flex-shrink-0 bg-[#FBFBFA] rounded-2xl p-3 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center"
+              >
+                <img
+                  src={src}
+                  alt={`Depoimento ${idx + 10}`}
+                  className="max-h-20 sm:max-h-24 w-auto max-w-full object-contain"
                   loading="lazy"
                 />
               </div>
