@@ -32,10 +32,14 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
       {
         property: "og:image",
         content: "/colorindo-silabas/logo-colorindo-v2.jpg",
-      },
-      {
-        name: "facebook-domain-verification",
-        content: "i2j5aa2blgaho6pawv8wrpbdlqnb1a",
+      },
+
+      {
+
+        name: "facebook-domain-verification",
+
+        content: "zpxofgzxd1kj14iopsjv6zr72j6w0q",
+
       },
     ],
     links: [

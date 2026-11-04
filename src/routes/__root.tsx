@@ -97,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#FF6799" },
       {
         name: "facebook-domain-verification",
-        content: "i2j5aa2blgaho6pawv8wrpbdlqnb1a",
+        content: "zpxofgzxd1kj14iopsjv6zr72j6w0q",
       },
     ],
     links: [
@@ -128,7 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
-        <meta name="facebook-domain-verification" content="i2j5aa2blgaho6pawv8wrpbdlqnb1a" />
+        <meta name="facebook-domain-verification" content="zpxofgzxd1kj14iopsjv6zr72j6w0q" />
         <HeadContent />
       </head>
       <body>
