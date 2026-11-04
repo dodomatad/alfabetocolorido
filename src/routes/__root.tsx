@@ -95,6 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "/colorindo-silabas/logo-colorindo-v2.jpg" },
       { name: "twitter:image", content: "/colorindo-silabas/logo-colorindo-v2.jpg" },
       { name: "theme-color", content: "#FF6799" },
+      {
+        name: "facebook-domain-verification",
+        content: "i2j5aa2blgaho6pawv8wrpbdlqnb1a",
+      },
     ],
     links: [
       {
@@ -124,6 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
+        <meta name="facebook-domain-verification" content="i2j5aa2blgaho6pawv8wrpbdlqnb1a" />
         <HeadContent />
       </head>
       <body>
