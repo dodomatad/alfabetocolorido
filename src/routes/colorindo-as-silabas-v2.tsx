@@ -11,6 +11,7 @@ import {
   Play,
   ArrowRight,
   Gift,
+  X,
 } from "lucide-react";
 
 import { useFavicon } from "@/hooks/use-favicon";
@@ -224,6 +225,7 @@ function PaginaColorindoAsSilabas() {
   const [segundosRestantes, setSegundosRestantes] = useState(15 * 60);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
+  const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -823,14 +825,14 @@ function PaginaColorindoAsSilabas() {
               </div>
 
               <div className="mt-8">
-                <a
-                  href={checkoutUrlFinal}
-                  onClick={dispararInitiateCheckout}
+                <button
+                  type="button"
+                  onClick={() => setModalUpsellAberto(true)}
                   className="w-full border-2 border-[#0D9488] text-[#0D9488] hover:bg-[#0D9488] hover:text-white font-extrabold py-3.5 px-6 rounded-2xl transition-all text-center text-base flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Quero o Kit Básico</span>
                   <ArrowRight className="w-4 h-4" />
-                </a>
+                </button>
 
                 <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
                   <span className="flex items-center gap-1">
@@ -1235,6 +1237,117 @@ function PaginaColorindoAsSilabas() {
           </div>
         </div>
       </footer>
+      {/* MODAL UPSELL - NOTIFICAÇÃO AO CLICAR NO KIT BÁSICO */}
+      {modalUpsellAberto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalUpsellAberto(false);
+          }}
+        >
+          <div className="bg-white rounded-3xl max-w-sm sm:max-w-md w-full p-6 sm:p-7 relative shadow-2xl border border-gray-100 text-center animate-in zoom-in-95 duration-200">
+            {/* Botão Fechar (X) */}
+            <button
+              type="button"
+              onClick={() => setModalUpsellAberto(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Fechar"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            {/* Ícone Presente Topo */}
+            <div className="w-14 h-14 rounded-full bg-[#FF4D80] flex items-center justify-center text-white mx-auto shadow-md shadow-rose-200">
+              <Gift className="w-7 h-7" />
+            </div>
+
+            {/* Cabeçalho */}
+            <span className="text-[#FF4D80] text-[10px] sm:text-[11px] font-black uppercase tracking-widest block mt-3 mb-1">
+              OFERTA ESPECIAL ANTES DE FINALIZAR
+            </span>
+            <h3 className="text-[#1E1B4B] text-xl sm:text-2xl font-black leading-snug">
+              Seu kit pode ficar ainda mais completo
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">
+              Troque o Básico pelo Premium com um preço exclusivo nesta etapa.
+            </p>
+
+            {/* Caixa Destacada Kit Premium Especial */}
+            <div className="bg-[#FFF5ED] rounded-2xl p-4 sm:p-5 mt-5 mb-4 border border-[#FFE5D3] text-center">
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-[#78716C] uppercase tracking-wider block">
+                KIT PREMIUM ESPECIAL
+              </span>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <span className="text-xs text-gray-400 font-semibold line-through">
+                  R$ 39,90
+                </span>
+                <span className="text-xs font-black text-[#0D9488]">
+                  Economize R$ 11,90
+                </span>
+              </div>
+              <div className="text-4xl sm:text-5xl font-black text-[#FF4D80] my-1 tracking-tight">
+                R$ 28,00
+              </div>
+              <span className="text-[11px] text-gray-400 font-medium block">
+                pagamento único
+              </span>
+            </div>
+
+            {/* Checklist Benefícios */}
+            <ul className="space-y-2.5 text-left text-xs sm:text-sm text-gray-700 font-medium my-4 px-2">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                <span>Mais de 4.000 atividades (o dobro do Básico)</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                <span>Livro de leitura e simulado escolar</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                <span>Acesso vitalício e garantia de 30 dias</span>
+              </li>
+            </ul>
+
+            {/* Tag Bônus */}
+            <div className="bg-[#FFF0F5] text-[#FF4D80] border border-[#FFE4EC] text-xs font-bold py-2 px-3 rounded-full flex items-center justify-center gap-1.5 my-3">
+              <Gift className="w-3.5 h-3.5" />
+              <span>Os 7 bônus do Premium inclusos</span>
+            </div>
+
+            {/* Botão Principal: Sim, quero o Premium por R$ 28,00 */}
+            <a
+              href={checkoutUrlFinal}
+              onClick={dispararInitiateCheckout}
+              className="w-full bg-[#00B069] hover:bg-[#009b5c] text-white font-extrabold py-3.5 sm:py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all text-center text-base sm:text-lg flex items-center justify-center gap-2 cursor-pointer uppercase"
+            >
+              <span>Sim, quero o Premium por R$ 28,00</span>
+              <ArrowRight className="w-5 h-5" />
+            </a>
+
+            {/* Link Secundário: Não, continuar com o Básico */}
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  dispararInitiateCheckout();
+                  window.location.href = checkoutUrlFinal;
+                }}
+                className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-semibold cursor-pointer underline-offset-2 hover:underline"
+              >
+                Não, continuar com o Básico
+              </button>
+            </div>
+
+            {/* Rodapé Micro-copy */}
+            <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 font-medium mt-4">
+              <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
+              <span>Você escolhe. Nenhum adicional é incluído automaticamente.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
