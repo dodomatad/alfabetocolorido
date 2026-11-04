@@ -1082,7 +1082,7 @@ function PaginaColorindoAsSilabas() {
                   PARA COMEÇAR
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-black text-[#1E293B] mt-1">
-                  Kit Básico
+                  Kit Básico com + de 2.000 atividades
                 </h3>
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">
                   Atividades essenciais para imprimir e usar na sua rotina.
