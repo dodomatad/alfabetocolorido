@@ -409,51 +409,42 @@ function PaginaColorindoAsSilabas() {
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
-      {/* Top Announcement Bar */}
-      <div className="bg-[#FF3B69] text-white py-2 sm:py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center">
-        <span>Promoção válida por tempo limitado!</span>
+      {/* Top Announcement Bar - Sticky com Cronômetro Integrado Sutil */}
+      <div
+        onClick={rolarParaOferta}
+        className="sticky top-0 z-50 bg-[#FF3B69] text-white py-2 px-3 sm:px-4 shadow-md backdrop-blur-md cursor-pointer hover:bg-[#F42E5E] transition-colors"
+        title="Clique para ir até a oferta"
+      >
+        <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 sm:gap-3.5 text-xs sm:text-sm font-bold flex-wrap">
+          <div className="flex items-center gap-1.5 tracking-wide">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+            <span>Promoção válida por tempo limitado!</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-2.5 py-0.5 sm:py-1 rounded-full text-white font-medium text-[11px] sm:text-xs border border-white/20 shadow-inner">
+            <Clock className="w-3.5 h-3.5 stroke-[2.5] text-white" />
+            <span className="font-semibold text-white/95">Expira em:</span>
+            <div className="flex items-center gap-1 font-mono font-black text-white">
+              <span className="bg-white text-[#FF3B69] px-1.5 py-0.5 rounded text-xs font-bold shadow-sm leading-none">
+                {String(minutos).padStart(2, "0")}
+              </span>
+              <span className="text-[10px] font-bold text-white/90 uppercase">min</span>
+              <span className="text-white/60">:</span>
+              <span className="bg-white text-[#FF3B69] px-1.5 py-0.5 rounded text-xs font-bold shadow-sm leading-none">
+                {String(segundos).padStart(2, "0")}
+              </span>
+              <span className="text-[10px] font-bold text-white/90 uppercase">seg</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-[#F2F8FE] to-[#E1F1FD] pt-6 pb-12 px-4 text-center">
+      <section className="bg-gradient-to-b from-[#F2F8FE] to-[#E1F1FD] pt-8 sm:pt-10 pb-12 px-4 text-center">
         <div className="max-w-[760px] mx-auto flex flex-col items-center">
-          {/* Card Temporizador Topo do Cabeçalho */}
-          <div className="bg-white rounded-3xl border-2 border-[#FF3B69] p-4 sm:p-5 text-center max-w-[360px] sm:max-w-[400px] w-full mx-auto shadow-md mb-6">
-            <div className="flex items-center justify-center gap-1.5 text-[#FF3B69] font-black text-xs sm:text-sm uppercase tracking-wider mb-3">
-              <Clock className="w-4 h-4 stroke-[2.5]" />
-              <span>A PROMOÇÃO EXPIRA EM</span>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 my-2">
-              {/* Bloco Minutos */}
-              <div className="bg-[#FF3B69] text-white rounded-2xl p-2.5 sm:p-3 min-w-[76px] sm:min-w-[84px] shadow-sm flex flex-col items-center justify-center">
-                <span className="text-3xl sm:text-4xl font-black font-mono leading-none">
-                  {String(minutos).padStart(2, "0")}
-                </span>
-                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider mt-1.5 opacity-90">
-                  MIN
-                </span>
-              </div>
-
-              {/* Bloco Segundos */}
-              <div className="bg-[#FF3B69] text-white rounded-2xl p-2.5 sm:p-3 min-w-[76px] sm:min-w-[84px] shadow-sm flex flex-col items-center justify-center">
-                <span className="text-3xl sm:text-4xl font-black font-mono leading-none">
-                  {String(segundos).padStart(2, "0")}
-                </span>
-                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider mt-1.5 opacity-90">
-                  SEG
-                </span>
-              </div>
-            </div>
-
-            <p className="text-xs sm:text-sm font-bold text-gray-800 mt-3">
-              3.000+ atividades + bônus · Acesso imediato
-            </p>
-            <p className="text-[11px] sm:text-xs font-bold text-[#0D9488] mt-1">
-              Material enviado no WhatsApp e no e-mail
-            </p>
-          </div>
-
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] tracking-tight leading-tight">
             Seu filho lendo com fluência em poucas semanas
           </h1>
