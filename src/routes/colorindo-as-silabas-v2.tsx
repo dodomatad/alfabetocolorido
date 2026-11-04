@@ -478,10 +478,10 @@ function PaginaColorindoAsSilabas() {
           <a
             href="#kit-premium"
             onClick={rolarParaKitPremium}
-            className="cta-pulse cta-shimmer group w-full max-w-[500px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
+            className="cta-pulse cta-shimmer group w-full max-w-[475px] sm:max-w-[500px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[19px] sm:text-2xl py-[15px] sm:py-5 px-7 sm:px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
             <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO O KIT COMPLETO AGORA</span>
-            <ArrowRight className="w-6 h-6 stroke-[3.5] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+            <ArrowRight className="w-[22px] h-[22px] sm:w-6 sm:h-6 stroke-[3.5] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
           </a>
 
           {/* Aviso de Entrega por E-mail */}
