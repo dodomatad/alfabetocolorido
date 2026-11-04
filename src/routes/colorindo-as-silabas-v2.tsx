@@ -1102,11 +1102,13 @@ function PaginaColorindoAsSilabas() {
                   </div>
                 </div>
 
-                {/* Faixa Rosa Destaque */}
-                <div className="bg-gradient-to-r from-[#FF4D80] to-[#FF6B99] text-white text-xs sm:text-sm font-black py-3 px-4 rounded-xl uppercase tracking-wider shadow-sm my-6 text-center flex items-center justify-center gap-2">
-                  <span>🔥</span>
-                  <span>+ATIVIDADES ATUALIZADAS TODA SEMANA</span>
-                  <span>🔥</span>
+                {/* Etiqueta Destaque no Produto Premium */}
+                <div className="my-5 flex justify-center">
+                  <div className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#FF4D80] to-[#FF2D6C] text-white text-xs sm:text-sm font-black py-2.5 px-5 sm:px-6 rounded-full uppercase tracking-wider shadow-md border border-white/30 text-center">
+                    <span>🔥</span>
+                    <span>+ATIVIDADES ATUALIZADAS TODA SEMANA</span>
+                    <span>🔥</span>
+                  </div>
                 </div>
 
                 {/* Lista de Recursos Principais Destacados */}
@@ -1519,6 +1521,13 @@ function PaginaColorindoAsSilabas() {
               <span className="text-[11px] text-gray-400 font-medium block">
                 pagamento único
               </span>
+              <div className="mt-3 flex justify-center">
+                <div className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#FF4D80] to-[#FF2D6C] text-white text-[10px] sm:text-[11px] font-black py-1.5 px-3.5 rounded-full uppercase tracking-wider shadow-sm">
+                  <span>🔥</span>
+                  <span>+ATIVIDADES ATUALIZADAS TODA SEMANA</span>
+                  <span>🔥</span>
+                </div>
+              </div>
             </div>
 
             {/* Checklist Benefícios */}
