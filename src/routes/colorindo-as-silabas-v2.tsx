@@ -460,7 +460,7 @@ function PaginaColorindoAsSilabas() {
             Seu filho lendo com fluência em poucas semanas
           </h1>
 
-          <p className="mt-4 text-lg sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
+          <p className="mt-4 text-[17px] sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
             O método <span className="text-[#FF6799] font-extrabold">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler até 5x mais rápido, com apenas 10 minutinhos por dia. Sem brigas. Sem pressão, alinhada à BNCC.
           </p>
 
