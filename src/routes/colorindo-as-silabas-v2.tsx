@@ -4,6 +4,8 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Sparkles,
   ShieldCheck,
@@ -235,6 +237,24 @@ function PaginaColorindoAsSilabas() {
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
   const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
+  const [passoAtivo, setPassoAtivo] = useState(0);
+  const [passoPausado, setPassoPausado] = useState(false);
+
+  // Auto-play do carrossel Como Funciona (troca a cada 4 segundos)
+  useEffect(() => {
+    if (passoPausado) return;
+    const timer = setInterval(() => {
+      setPassoAtivo((prev) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [passoPausado]);
+
+  const proximoPasso = () => {
+    setPassoAtivo((prev) => (prev + 1) % 3);
+  };
+  const passoAnterior = () => {
+    setPassoAtivo((prev) => (prev - 1 + 3) % 3);
+  };
 
   // Sempre força o início no topo da página ao entrar/carregar
   useEffect(() => {
@@ -831,72 +851,158 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Como Funciona? */}
-      <section className="py-14 px-4 bg-[#FFF8F4]">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase mb-12">
+      {/* Como Funciona? - Carrossel Interativo Automático */}
+      <section className="py-14 sm:py-16 px-4 bg-[#FFF8F4]">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase mb-4">
             COMO FUNCIONA?
           </h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-lg mx-auto">
+            Aprender a ler é simples e divertido com o passo a passo do método:
+          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Passo 1 */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
-              <div className="w-28 h-28 mb-4">
-                <img
-                  src="/colorindo-silabas/3-3-1.png"
-                  alt="Acesso imediato"
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
+          {/* Abas dos Passos (Pills de Navegação Rápida) */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8 flex-wrap">
+            {[
+              { num: "1", label: "Liberação Imediata" },
+              { num: "2", label: "Baixe e Imprima" },
+              { num: "3", label: "Diversão e Leitura" },
+            ].map((p, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setPassoAtivo(idx)}
+                className={`px-3.5 sm:px-5 py-2 rounded-full font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+                  passoAtivo === idx
+                    ? "bg-[#0D9488] text-white shadow-md shadow-teal-500/25 scale-105"
+                    : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200 shadow-sm"
+                }`}
+              >
+                <span
+                  className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black ${
+                    passoAtivo === idx
+                      ? "bg-white text-[#0D9488]"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {p.num}
+                </span>
+                <span>{p.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Slider Container com Setas de Navegação */}
+          <div
+            className="relative max-w-xl mx-auto"
+            onMouseEnter={() => setPassoPausado(true)}
+            onMouseLeave={() => setPassoPausado(false)}
+            onTouchStart={() => setPassoPausado(true)}
+            onTouchEnd={() => setPassoPausado(false)}
+          >
+            {/* Seta Anterior */}
+            <button
+              type="button"
+              onClick={passoAnterior}
+              aria-label="Passo anterior"
+              className="absolute -left-3 sm:-left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Seta Próximo */}
+            <button
+              type="button"
+              onClick={proximoPasso}
+              aria-label="Próximo passo"
+              className="absolute -right-3 sm:-right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Carrossel Track */}
+            <div className="overflow-hidden rounded-3xl shadow-xl border border-orange-100/60 bg-white">
+              <div
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${passoAtivo * 100}%)` }}
+              >
+                {/* Slide 1 */}
+                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
+                  <div className="w-32 h-32 sm:w-36 sm:h-36 mb-6 flex items-center justify-center">
+                    <img
+                      src="/colorindo-silabas/3-3-1.png"
+                      alt="Acesso imediato"
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#222222] mb-3">
+                    1. Liberação Imediata
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
+                    Conteúdo 100% digital em <b>formato PDF</b>. Assim que confirmar o
+                    pagamento, seu acesso é liberado na tela e enviado ao seu{" "}
+                    <b>e-mail</b>.
+                  </p>
+                </div>
+
+                {/* Slide 2 */}
+                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
+                  <div className="w-32 h-32 sm:w-36 sm:h-36 mb-6 flex items-center justify-center">
+                    <img
+                      src="/colorindo-silabas/4-2-1.png"
+                      alt="Baixe as atividades"
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#222222] mb-3">
+                    2. Baixe e Imprima em A4
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
+                    Os arquivos são separados por <b>cadernos</b> para facilitar a
+                    impressão. Baixe no seu <b>celular ou computador</b> e imprima
+                    quantas vezes desejar.
+                  </p>
+                </div>
+
+                {/* Slide 3 */}
+                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
+                  <div className="w-32 h-32 sm:w-36 sm:h-36 mb-6 flex items-center justify-center">
+                    <img
+                      src="/colorindo-silabas/5-1-1-1.png"
+                      alt="Realizar as atividades"
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#222222] mb-3">
+                    3. Diversão e Leitura
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
+                    Com lápis de cor na mão, a criança aprende as{" "}
+                    <b>famílias silábicas</b> pintando por código em apenas 15
+                    minutinhos por dia!
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">
-                1. Liberação Imediata
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Conteúdo 100% digital em <b>formato PDF</b>. Assim que confirmar
-                o pagamento, seu acesso é liberado na tela e enviado ao seu{" "}
-                <b>e-mail</b>.
-              </p>
             </div>
 
-            {/* Passo 2 */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
-              <div className="w-28 h-28 mb-4">
-                <img
-                  src="/colorindo-silabas/4-2-1.png"
-                  alt="Baixe as atividades"
-                  className="w-full h-full object-contain"
-                  loading="lazy"
+            {/* Dots Indicadores Inferiores */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {[0, 1, 2].map((idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setPassoAtivo(idx)}
+                  aria-label={`Ir para passo ${idx + 1}`}
+                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                    passoAtivo === idx
+                      ? "w-8 bg-[#0D9488]"
+                      : "w-2.5 bg-gray-300 hover:bg-gray-400"
+                  }`}
                 />
-              </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">
-                2. Baixe e Imprima em A4
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Os arquivos são separados por <b>cadernos</b> para facilitar a
-                impressão. Baixe no seu <b>celular ou computador</b> e imprima
-                quantas vezes desejar.
-              </p>
-            </div>
-
-            {/* Passo 3 */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
-              <div className="w-28 h-28 mb-4">
-                <img
-                  src="/colorindo-silabas/5-1-1-1.png"
-                  alt="Realizar as atividades"
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
-              </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">
-                3. Diversão e Leitura
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Com lápis de cor na mão, a criança aprende as{" "}
-                <b>famílias silábicas</b> pintando por código em apenas 15
-                minutinhos por dia!
-              </p>
+              ))}
             </div>
           </div>
         </div>
