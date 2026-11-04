@@ -13,6 +13,7 @@ import {
   Play,
   ArrowRight,
   Gift,
+  Flame,
   X,
 } from "lucide-react";
 
@@ -1102,13 +1103,14 @@ function PaginaColorindoAsSilabas() {
                   </div>
                 </div>
 
-                {/* Etiqueta Destaque no Produto Premium */}
-                <div className="my-5 flex justify-center">
-                  <div className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#FF4D80] to-[#FF2D6C] text-white text-xs sm:text-sm font-black py-2.5 px-5 sm:px-6 rounded-full uppercase tracking-wider shadow-md border border-white/30 text-center">
-                    <span>🔥</span>
-                    <span>+ATIVIDADES ATUALIZADAS TODA SEMANA</span>
-                    <span>🔥</span>
+                {/* Faixa Destaque no Produto Premium - Estilo Borda a Borda */}
+                <div className="-mx-6 sm:-mx-8 my-6 bg-[#FF4D80] py-2.5 px-4 flex items-center justify-center gap-3 text-white shadow-sm">
+                  <Flame className="w-5 h-5 text-white flex-shrink-0" />
+                  <div className="text-center font-black uppercase text-xs sm:text-sm leading-tight tracking-wider">
+                    <div>+ATIVIDADES</div>
+                    <div>ATUALIZADAS TODA SEMANA</div>
                   </div>
+                  <Flame className="w-5 h-5 text-white flex-shrink-0" />
                 </div>
 
                 {/* Lista de Recursos Principais Destacados */}
@@ -1521,12 +1523,13 @@ function PaginaColorindoAsSilabas() {
               <span className="text-[11px] text-gray-400 font-medium block">
                 pagamento único
               </span>
-              <div className="mt-3 flex justify-center">
-                <div className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#FF4D80] to-[#FF2D6C] text-white text-[10px] sm:text-[11px] font-black py-1.5 px-3.5 rounded-full uppercase tracking-wider shadow-sm">
-                  <span>🔥</span>
-                  <span>+ATIVIDADES ATUALIZADAS TODA SEMANA</span>
-                  <span>🔥</span>
+              <div className="-mx-4 sm:-mx-5 mt-4 bg-[#FF4D80] py-2 px-3 flex items-center justify-center gap-2 text-white">
+                <Flame className="w-4 h-4 text-white flex-shrink-0" />
+                <div className="text-center font-black uppercase text-[10px] sm:text-[11px] leading-tight tracking-wider">
+                  <div>+ATIVIDADES</div>
+                  <div>ATUALIZADAS TODA SEMANA</div>
                 </div>
+                <Flame className="w-4 h-4 text-white flex-shrink-0" />
               </div>
             </div>
 
