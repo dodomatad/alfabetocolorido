@@ -447,8 +447,8 @@ function PaginaColorindoAsSilabas() {
             </span>
           </h1>
 
-          <p className="mt-4 sm:mt-5 text-base sm:text-xl md:text-2xl text-gray-700 font-medium leading-relaxed max-w-2xl mx-auto">
-            O método <span className="text-[#FF4D80] font-black">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler <strong className="text-gray-900 font-bold">até 5x mais rápido</strong>, com <strong className="text-gray-900 font-bold">apenas 10 minutinhos por dia</strong>. Sem brigas. Sem pressão, alinhada à BNCC.
+          <p className="mt-4 sm:mt-5 text-[15.2px] sm:text-xl md:text-2xl text-gray-700 font-medium leading-relaxed max-w-2xl mx-auto">
+            O método <span className="text-[#2563EB] font-black">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler <strong className="text-gray-900 font-bold">até 5x mais rápido</strong>, com <strong className="text-gray-900 font-bold">apenas 10 minutinhos por dia</strong>. Sem brigas. Sem pressão, alinhada à BNCC.
           </p>
 
           {/* Capa / Logo Principal */}
