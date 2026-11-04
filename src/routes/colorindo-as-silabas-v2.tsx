@@ -830,8 +830,8 @@ function PaginaColorindoAsSilabas() {
       {/* Depoimentos - Carrossel Automático Contínuo */}
       <section className="py-14 sm:py-16 bg-white text-center overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 mb-8">
-          <div className="inline-flex items-center gap-1.5 bg-[#FFF0F5] text-[#FF4D80] px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-3">
-            <Sparkles className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 border-2 border-blue-300 px-4 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-extrabold uppercase tracking-wider mb-3 shadow-sm">
+            <Sparkles className="w-4 h-4 text-blue-600 fill-blue-500 flex-shrink-0" />
             <span>Mais de 3.200 Famílias e Educadoras Satisfeitas</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] mb-3">
