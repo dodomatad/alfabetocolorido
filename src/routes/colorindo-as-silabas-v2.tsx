@@ -570,8 +570,8 @@ function PaginaColorindoAsSilabas() {
       </section>
 
       {/* O que você vai receber ao adquirir - Vitrine Área de Membros */}
-      <section className="py-14 px-4 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-12 px-4 bg-gray-50">
+        <div className="max-w-[920px] mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase tracking-tight">
               Veja tudo o que você recebe hoje
@@ -582,9 +582,9 @@ function PaginaColorindoAsSilabas() {
           </div>
 
           {/* Grid de 5 Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-10 max-w-[320px] sm:max-w-none mx-auto">
             {/* Card 1: Colorindo as Sílabas Simples */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-4 relative group">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   3 ARQUIVOS
@@ -629,7 +629,7 @@ function PaginaColorindoAsSilabas() {
             </div>
 
             {/* Card 2: Colorindo com as Sílabas Cursivas (BLOQUEADO / ORDER BUMP) */}
-            <div className="bg-white rounded-2xl border-2 border-[#FFC107] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-4 relative group ring-2 ring-[#FFC107]/20">
+            <div className="bg-white rounded-2xl border-2 border-[#FFC107] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group ring-2 ring-[#FFC107]/20">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-amber-100 flex items-center justify-center">
                 <span className="absolute top-2.5 left-2.5 z-10 bg-[#FF9800] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
                   <Lock className="w-3 h-3" />
@@ -672,7 +672,7 @@ function PaginaColorindoAsSilabas() {
             </div>
 
             {/* Card 3: Português 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-4 relative group">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   3 ARQUIVOS
@@ -714,7 +714,7 @@ function PaginaColorindoAsSilabas() {
             </div>
 
             {/* Card 4: Matemática 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-4 relative group">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   7 ARQUIVOS
@@ -756,7 +756,7 @@ function PaginaColorindoAsSilabas() {
             </div>
 
             {/* Card 5: Folclore 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-4 relative group">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   1 ARQUIVOS
