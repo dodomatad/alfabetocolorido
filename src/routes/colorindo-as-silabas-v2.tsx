@@ -515,8 +515,8 @@ function PaginaColorindoAsSilabas() {
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
-            Com o método de <b>Pintura por Código de Sílabas</b>, a criança
-            aprende a reconhecer e juntar as sílabas simples enquanto colore,
+            Com o método <b>Colorindo as Sílabas</b>, a criança aprende a
+            reconhecer e juntar as sílabas simples enquanto colore,
             desenvolvendo leitura, atenção, concentração e coordenação motora sem
             choro na hora da tarefa.
           </p>
