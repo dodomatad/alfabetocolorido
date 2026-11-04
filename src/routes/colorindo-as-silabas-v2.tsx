@@ -1097,24 +1097,28 @@ function PaginaColorindoAsSilabas() {
 
                 <div className="border-t border-gray-100 my-6"></div>
 
-                {/* Lista de Recursos */}
-                <ul className="space-y-3.5 text-xs sm:text-sm text-gray-700 font-medium">
-                  {[
-                    "Mais de 2.000 atividades",
-                    "6 bônus exclusivos",
-                    "Da educação infantil ao 5º ano",
-                    "PDF pronto para imprimir",
-                    "Acesso vitalício",
-                    "Garantia de 7 dias",
-                  ].map((feat, idx) => (
-                    <li key={idx} className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
+                {/* Lista de Recursos Destacada */}
+                <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm">
+                  <ul className="space-y-3.5">
+                    {[
+                      "Mais de 2.000 atividades",
+                      "6 bônus exclusivos",
+                      "Da educação infantil ao 5º ano",
+                      "PDF pronto para imprimir",
+                      "Acesso vitalício",
+                      "Garantia de 7 dias",
+                    ].map((feat, idx) => (
+                      <li key={idx} className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Check className="w-3.5 h-3.5 stroke-[3.5]" />
+                        </span>
+                        <span className="font-bold text-[#1E293B] text-sm sm:text-[15px] leading-snug">
+                          {feat}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
               <div className="mt-8">
