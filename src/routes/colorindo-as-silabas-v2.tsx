@@ -1313,46 +1313,46 @@ function PaginaColorindoAsSilabas() {
       </section>
 
       {/* Garantia Incondicional 7 Dias */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          <div className="w-56 sm:w-64 flex-shrink-0">
+      <section className="py-10 sm:py-16 px-3 sm:px-4 bg-white">
+        <div className="max-w-4xl mx-auto flex flex-row items-center gap-3 sm:gap-6 md:gap-12">
+          <div className="w-24 min-[380px]:w-28 sm:w-44 md:w-56 lg:w-64 flex-shrink-0">
             <img
               src="/colorindo-silabas/Kids41-Compressao-1-1.png"
               alt="Selo 7 Dias de Garantia"
-              className="w-full h-auto object-contain mx-auto"
+              className="w-full h-auto object-contain mx-auto drop-shadow-md"
               loading="lazy"
             />
           </div>
 
-          <div className="flex-1 text-left space-y-4 text-gray-700 text-sm sm:text-base">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#222222] leading-tight">
+          <div className="flex-1 text-left space-y-2.5 sm:space-y-4 text-gray-700 text-xs sm:text-sm md:text-base">
+            <h2 className="text-base sm:text-2xl md:text-3xl font-extrabold text-[#222222] leading-tight">
               Satisfação garantida ou seu dinheiro de volta!
             </h2>
 
-            <p>
+            <p className="leading-snug sm:leading-relaxed">
               Você tem <b>7 dias completos</b> para baixar, olhar todas as
               páginas e testar com sua criança. Se por qualquer motivo achar que:
             </p>
 
-            <ul className="space-y-2 pl-2">
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-gray-800" />
-                <span>o material não faz sentido para sua criança/aluno</span>
+            <ul className="space-y-1 sm:space-y-2 pl-1 sm:pl-2">
+              <li className="flex items-start gap-1.5 sm:gap-2">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-800 mt-1.5 flex-shrink-0" />
+                <span className="leading-tight sm:leading-normal">o material não faz sentido para sua criança/aluno</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-gray-800" />
-                <span>os materiais não atendem sua necessidade</span>
+              <li className="flex items-start gap-1.5 sm:gap-2">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-800 mt-1.5 flex-shrink-0" />
+                <span className="leading-tight sm:leading-normal">os materiais não atendem sua necessidade</span>
               </li>
             </ul>
 
-            <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl">
-              <p className="font-bold text-emerald-900">
+            <div className="bg-emerald-50 border-l-4 border-emerald-500 p-2.5 sm:p-4 rounded-r-xl">
+              <p className="font-bold text-emerald-900 text-xs sm:text-sm leading-tight sm:leading-normal">
                 👉 você pode solicitar 100% do reembolso na plataforma.
               </p>
-              <p className="font-extrabold text-emerald-950 mt-1">
+              <p className="font-extrabold text-emerald-950 mt-1 text-xs sm:text-sm md:text-base leading-tight">
                 7 dias de garantia incondicional
               </p>
-              <p className="text-xs sm:text-sm text-emerald-800">
+              <p className="text-[11px] sm:text-xs md:text-sm text-emerald-800 leading-tight mt-0.5">
                 Sem burocracia. Risco zero para você.
               </p>
             </div>
