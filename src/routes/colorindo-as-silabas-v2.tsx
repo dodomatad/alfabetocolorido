@@ -1046,9 +1046,9 @@ function PaginaColorindoAsSilabas() {
       {/* SEÇÃO DE PLANOS - COMPARATIVO 2 PLANOS (KIT BÁSICO VS KIT PREMIUM) */}
       <section id="oferta" className="py-16 px-4 bg-[#FFF8F3] scroll-mt-6">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 font-extrabold text-xs sm:text-sm uppercase tracking-widest px-4 py-1.5 rounded-full mb-3 border border-rose-200">
-            <Clock className="w-4 h-4" />
-            <span>🔥 CONDIÇÃO ESPECIAL DE LANÇAMENTO</span>
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#E11D48] via-[#FF2D6C] to-[#E11D48] text-white font-black text-xs sm:text-[14px] uppercase tracking-wider px-5 sm:px-6 py-2 rounded-full mb-4 shadow-[0_4px_14px_rgba(225,29,72,0.35)] border border-white/30 ring-2 ring-rose-300/40">
+            <Clock className="w-4 h-4 stroke-[2.5] text-white flex-shrink-0 animate-pulse" />
+            <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">🔥 CONDIÇÃO ESPECIAL DE LANÇAMENTO</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] leading-tight">
