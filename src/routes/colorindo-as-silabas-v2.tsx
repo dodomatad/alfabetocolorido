@@ -520,7 +520,7 @@ function PaginaColorindoAsSilabas() {
             Exemplos Reais das Atividades
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-4 text-[14.4px] sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
             Com o método <b>Colorindo as Sílabas</b>, a criança aprende a
             reconhecer e juntar as sílabas simples enquanto colore,
             desenvolvendo leitura, atenção, concentração e coordenação motora sem
