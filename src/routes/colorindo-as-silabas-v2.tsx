@@ -625,12 +625,12 @@ function PaginaColorindoAsSilabas() {
             </div>
           </div>
 
-          {/* Grid de 5 Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-10 max-w-[320px] sm:max-w-none mx-auto">
+          {/* Grid de 5 Cards - 2 por vez, Cursivas por último */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-5 mb-10 max-w-[680px] sm:max-w-[720px] mx-auto">
             {/* Card 1: Colorindo as Sílabas Simples */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
+              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
+                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   3 ARQUIVOS
                 </span>
                 <img
@@ -645,80 +645,37 @@ function PaginaColorindoAsSilabas() {
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-base sm:text-lg leading-snug">
+                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
                     Colorindo as Sílabas Simples
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1 font-medium">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
                     Kit Principal Oficial • 3 Arquivos em PDF
                   </p>
                 </div>
 
-                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
+                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
                     De <span className="line-through text-black font-bold">R$ 39,90</span> por
                   </span>
-                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
                   </span>
                 </div>
 
                 <a
                   href="#oferta"
-                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
-                  <Play className="w-4 h-4 fill-current" />
+                  <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Acessar</span>
                 </a>
               </div>
             </div>
 
-            {/* Card 2: Colorindo com as Sílabas Cursivas (BLOQUEADO / ORDER BUMP) */}
-            <div className="bg-white rounded-2xl border-2 border-[#FFC107] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group ring-2 ring-[#FFC107]/20">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-amber-100 flex items-center justify-center">
-                <span className="absolute top-2.5 left-2.5 z-10 bg-[#FF9800] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  <span>BLOQUEADO</span>
-                </span>
-                <img
-                  src="/colorindo-silabas/covers/capa-silabas-cursivas.jpg"
-                  alt="Colorindo com as Sílabas Cursivas"
-                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-base sm:text-lg leading-snug">
-                    Colorindo com as Sílabas Cursivas
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1 font-medium">
-                    Material Exclusivo • 44 Páginas (Não Incluso)
-                  </p>
-                </div>
-
-                <div className="border-t border-amber-100 mt-3 pt-2 text-left">
-                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
-                    De <span className="line-through text-black font-bold">R$ 29,90</span> por
-                  </span>
-                  <span className="text-xl sm:text-2xl font-black text-[#FF9800] tracking-tight block leading-tight">
-                    R$ 10,00
-                  </span>
-                </div>
-
-                <a
-                  href="#oferta"
-                  className="mt-3 w-full bg-[#1E293B] hover:bg-[#0F172A] text-[#FFC107] font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Desbloquear Cursivas (R$ 10,00)</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Card 3: Português 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+            {/* Card 2: Português 1º Ano */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
+              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
+                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   3 ARQUIVOS
                 </span>
                 <img
@@ -730,37 +687,37 @@ function PaginaColorindoAsSilabas() {
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-base sm:text-lg leading-snug">
+                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
                     Português 1º Ano
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1 font-medium">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
                     Apostila Master + 2 Bônus • 136 Páginas em PDF
                   </p>
                 </div>
 
-                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
+                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
                     De <span className="line-through text-black font-bold">R$ 47,00</span> por
                   </span>
-                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
                   </span>
                 </div>
 
                 <a
                   href="#oferta"
-                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
-                  <Play className="w-4 h-4 fill-current" />
+                  <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Acessar</span>
                 </a>
               </div>
             </div>
 
-            {/* Card 4: Matemática 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+            {/* Card 3: Matemática 1º Ano */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
+              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
+                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   7 ARQUIVOS
                 </span>
                 <img
@@ -772,37 +729,37 @@ function PaginaColorindoAsSilabas() {
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-base sm:text-lg leading-snug">
+                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
                     Matemática 1º Ano
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1 font-medium">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
                     Kit Completo de Matemática • 276 Páginas em PDF
                   </p>
                 </div>
 
-                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
+                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
                     De <span className="line-through text-black font-bold">R$ 44,90</span> por
                   </span>
-                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
                   </span>
                 </div>
 
                 <a
                   href="#oferta"
-                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
-                  <Play className="w-4 h-4 fill-current" />
+                  <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Acessar</span>
                 </a>
               </div>
             </div>
 
-            {/* Card 5: Folclore 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2.5 left-2.5 z-10 bg-[#0D7377] text-white text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+            {/* Card 4: Folclore 1º Ano */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
+              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
+                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   1 ARQUIVOS
                 </span>
                 <img
@@ -814,30 +771,75 @@ function PaginaColorindoAsSilabas() {
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-base sm:text-lg leading-snug">
+                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
                     Folclore 1º Ano
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1 font-medium">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
                     Caderno Temático Folclore Brasileiro • 41 Páginas
                   </p>
                 </div>
 
-                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
+                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
                     De <span className="line-through text-black font-bold">R$ 39,90</span> por
                   </span>
-                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
                   </span>
                 </div>
 
                 <a
                   href="#oferta"
-                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
-                  <Play className="w-4 h-4 fill-current" />
+                  <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Acessar</span>
                 </a>
+              </div>
+            </div>
+
+            {/* Card 5: Colorindo com as Sílabas Cursivas (BLOQUEADO / ORDER BUMP - POR ÚLTIMO NA SEQUÊNCIA) */}
+            <div className="col-span-2 flex justify-center">
+              <div className="w-full max-w-[calc(50%-5px)] sm:max-w-[348px] bg-white rounded-2xl border-2 border-[#FFC107] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group ring-2 ring-[#FFC107]/20">
+                <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-amber-100 flex items-center justify-center">
+                  <span className="absolute top-2 left-2 z-10 bg-[#FF9800] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    <span>BLOQUEADO</span>
+                  </span>
+                  <img
+                    src="/colorindo-silabas/covers/capa-silabas-cursivas.jpg"
+                    alt="Colorindo com as Sílabas Cursivas"
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
+                      Colorindo com as Sílabas Cursivas
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
+                      Material Exclusivo • 44 Páginas (Não Incluso)
+                    </p>
+                  </div>
+
+                  <div className="border-t border-amber-100 mt-2 sm:mt-3 pt-2 text-left">
+                    <span className="text-[11px] sm:text-[13px] text-black font-bold block">
+                      De <span className="line-through text-black font-bold">R$ 29,90</span> por
+                    </span>
+                    <span className="text-lg sm:text-2xl font-black text-[#FF9800] tracking-tight block leading-tight">
+                      R$ 10,00
+                    </span>
+                  </div>
+
+                  <a
+                    href="#oferta"
+                    className="mt-2.5 sm:mt-3 w-full bg-[#1E293B] hover:bg-[#0F172A] text-[#FFC107] font-bold py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Desbloquear Cursivas (R$ 10,00)</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
