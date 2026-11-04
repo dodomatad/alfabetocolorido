@@ -1214,8 +1214,8 @@ function PaginaColorindoAsSilabas() {
                   <span>🔥</span>
                 </div>
 
-                {/* Lista de Recursos Principais */}
-                <ul className="space-y-3.5 text-xs sm:text-sm text-gray-700 font-medium">
+                {/* Lista de Recursos Principais Destacados */}
+                <ul className="space-y-3.5">
                   {[
                     "Tudo o que está no Kit Básico",
                     "Mais de 4.000 atividades",
@@ -1226,10 +1226,10 @@ function PaginaColorindoAsSilabas() {
                     "Garantia de 30 dias",
                   ].map((feat, idx) => (
                     <li key={idx} className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <Check className="w-3.5 h-3.5 stroke-[3.5]" />
                       </span>
-                      <span className={idx === 0 ? "font-bold text-gray-900" : ""}>{feat}</span>
+                      <span className="font-bold text-[#1E293B] text-sm sm:text-[15px] leading-snug">{feat}</span>
                     </li>
                   ))}
                 </ul>
