@@ -479,7 +479,7 @@ function PaginaColorindoAsSilabas() {
               className="w-12 h-12 flex-shrink-0 object-contain"
             />
             <p className="text-xs sm:text-sm font-medium text-[#444444] leading-snug">
-              Após a compra, você recebe acesso imediato aos arquivos em formato
+              Após a compra, você recebe acesso imediato aos materiais em formato
               PDF para baixar e imprimir quantas vezes quiser.
             </p>
           </div>
@@ -583,7 +583,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  3 ARQUIVOS
+                  3 MATERIAIS
                 </span>
                 <img
                   src="/colorindo-silabas/card_thumb_borboleta_v2.jpg"
@@ -601,7 +601,7 @@ function PaginaColorindoAsSilabas() {
                     Colorindo as Sílabas Simples
                   </h3>
                   <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
-                    Kit Principal Oficial • 3 Arquivos em PDF
+                    Kit Principal Oficial • 3 Materiais em PDF
                   </p>
                 </div>
 
@@ -628,7 +628,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  3 ARQUIVOS
+                  3 MATERIAIS
                 </span>
                 <img
                   src="/colorindo-silabas/covers/capa-portugues-1ano.jpg"
@@ -670,7 +670,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  7 ARQUIVOS
+                  7 MATERIAIS
                 </span>
                 <img
                   src="/colorindo-silabas/covers/capa-matematica-1ano.jpg"
@@ -712,7 +712,7 @@ function PaginaColorindoAsSilabas() {
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
               <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
                 <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  1 ARQUIVOS
+                  1 MATERIAL
                 </span>
                 <img
                   src="/colorindo-silabas/covers/capa-folclore-1ano.jpg"
@@ -806,7 +806,7 @@ function PaginaColorindoAsSilabas() {
               <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
             </a>
             <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
-              Liberado na hora via PIX ou Cartão • Arquivos em PDF prontos para imprimir
+              Liberado na hora via PIX ou Cartão • Materiais em PDF prontos para imprimir
             </p>
           </div>
         </div>
