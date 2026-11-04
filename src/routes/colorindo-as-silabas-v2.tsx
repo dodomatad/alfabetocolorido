@@ -171,7 +171,7 @@ const FAQS = [
   {
     pergunta: "Para qual idade é indicado?",
     resposta:
-      "É ideal para crianças de 5 a 8 anos (Educação Infantil e 1°/2° Ano do Ensino Fundamental) que estão aprendendo a juntar as famílias silábicas simples e desenvolvendo a leitura e escrita.",
+      "É ideal para crianças de 4 a 10 anos (Educação Infantil e Ensino Fundamental) que estão aprendendo a juntar as famílias silábicas simples e desenvolvendo a leitura e escrita.",
   },
 ];
 
@@ -503,7 +503,7 @@ function PaginaColorindoAsSilabas() {
       {/* Faixa Rosa: 1° Ano */}
       <section className="bg-[#FF6799] py-4 text-center">
         <h2 className="text-white text-2xl sm:text-4xl font-extrabold tracking-wide">
-          INDICADO PARA CRIANÇAS DE 5 A 8 ANOS (1° ANO)
+          INDICADO PARA CRIANÇAS DE 4 A 10 ANOS
         </h2>
       </section>
 
