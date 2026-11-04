@@ -1510,11 +1510,11 @@ function PaginaColorindoAsSilabas() {
                   R$ 39,90
                 </span>
                 <span className="text-xs font-black text-[#0D9488]">
-                  Economize R$ 11,90
+                  Economize R$ 18,00
                 </span>
               </div>
               <div className="text-4xl sm:text-5xl font-black text-[#FF4D80] my-1 tracking-tight">
-                R$ 28,00
+                R$ 21,90
               </div>
               <span className="text-[11px] text-gray-400 font-medium block">
                 pagamento único
@@ -1543,18 +1543,18 @@ function PaginaColorindoAsSilabas() {
               <span>Os 7 bônus do Premium inclusos</span>
             </div>
 
-            {/* Botão Principal: Sim, quero o Premium por R$ 28,00 */}
+            {/* Botão Principal: Sim, quero o Premium por R$ 21,90 */}
             <a
               href={checkoutUpsellFinal || "https://pay.cakto.com.br/pkgw8o8"}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => {
                 setModalUpsellAberto(false);
-                dispararInitiateCheckout(28.0, "Colorindo as Silabas - Kit Premium Especial");
+                dispararInitiateCheckout(21.90, "Colorindo as Silabas - Kit Premium Especial");
               }}
               className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[12.2px] px-[18.6px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all text-center text-[12.2px] sm:text-[13.8px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
-              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Sim, quero o Premium por R$ 28,00</span>
+              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Sim, quero o Premium por R$ 21,90</span>
               <ArrowRight className="w-[15.3px] h-[15.3px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
             </a>
 
