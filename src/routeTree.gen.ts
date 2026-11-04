@@ -13,6 +13,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as ColorindoAsSilabasV2RouteImport } from './routes/colorindo-as-silabas-v2'
+import { Route as DownloadCompletoRouteImport } from './routes/download-completo'
+import { Route as DownloadCursivasRouteImport } from './routes/download-cursivas'
 import { Route as DownloadProdutosRouteImport } from './routes/download-produtos'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
@@ -47,6 +49,16 @@ const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
 const ColorindoAsSilabasV2Route = ColorindoAsSilabasV2RouteImport.update({
   id: '/colorindo-as-silabas-v2',
   path: '/colorindo-as-silabas-v2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadCompletoRoute = DownloadCompletoRouteImport.update({
+  id: '/download-completo',
+  path: '/download-completo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadCursivasRoute = DownloadCursivasRouteImport.update({
+  id: '/download-cursivas',
+  path: '/download-cursivas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadProdutosRoute = DownloadProdutosRouteImport.update({
@@ -137,6 +149,8 @@ export interface FileRoutesByFullPath {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/colorindo-as-silabas-v2': typeof ColorindoAsSilabasV2Route
+  '/download-completo': typeof DownloadCompletoRoute
+  '/download-cursivas': typeof DownloadCursivasRoute
   '/download-produtos': typeof DownloadProdutosRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
@@ -157,6 +171,8 @@ export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/colorindo-as-silabas-v2': typeof ColorindoAsSilabasV2Route
+  '/download-completo': typeof DownloadCompletoRoute
+  '/download-cursivas': typeof DownloadCursivasRoute
   '/download-produtos': typeof DownloadProdutosRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
@@ -180,6 +196,8 @@ export interface FileRoutesById {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/colorindo-as-silabas-v2': typeof ColorindoAsSilabasV2Route
+  '/download-completo': typeof DownloadCompletoRoute
+  '/download-cursivas': typeof DownloadCursivasRoute
   '/download-produtos': typeof DownloadProdutosRoute
   '/entrar': typeof EntrarRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
@@ -204,6 +222,8 @@ export interface FileRouteTypes {
     | '/aceitar-convite'
     | '/aguardando-aprovacao'
     | '/colorindo-as-silabas-v2'
+    | '/download-completo'
+    | '/download-cursivas'
     | '/download-produtos'
     | '/entrar'
     | '/recuperar-senha'
@@ -224,6 +244,8 @@ export interface FileRouteTypes {
     | '/aceitar-convite'
     | '/aguardando-aprovacao'
     | '/colorindo-as-silabas-v2'
+    | '/download-completo'
+    | '/download-cursivas'
     | '/download-produtos'
     | '/entrar'
     | '/recuperar-senha'
@@ -246,6 +268,8 @@ export interface FileRouteTypes {
     | '/aceitar-convite'
     | '/aguardando-aprovacao'
     | '/colorindo-as-silabas-v2'
+    | '/download-completo'
+    | '/download-cursivas'
     | '/download-produtos'
     | '/entrar'
     | '/recuperar-senha'
@@ -269,6 +293,8 @@ export interface RootRouteChildren {
   AceitarConviteRoute: typeof AceitarConviteRoute
   AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   ColorindoAsSilabasV2Route: typeof ColorindoAsSilabasV2Route
+  DownloadCompletoRoute: typeof DownloadCompletoRoute
+  DownloadCursivasRoute: typeof DownloadCursivasRoute
   DownloadProdutosRoute: typeof DownloadProdutosRoute
   EntrarRoute: typeof EntrarRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
@@ -303,6 +329,20 @@ declare module '@tanstack/react-router' {
       path: '/colorindo-as-silabas-v2'
       fullPath: '/colorindo-as-silabas-v2'
       preLoaderRoute: typeof ColorindoAsSilabasV2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download-completo': {
+      id: '/download-completo'
+      path: '/download-completo'
+      fullPath: '/download-completo'
+      preLoaderRoute: typeof DownloadCompletoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download-cursivas': {
+      id: '/download-cursivas'
+      path: '/download-cursivas'
+      fullPath: '/download-cursivas'
+      preLoaderRoute: typeof DownloadCursivasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/download-produtos': {
@@ -458,6 +498,8 @@ const rootRouteChildren: RootRouteChildren = {
   AceitarConviteRoute: AceitarConviteRoute,
   AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   ColorindoAsSilabasV2Route: ColorindoAsSilabasV2Route,
+  DownloadCompletoRoute: DownloadCompletoRoute,
+  DownloadCursivasRoute: DownloadCursivasRoute,
   DownloadProdutosRoute: DownloadProdutosRoute,
   EntrarRoute: EntrarRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
