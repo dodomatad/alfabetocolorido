@@ -320,13 +320,10 @@ function PaginaColorindoAsSilabas() {
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
-      {/* Top Badge */}
-      <header className="bg-white py-3 px-4 flex flex-col items-center gap-3 border-b border-gray-100">
-        <div className="bg-[#93D36F] text-black font-semibold text-xs sm:text-sm md:text-base px-6 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-2">
-          <span>🔒</span>
-          <span>Compra 100% segura • Acesso Imediato em PDF</span>
-        </div>
-      </header>
+      {/* Top Announcement Bar */}
+      <div className="bg-[#F34E6A] text-white py-2 sm:py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center">
+        <span>Promoção válida por tempo limitado!</span>
+      </div>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-[#FFFFFF] to-[#FFF0E5] pt-6 pb-12 px-4 text-center">
