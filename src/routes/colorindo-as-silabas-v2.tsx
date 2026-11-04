@@ -586,7 +586,7 @@ function PaginaColorindoAsSilabas() {
                   3 ARQUIVOS
                 </span>
                 <img
-                  src="/colorindo-silabas/card_thumb_borboleta.png"
+                  src="/colorindo-silabas/card_thumb_borboleta_v2.jpg"
                   alt="Colorindo as Sílabas Simples"
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
