@@ -584,7 +584,7 @@ function PaginaColorindoAsSilabas() {
       <section className="py-12 px-4 bg-gray-50">
         <div className="max-w-[920px] mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase tracking-tight">
+            <h2 className="text-[23.5px] sm:text-[29.4px] md:text-[35.3px] font-extrabold text-[#222222] uppercase tracking-tight">
               Veja tudo o que você recebe hoje
             </h2>
             <div className="mt-3 inline-flex items-center justify-center gap-1 sm:gap-1.5 bg-blue-100 text-blue-800 font-bold text-[11px] sm:text-xs md:text-sm px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-wide sm:tracking-wider border border-blue-200 shadow-sm max-w-[95%] sm:max-w-none mx-auto">
