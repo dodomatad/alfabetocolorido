@@ -23,7 +23,7 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
       {
         name: "description",
         content:
-          "Transforme o aprendizado das SÍLABAS em uma brincadeira divertida que ajuda a criança a avançar na leitura e na escrita.",
+          "O método Colorindo as Sílabas que ajuda crianças de 4 a 10 anos a aprender a ler até 5x mais rápido, com apenas 10 minutinhos por dia. Sem brigas. Sem pressão, alinhada à BNCC.",
       },
       {
         property: "og:title",
@@ -336,10 +336,7 @@ function PaginaColorindoAsSilabas() {
           </h1>
 
           <p className="mt-4 text-lg sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
-            Transforme o aprendizado das{" "}
-            <span className="text-[#FF6799] font-extrabold">SÍLABAS</span> em uma
-            brincadeira divertida de pintura por código que ajuda a criança a
-            avançar na leitura e na escrita
+            O método <span className="text-[#FF6799] font-extrabold">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler até 5x mais rápido, com apenas 10 minutinhos por dia. Sem brigas. Sem pressão, alinhada à BNCC.
           </p>
 
           {/* Capa / Logo Principal */}
