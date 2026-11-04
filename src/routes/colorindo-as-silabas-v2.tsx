@@ -409,9 +409,28 @@ function PaginaColorindoAsSilabas() {
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
-      {/* Top Announcement Bar */}
-      <div className="bg-[#F34E6A] text-white py-2 sm:py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center">
-        <span>Promoção válida por tempo limitado!</span>
+      {/* Top Announcement Bar com Temporizador */}
+      <div className="bg-[#FF3B69] text-white py-2 sm:py-2.5 px-3 sm:px-4 text-center shadow-sm flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold uppercase tracking-wide">
+          <Clock className="w-4 h-4 animate-pulse stroke-[2.5]" />
+          Promoção válida por tempo limitado!
+        </span>
+        <span className="hidden sm:inline text-white/60">•</span>
+        <div className="inline-flex items-center gap-1.5 font-bold">
+          <span className="text-[11px] sm:text-xs uppercase tracking-wider text-white/95">
+            A PROMOÇÃO EXPIRA EM:
+          </span>
+          <div className="inline-flex items-center gap-1 font-mono font-black">
+            <span className="bg-white text-[#FF3B69] px-2 py-0.5 rounded-md text-xs sm:text-sm shadow-sm">
+              {String(minutos).padStart(2, "0")}
+            </span>
+            <span className="text-[10px] sm:text-[11px] text-white/90 font-sans font-bold">MIN</span>
+            <span className="bg-white text-[#FF3B69] px-2 py-0.5 rounded-md text-xs sm:text-sm shadow-sm ml-0.5">
+              {String(segundos).padStart(2, "0")}
+            </span>
+            <span className="text-[10px] sm:text-[11px] text-white/90 font-sans font-bold">SEG</span>
+          </div>
+        </div>
       </div>
 
       {/* Hero Section */}
