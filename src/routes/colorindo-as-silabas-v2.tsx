@@ -465,10 +465,10 @@ function PaginaColorindoAsSilabas() {
           <a
             href="#kit-premium"
             onClick={rolarParaKitPremium}
-            className="cta-pulse cta-shimmer group w-full max-w-[405px] sm:max-w-[428px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[16.2px] sm:text-[20.5px] py-[12.6px] sm:py-[17px] px-[23px] sm:px-[27px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
+            className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
             <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO O KIT COMPLETO AGORA</span>
-            <ArrowRight className="w-[19px] h-[19px] sm:w-[20.5px] sm:h-[20.5px] stroke-[3.5] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+            <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3.5] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
           </a>
 
           {/* Aviso de Entrega por E-mail */}
@@ -496,8 +496,8 @@ function PaginaColorindoAsSilabas() {
       </section>
 
       {/* Faixa Rosa: 1° Ano */}
-      <section className="bg-[#FF6799] py-[13.5px] sm:py-[14.4px] px-3 text-center">
-        <h2 className="text-white text-[20.5px] sm:text-[32.4px] font-extrabold tracking-wide">
+      <section className="bg-[#FF6799] py-[11.5px] sm:py-[12.2px] px-3 text-center">
+        <h2 className="text-white text-[17.4px] sm:text-[27.5px] font-extrabold tracking-wide">
           INDICADO PARA CRIANÇAS DE 4 A 10 ANOS
         </h2>
       </section>
@@ -800,10 +800,10 @@ function PaginaColorindoAsSilabas() {
             <a
               href="#kit-premium"
               onClick={rolarParaKitPremium}
-              className="cta-pulse cta-shimmer group w-full max-w-[405px] sm:max-w-[428px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[16.2px] sm:text-[20.5px] py-[12.6px] sm:py-[17px] px-[23px] sm:px-[27px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+              className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
               <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">SIM, QUERO GARANTIR O KIT COMPLETO!</span>
-              <ArrowRight className="w-[19px] h-[19px] sm:w-[20.5px] sm:h-[20.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+              <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
             </a>
             <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
               Liberado na hora via PIX ou Cartão • Arquivos em PDF prontos para imprimir
@@ -1035,10 +1035,10 @@ function PaginaColorindoAsSilabas() {
             <a
               href="#kit-premium"
               onClick={rolarParaKitPremium}
-              className="cta-pulse cta-shimmer group w-full max-w-[405px] sm:max-w-[428px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[16.2px] sm:text-[20.5px] py-[12.6px] sm:py-[17px] px-[23px] sm:px-[27px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+              className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
               <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO MEU ACESSO AGORA</span>
-              <ArrowRight className="w-[19px] h-[19px] sm:w-[20.5px] sm:h-[20.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+              <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
             </a>
           </div>
         </div>
@@ -1128,10 +1128,10 @@ function PaginaColorindoAsSilabas() {
                 <button
                   type="button"
                   onClick={() => setModalUpsellAberto(true)}
-                  className="group w-full bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] hover:brightness-105 active:translate-y-1 text-white font-black py-[14.4px] px-[21.6px] rounded-2xl shadow-[0_4.5px_0_0_#065F56,0_12px_24px_rgba(13,148,136,0.38)] transition-all text-center text-[14.4px] sm:text-[16.2px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/30"
+                  className="group w-full bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] hover:brightness-105 active:translate-y-1 text-white font-black py-[13px] px-[19.4px] rounded-2xl shadow-[0_4px_0_0_#065F56,0_11px_22px_rgba(13,148,136,0.35)] transition-all text-center text-[13px] sm:text-[14.6px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/30"
                 >
                   <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Quero o Kit Básico</span>
-                  <ArrowRight className="w-[18px] h-[18px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+                  <ArrowRight className="w-[16px] h-[16px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
                 </button>
 
                 <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
@@ -1249,10 +1249,10 @@ function PaginaColorindoAsSilabas() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => dispararInitiateCheckout(27.9, "Colorindo as Silabas - Kit Premium")}
-                  className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[15.3px] px-[20.7px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all text-center text-[15.3px] sm:text-[17.1px] flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+                  className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[13.8px] px-[18.6px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all text-center text-[13.8px] sm:text-[15.4px] flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
                 >
                   <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Quero o Kit Premium</span>
-                  <ArrowRight className="w-[20.5px] h-[20.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
+                  <ArrowRight className="w-[18.5px] h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
                 </a>
 
                 <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
@@ -1307,10 +1307,10 @@ function PaginaColorindoAsSilabas() {
           <a
             href={checkoutUrlFinal}
             onClick={dispararInitiateCheckout}
-            className="cta-pulse cta-shimmer group mt-2 inline-flex items-center justify-center gap-2.5 sm:gap-3 bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-['Montserrat',sans-serif] font-black text-[15.3px] sm:text-[17.1px] py-[13.5px] sm:py-[15.3px] px-[27px] sm:px-[34.2px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+            className="cta-pulse cta-shimmer group mt-2 inline-flex items-center justify-center gap-2.5 sm:gap-3 bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-['Montserrat',sans-serif] font-black text-[13.8px] sm:text-[15.4px] py-[12.2px] sm:py-[13.8px] px-[24.3px] sm:px-[30.8px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
             <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Quero acessar agora e imprimir hoje</span>
-            <ArrowRight className="w-[17px] h-[17px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
+            <ArrowRight className="w-[15.3px] h-[15.3px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
           </a>
         </div>
       </section>
@@ -1369,10 +1369,10 @@ function PaginaColorindoAsSilabas() {
           <a
             href="#kit-premium"
             onClick={rolarParaKitPremium}
-            className="cta-pulse cta-shimmer group w-full max-w-[405px] sm:max-w-[428px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[16.2px] sm:text-[20.5px] py-[12.6px] sm:py-[17px] px-[23px] sm:px-[27px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+            className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
             <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">GARANTIR MEU ACESSO SEM RISCO</span>
-            <ArrowRight className="w-[19px] h-[19px] sm:w-[20.5px] sm:h-[20.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+            <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
           </a>
           <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
             Acesso Imediato via PIX ou Cartão • Satisfação Garantida por 7 Dias
@@ -1552,10 +1552,10 @@ function PaginaColorindoAsSilabas() {
                 setModalUpsellAberto(false);
                 dispararInitiateCheckout(28.0, "Colorindo as Silabas - Kit Premium Especial");
               }}
-              className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[13.5px] px-[20.7px] rounded-2xl shadow-[0_6px_0_0_#0F6D14,0_16px_32px_rgba(31,184,38,0.5)] transition-all text-center text-[13.5px] sm:text-[15.3px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+              className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[12.2px] px-[18.6px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all text-center text-[12.2px] sm:text-[13.8px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
               <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Sim, quero o Premium por R$ 28,00</span>
-              <ArrowRight className="w-[17px] h-[17px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
+              <ArrowRight className="w-[15.3px] h-[15.3px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
             </a>
 
             {/* Link Secundário: Não, continuar com o Básico */}
