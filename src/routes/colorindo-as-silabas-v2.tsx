@@ -470,9 +470,10 @@ function PaginaColorindoAsSilabas() {
           <a
             href="#oferta"
             onClick={rolarParaOferta}
-            className="w-full max-w-[480px] bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3"
+            className="cta-pulse cta-shimmer group w-full max-w-[500px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
-            QUERO O KIT COMPLETO AGORA
+            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO O KIT COMPLETO AGORA</span>
+            <ArrowRight className="w-6 h-6 stroke-[3.5] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
           </a>
 
           {/* Aviso de Entrega por E-mail */}
@@ -801,9 +802,10 @@ function PaginaColorindoAsSilabas() {
           <div className="mt-8 flex flex-col items-center justify-center">
             <a
               href="#oferta"
-              className="w-full max-w-[480px] text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer inline-block uppercase"
+              className="cta-pulse cta-shimmer group w-full max-w-[500px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer flex items-center justify-center gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
-              SIM, QUERO GARANTIR O KIT COMPLETO!
+              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">SIM, QUERO GARANTIR O KIT COMPLETO!</span>
+              <ArrowRight className="w-6 h-6 stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
             </a>
             <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
               Liberado na hora via PIX ou Cartão • Arquivos em PDF prontos para imprimir
@@ -1225,10 +1227,10 @@ function PaginaColorindoAsSilabas() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => dispararInitiateCheckout(27.9, "Colorindo as Silabas - Kit Premium")}
-                  className="w-full bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-center text-lg flex items-center justify-center gap-2 cursor-pointer uppercase"
+                  className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-4.5 px-6 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all text-center text-lg sm:text-xl flex items-center justify-center gap-3 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
                 >
-                  <span>Quero o Kit Premium</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Quero o Kit Premium</span>
+                  <ArrowRight className="w-6 h-6 stroke-[3] group-hover:translate-x-1.5 transition-transform" />
                 </a>
 
                 <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
@@ -1283,9 +1285,10 @@ function PaginaColorindoAsSilabas() {
           <a
             href={checkoutUrlFinal}
             onClick={dispararInitiateCheckout}
-            className="mt-2 inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer uppercase"
+            className="cta-pulse cta-shimmer group mt-2 inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-['Montserrat',sans-serif] font-black text-lg sm:text-xl py-4 sm:py-4.5 px-8 sm:px-10 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
-            Quero acessar agora e imprimir hoje
+            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Quero acessar agora e imprimir hoje</span>
+            <ArrowRight className="w-5 h-5 stroke-[3] group-hover:translate-x-1.5 transition-transform" />
           </a>
         </div>
       </section>
@@ -1504,9 +1507,10 @@ function PaginaColorindoAsSilabas() {
             <a
               href={checkoutUrlFinal}
               onClick={dispararInitiateCheckout}
-              className="inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-10 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase"
+              className="cta-pulse cta-shimmer group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-lg sm:text-xl py-4.5 px-10 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
-              QUERO MEU ACESSO AGORA POR R$ 14,90
+              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO MEU ACESSO AGORA POR R$ 14,90</span>
+              <ArrowRight className="w-6 h-6 stroke-[3] group-hover:translate-x-1.5 transition-transform" />
             </a>
           </div>
         </div>
@@ -1694,10 +1698,10 @@ function PaginaColorindoAsSilabas() {
                 setModalUpsellAberto(false);
                 dispararInitiateCheckout(28.0, "Colorindo as Silabas - Kit Premium Especial");
               }}
-              className="w-full bg-[#00B069] hover:bg-[#009b5c] text-white font-extrabold py-3.5 sm:py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all text-center text-base sm:text-lg flex items-center justify-center gap-2 cursor-pointer uppercase"
+              className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-4 px-6 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all text-center text-base sm:text-lg flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
             >
-              <span>Sim, quero o Premium por R$ 28,00</span>
-              <ArrowRight className="w-5 h-5" />
+              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Sim, quero o Premium por R$ 28,00</span>
+              <ArrowRight className="w-5 h-5 stroke-[3] group-hover:translate-x-1.5 transition-transform" />
             </a>
 
             {/* Link Secundário: Não, continuar com o Básico */}
