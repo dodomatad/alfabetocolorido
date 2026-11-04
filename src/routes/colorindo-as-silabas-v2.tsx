@@ -1417,15 +1417,6 @@ function PaginaColorindoAsSilabas() {
       {/* Rodapé Próprio Blindado (Sem links para concorrentes) */}
       <footer className="bg-gray-900 text-gray-300 py-14 px-4 border-t border-gray-800 text-sm">
         <div className="max-w-5xl mx-auto">
-          <div className="flex justify-center mb-10">
-            <img
-              src="/colorindo-silabas/logo-colorindo-v2.jpg"
-              alt="Logo Colorindo as Sílabas V2"
-              className="h-24 w-auto object-contain rounded-xl shadow-md"
-              loading="lazy"
-            />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-center md:text-left mb-10 max-w-3xl mx-auto">
             {/* Formas de Pagamento & Garantia */}
             <div className="flex flex-col items-center md:items-start space-y-4">
