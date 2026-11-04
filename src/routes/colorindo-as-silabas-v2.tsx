@@ -610,8 +610,8 @@ function PaginaColorindoAsSilabas() {
                 </div>
 
                 <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[11px] text-gray-400 font-medium block">
-                    De <span className="line-through">R$ 39,90</span> por
+                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                    De <span className="line-through text-black font-bold">R$ 39,90</span> por
                   </span>
                   <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
@@ -653,8 +653,8 @@ function PaginaColorindoAsSilabas() {
                 </div>
 
                 <div className="border-t border-amber-100 mt-3 pt-2 text-left">
-                  <span className="text-[11px] text-gray-400 font-medium block">
-                    De <span className="line-through">R$ 29,90</span> por
+                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                    De <span className="line-through text-black font-bold">R$ 29,90</span> por
                   </span>
                   <span className="text-xl sm:text-2xl font-black text-[#FF9800] tracking-tight block leading-tight">
                     R$ 10,00
@@ -695,8 +695,8 @@ function PaginaColorindoAsSilabas() {
                 </div>
 
                 <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[11px] text-gray-400 font-medium block">
-                    De <span className="line-through">R$ 47,00</span> por
+                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                    De <span className="line-through text-black font-bold">R$ 47,00</span> por
                   </span>
                   <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
@@ -737,8 +737,8 @@ function PaginaColorindoAsSilabas() {
                 </div>
 
                 <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[11px] text-gray-400 font-medium block">
-                    De <span className="line-through">R$ 44,90</span> por
+                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                    De <span className="line-through text-black font-bold">R$ 44,90</span> por
                   </span>
                   <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
@@ -779,8 +779,8 @@ function PaginaColorindoAsSilabas() {
                 </div>
 
                 <div className="border-t border-gray-100 mt-3 pt-2 text-left">
-                  <span className="text-[11px] text-gray-400 font-medium block">
-                    De <span className="line-through">R$ 39,90</span> por
+                  <span className="text-[12.5px] sm:text-[13px] text-black font-bold block">
+                    De <span className="line-through text-black font-bold">R$ 39,90</span> por
                   </span>
                   <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
                     GRÁTIS
