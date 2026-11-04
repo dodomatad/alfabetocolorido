@@ -1163,7 +1163,7 @@ function PaginaColorindoAsSilabas() {
                   PLANO PREMIUM
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-black text-[#1E293B] mt-1">
-                  Kit Premium
+                  Kit Premium com + de 4.000 atividades
                 </h3>
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">
                   Tudo do Básico, com mais atividades e materiais aprofundados.
