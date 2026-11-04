@@ -301,14 +301,14 @@ function PaginaColorindoAsSilabas() {
     }
   };
 
-  const dispararInitiateCheckout = () => {
+  const dispararInitiateCheckout = (valor: number = 27.9, nome: string = "Colorindo as Silabas Simples 1 Ano - Kit Premium") => {
     if (typeof window !== "undefined" && (window as any).fbq && META_PIXEL_ID) {
       (window as any).fbq("track", "InitiateCheckout", {
-        content_name: "Colorindo as Silabas Simples 1 Ano - Kit Completo",
+        content_name: nome,
         content_ids: ["colorindo-silabas-v2"],
         content_type: "product",
         num_items: 1,
-        value: 14.9,
+        value: valor,
         currency: "BRL",
       });
     }
@@ -1023,8 +1023,10 @@ function PaginaColorindoAsSilabas() {
 
               <div className="mt-8">
                 <a
-                  href={checkoutUrlFinal}
-                  onClick={dispararInitiateCheckout}
+                  href={checkoutUrlFinal || "https://pay.cakto.com.br/mswtxij_1243353"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => dispararInitiateCheckout(27.9, "Colorindo as Silabas - Kit Premium")}
                   className="w-full bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-center text-lg flex items-center justify-center gap-2 cursor-pointer uppercase"
                 >
                   <span>Quero o Kit Premium</span>
@@ -1398,8 +1400,13 @@ function PaginaColorindoAsSilabas() {
 
             {/* Botão Principal: Sim, quero o Premium por R$ 28,00 */}
             <a
-              href={checkoutUrlFinal}
-              onClick={dispararInitiateCheckout}
+              href={checkoutUrlFinal || "https://pay.cakto.com.br/mswtxij_1243353"}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                setModalUpsellAberto(false);
+                dispararInitiateCheckout(28.0, "Colorindo as Silabas - Kit Premium Especial");
+              }}
               className="w-full bg-[#00B069] hover:bg-[#009b5c] text-white font-extrabold py-3.5 sm:py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all text-center text-base sm:text-lg flex items-center justify-center gap-2 cursor-pointer uppercase"
             >
               <span>Sim, quero o Premium por R$ 28,00</span>
