@@ -435,19 +435,21 @@ function PaginaColorindoAsSilabas() {
             <span>Promoção válida por tempo limitado!</span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-2.5 py-0.5 sm:py-1 rounded-full text-white font-medium text-[11px] sm:text-xs border border-white/20 shadow-inner">
-            <Clock className="w-3.5 h-3.5 stroke-[2.5] text-white" />
-            <span className="font-semibold text-white/95">Expira em:</span>
-            <div className="flex items-center gap-1 font-mono font-black text-white">
-              <span className="bg-white text-[#FF3B69] px-1.5 py-0.5 rounded text-xs font-bold shadow-sm leading-none">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white text-[#1E293B] px-3 sm:px-3.5 py-1 rounded-full shadow-md border border-white/90">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5] text-[#FF3B69] animate-pulse" />
+            <span className="font-extrabold text-[11px] sm:text-xs uppercase tracking-wider text-[#1E293B]">
+              Expira em:
+            </span>
+            <div className="flex items-center gap-1 font-mono font-black">
+              <span className="bg-[#FF3B69] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
                 {String(minutos).padStart(2, "0")}
               </span>
-              <span className="text-[10px] font-bold text-white/90 uppercase">min</span>
-              <span className="text-white/60">:</span>
-              <span className="bg-white text-[#FF3B69] px-1.5 py-0.5 rounded text-xs font-bold shadow-sm leading-none">
+              <span className="text-[10px] sm:text-[11px] font-black text-[#1E293B] uppercase">min</span>
+              <span className="text-[#FF3B69] font-black text-xs sm:text-sm leading-none">:</span>
+              <span className="bg-[#FF3B69] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
                 {String(segundos).padStart(2, "0")}
               </span>
-              <span className="text-[10px] font-bold text-white/90 uppercase">seg</span>
+              <span className="text-[10px] sm:text-[11px] font-black text-[#1E293B] uppercase">seg</span>
             </div>
           </div>
         </div>
