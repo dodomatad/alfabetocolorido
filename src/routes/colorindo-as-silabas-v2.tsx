@@ -440,12 +440,15 @@ function PaginaColorindoAsSilabas() {
       {/* Hero Section */}
       <section className="bg-white pt-8 sm:pt-10 pb-12 px-4 text-center">
         <div className="max-w-[760px] mx-auto flex flex-col items-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] tracking-tight leading-tight">
-            Seu filho lendo com fluência em poucas semanas
+          <h1 className="text-3xl min-[400px]:text-[34px] sm:text-5xl md:text-[54px] lg:text-[58px] font-black text-[#111827] tracking-tight leading-[1.15] max-w-3xl mx-auto">
+            Seu filho lendo com{" "}
+            <span className="text-[#FF2D6C] underline decoration-[#FFB3C6] decoration-[3px] sm:decoration-[5px] underline-offset-[6px] sm:underline-offset-[10px]">
+              fluência em poucas semanas
+            </span>
           </h1>
 
-          <p className="mt-4 text-[17px] sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
-            O método <span className="text-[#FF6799] font-extrabold">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler até 5x mais rápido, com apenas 10 minutinhos por dia. Sem brigas. Sem pressão, alinhada à BNCC.
+          <p className="mt-4 sm:mt-5 text-base sm:text-xl md:text-2xl text-gray-700 font-medium leading-relaxed max-w-2xl mx-auto">
+            O método <span className="text-[#FF4D80] font-black">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler <strong className="text-gray-900 font-bold">até 5x mais rápido</strong>, com <strong className="text-gray-900 font-bold">apenas 10 minutinhos por dia</strong>. Sem brigas. Sem pressão, alinhada à BNCC.
           </p>
 
           {/* Capa / Logo Principal */}
