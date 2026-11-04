@@ -496,8 +496,8 @@ function PaginaColorindoAsSilabas() {
       </section>
 
       {/* Faixa Rosa: 1° Ano */}
-      <section className="bg-[#FF6799] py-[15px] sm:py-4 px-3 text-center">
-        <h2 className="text-white text-[22.8px] sm:text-4xl font-extrabold tracking-wide">
+      <section className="bg-[#FF6799] py-[13.5px] sm:py-[14.4px] px-3 text-center">
+        <h2 className="text-white text-[20.5px] sm:text-[32.4px] font-extrabold tracking-wide">
           INDICADO PARA CRIANÇAS DE 4 A 10 ANOS
         </h2>
       </section>
