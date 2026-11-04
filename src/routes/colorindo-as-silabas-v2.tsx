@@ -332,7 +332,7 @@ function PaginaColorindoAsSilabas() {
       <section className="bg-gradient-to-b from-[#FFFFFF] to-[#FFF0E5] pt-6 pb-12 px-4 text-center">
         <div className="max-w-[760px] mx-auto flex flex-col items-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] tracking-tight leading-tight">
-            Colorindo as Sílabas Simples 1° Ano
+            Seu filho lendo com fluência em poucas semanas
           </h1>
 
           <p className="mt-4 text-lg sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
