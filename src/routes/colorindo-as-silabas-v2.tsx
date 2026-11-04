@@ -239,6 +239,8 @@ function PaginaColorindoAsSilabas() {
   const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
   const [passoAtivo, setPassoAtivo] = useState(0);
   const [passoPausado, setPassoPausado] = useState(false);
+  const [acessoAtivo, setAcessoAtivo] = useState(0);
+  const [acessoPausado, setAcessoPausado] = useState(false);
 
   // Auto-play do carrossel Como Funciona (troca a cada 4 segundos)
   useEffect(() => {
@@ -249,11 +251,27 @@ function PaginaColorindoAsSilabas() {
     return () => clearInterval(timer);
   }, [passoPausado]);
 
+  // Auto-play do carrossel Como é o Acesso (troca a cada 4 segundos)
+  useEffect(() => {
+    if (acessoPausado) return;
+    const timer = setInterval(() => {
+      setAcessoAtivo((prev) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [acessoPausado]);
+
   const proximoPasso = () => {
     setPassoAtivo((prev) => (prev + 1) % 3);
   };
   const passoAnterior = () => {
     setPassoAtivo((prev) => (prev - 1 + 3) % 3);
+  };
+
+  const proximoAcesso = () => {
+    setAcessoAtivo((prev) => (prev + 1) % 3);
+  };
+  const acessoAnterior = () => {
+    setAcessoAtivo((prev) => (prev - 1 + 3) % 3);
   };
 
   // Sempre força o início no topo da página ao entrar/carregar
@@ -1320,9 +1338,9 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Como é o Acesso (Passo a Passo) */}
+      {/* Como é o Acesso (Carrossel Interativo Automático) */}
       <section className="py-16 px-4 bg-gray-50 text-center">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
             Como é o Acesso
             <span className="block text-lg sm:text-xl font-normal text-gray-600 mt-1">
@@ -1330,66 +1348,155 @@ function PaginaColorindoAsSilabas() {
             </span>
           </h2>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Passo 1 */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
-              <img
-                src="/colorindo-silabas/order-2.png"
-                alt="Conclua sua compra"
-                className="w-20 h-20 object-contain mb-4"
-                loading="lazy"
-              />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                1. Conclua sua compra
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Após o pagamento via PIX ou Cartão, seu acesso é liberado
-                automaticamente na mesma hora.
-              </p>
+          {/* Abas Superiores de Navegação */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mt-8 mb-8 flex-wrap">
+            {[
+              { num: "1", label: "Conclua sua compra" },
+              { num: "2", label: "Área de Membros" },
+              { num: "3", label: "Baixe os PDFs" },
+            ].map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setAcessoAtivo(idx)}
+                className={`px-3.5 sm:px-5 py-2 rounded-full font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+                  acessoAtivo === idx
+                    ? "bg-[#0D9488] text-white shadow-md shadow-teal-500/25 scale-105"
+                    : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200 shadow-sm"
+                }`}
+              >
+                <span
+                  className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black ${
+                    acessoAtivo === idx
+                      ? "bg-white text-[#0D9488]"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {item.num}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Slider Container com Setas */}
+          <div
+            className="relative max-w-xl mx-auto"
+            onMouseEnter={() => setAcessoPausado(true)}
+            onMouseLeave={() => setAcessoPausado(false)}
+            onTouchStart={() => setAcessoPausado(true)}
+            onTouchEnd={() => setAcessoPausado(false)}
+          >
+            {/* Seta Anterior */}
+            <button
+              type="button"
+              onClick={acessoAnterior}
+              aria-label="Passo anterior do acesso"
+              className="absolute -left-3 sm:-left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Seta Próximo */}
+            <button
+              type="button"
+              onClick={proximoAcesso}
+              aria-label="Próximo passo do acesso"
+              className="absolute -right-3 sm:-right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Carrossel Track */}
+            <div className="overflow-hidden rounded-3xl shadow-xl border border-gray-200/80 bg-white">
+              <div
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${acessoAtivo * 100}%)` }}
+              >
+                {/* Slide 1 */}
+                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
+                  <img
+                    src="/colorindo-silabas/order-2.png"
+                    alt="Conclua sua compra"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
+                    loading="lazy"
+                  />
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
+                    1. Conclua sua compra
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
+                    Após o pagamento via PIX ou Cartão, seu acesso é liberado
+                    automaticamente na mesma hora.
+                  </p>
+                </div>
+
+                {/* Slide 2 */}
+                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
+                  <img
+                    src="/colorindo-silabas/member-card-2.png"
+                    alt="Acesse a Central de Downloads"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
+                    loading="lazy"
+                  />
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
+                    2. Acesse a Área de Membros
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
+                    Você é direcionado para a <b>Central de Downloads</b> e também
+                    recebe o link direto no seu e-mail.
+                  </p>
+                </div>
+
+                {/* Slide 3 */}
+                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
+                  <img
+                    src="/colorindo-silabas/download-2.png"
+                    alt="Baixe os arquivos"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
+                    loading="lazy"
+                  />
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
+                    3. Baixe os PDFs em A4
+                  </h3>
+                  <ul className="text-left space-y-2 text-xs sm:text-sm text-gray-700 font-medium mb-2 max-w-xs">
+                    <li className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>Atividades prontas em PDF</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>Produto 100% digital</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>Imprima quantas vezes quiser</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
-            {/* Passo 2 */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
-              <img
-                src="/colorindo-silabas/member-card-2.png"
-                alt="Acesse a Central de Downloads"
-                className="w-20 h-20 object-contain mb-4"
-                loading="lazy"
-              />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                2. Acesse a Área de Membros
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Você é direcionado para a <b>Central de Downloads</b> e também
-                recebe o link direto no seu e-mail.
-              </p>
-            </div>
-
-            {/* Passo 3 */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
-              <img
-                src="/colorindo-silabas/download-2.png"
-                alt="Baixe os arquivos"
-                className="w-20 h-20 object-contain mb-4"
-                loading="lazy"
-              />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                3. Baixe os PDFs em A4
-              </h3>
-              <ul className="text-left space-y-1.5 text-xs sm:text-sm text-gray-700 font-medium mb-3">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Atividades prontas em PDF</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Produto 100% digital</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Imprima quantas vezes quiser</span>
-                </li>
-              </ul>
+            {/* Dots Indicadores */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {[0, 1, 2].map((idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setAcessoAtivo(idx)}
+                  aria-label={`Ir para passo de acesso ${idx + 1}`}
+                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                    acessoAtivo === idx
+                      ? "w-8 bg-[#0D9488]"
+                      : "w-2.5 bg-gray-300 hover:bg-gray-400"
+                  }`}
+                />
+              ))}
             </div>
           </div>
 
