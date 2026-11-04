@@ -528,9 +528,19 @@ function PaginaColorindoAsSilabas() {
                     Kit Principal Oficial • 3 Arquivos em PDF
                   </p>
                 </div>
+
+                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
+                  <span className="text-[11px] text-gray-400 font-medium block">
+                    De <span className="line-through">R$ 39,90</span> por
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                    GRÁTIS
+                  </span>
+                </div>
+
                 <a
                   href="#oferta"
-                  className="mt-4 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>Acessar</span>
@@ -561,9 +571,19 @@ function PaginaColorindoAsSilabas() {
                     Material Exclusivo • 44 Páginas (Não Incluso)
                   </p>
                 </div>
+
+                <div className="border-t border-amber-100 mt-3 pt-2 text-left">
+                  <span className="text-[11px] text-gray-400 font-medium block">
+                    De <span className="line-through">R$ 29,90</span> por
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-[#FF9800] tracking-tight block leading-tight">
+                    R$ 10,00
+                  </span>
+                </div>
+
                 <a
                   href="#oferta"
-                  className="mt-4 w-full bg-[#1E293B] hover:bg-[#0F172A] text-[#FFC107] font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-3 w-full bg-[#1E293B] hover:bg-[#0F172A] text-[#FFC107] font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
                   <Lock className="w-3.5 h-3.5" />
                   <span>Desbloquear Cursivas (R$ 10,00)</span>
@@ -593,9 +613,19 @@ function PaginaColorindoAsSilabas() {
                     Apostila Master + 2 Bônus • 136 Páginas em PDF
                   </p>
                 </div>
+
+                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
+                  <span className="text-[11px] text-gray-400 font-medium block">
+                    De <span className="line-through">R$ 47,00</span> por
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                    GRÁTIS
+                  </span>
+                </div>
+
                 <a
                   href="#oferta"
-                  className="mt-4 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>Acessar</span>
@@ -625,9 +655,19 @@ function PaginaColorindoAsSilabas() {
                     Kit Completo de Matemática • 276 Páginas em PDF
                   </p>
                 </div>
+
+                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
+                  <span className="text-[11px] text-gray-400 font-medium block">
+                    De <span className="line-through">R$ 44,90</span> por
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                    GRÁTIS
+                  </span>
+                </div>
+
                 <a
                   href="#oferta"
-                  className="mt-4 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>Acessar</span>
@@ -657,9 +697,19 @@ function PaginaColorindoAsSilabas() {
                     Caderno Temático Folclore Brasileiro • 41 Páginas
                   </p>
                 </div>
+
+                <div className="border-t border-gray-100 mt-3 pt-2 text-left">
+                  <span className="text-[11px] text-gray-400 font-medium block">
+                    De <span className="line-through">R$ 39,90</span> por
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
+                    GRÁTIS
+                  </span>
+                </div>
+
                 <a
                   href="#oferta"
-                  className="mt-4 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>Acessar</span>
