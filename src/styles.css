@@ -196,13 +196,13 @@
 .animate-scroll-left {
   display: flex;
   width: max-content;
-  animation: scroll-left 30s linear infinite;
+  animation: scroll-left 50s linear infinite;
 }
 
 .animate-scroll-right {
   display: flex;
   width: max-content;
-  animation: scroll-right 30s linear infinite;
+  animation: scroll-right 50s linear infinite;
 }
 
 /* Efeito Chamativo para Botões de Checkout / Conversão (CRO) */
