@@ -242,19 +242,8 @@ function PaginaColorindoAsSilabas() {
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
   const [checkoutUpsellFinal, setCheckoutUpsellFinal] = useState(CHECKOUT_UPSELL_URL);
   const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
-  const [passoAtivo, setPassoAtivo] = useState(0);
-  const [passoPausado, setPassoPausado] = useState(false);
   const [acessoAtivo, setAcessoAtivo] = useState(0);
   const [acessoPausado, setAcessoPausado] = useState(false);
-
-  // Auto-play do carrossel Como Funciona (troca a cada 4 segundos)
-  useEffect(() => {
-    if (passoPausado) return;
-    const timer = setInterval(() => {
-      setPassoAtivo((prev) => (prev + 1) % 3);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [passoPausado]);
 
   // Auto-play do carrossel Como é o Acesso (troca a cada 4 segundos)
   useEffect(() => {
@@ -264,13 +253,6 @@ function PaginaColorindoAsSilabas() {
     }, 4000);
     return () => clearInterval(timer);
   }, [acessoPausado]);
-
-  const proximoPasso = () => {
-    setPassoAtivo((prev) => (prev + 1) % 3);
-  };
-  const passoAnterior = () => {
-    setPassoAtivo((prev) => (prev - 1 + 3) % 3);
-  };
 
   const proximoAcesso = () => {
     setAcessoAtivo((prev) => (prev + 1) % 3);
@@ -884,60 +866,60 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Como Funciona? - Carrossel Interativo Automático */}
-      <section className="py-14 sm:py-16 px-4 bg-[#FFF8F4]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase mb-4">
-            COMO FUNCIONA?
+      {/* Como é o Acesso (Carrossel Interativo Automático) */}
+      <section className="py-14 sm:py-16 px-4 bg-[#FFF8F4] text-center">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
+            Como é o Acesso
+            <span className="block text-lg sm:text-xl font-normal text-gray-600 mt-1">
+              (Simples, Rápido e Automático)
+            </span>
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-lg mx-auto">
-            Aprender a ler é simples e divertido com o passo a passo do método:
-          </p>
 
-          {/* Abas dos Passos (Pills de Navegação Rápida) */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8 flex-wrap">
+          {/* Abas Superiores de Navegação */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mt-8 mb-8 flex-wrap">
             {[
-              { num: "1", label: "Liberação Imediata" },
-              { num: "2", label: "Baixe e Imprima" },
-              { num: "3", label: "Diversão e Leitura" },
-            ].map((p, idx) => (
+              { num: "1", label: "Conclua sua compra" },
+              { num: "2", label: "Área de Membros" },
+              { num: "3", label: "Baixe os PDFs" },
+            ].map((item, idx) => (
               <button
                 key={idx}
                 type="button"
-                onClick={() => setPassoAtivo(idx)}
+                onClick={() => setAcessoAtivo(idx)}
                 className={`px-3.5 sm:px-5 py-2 rounded-full font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
-                  passoAtivo === idx
+                  acessoAtivo === idx
                     ? "bg-[#0D9488] text-white shadow-md shadow-teal-500/25 scale-105"
                     : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200 shadow-sm"
                 }`}
               >
                 <span
                   className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black ${
-                    passoAtivo === idx
+                    acessoAtivo === idx
                       ? "bg-white text-[#0D9488]"
                       : "bg-gray-100 text-gray-700"
                   }`}
                 >
-                  {p.num}
+                  {item.num}
                 </span>
-                <span>{p.label}</span>
+                <span>{item.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Slider Container com Setas de Navegação */}
+          {/* Slider Container com Setas */}
           <div
             className="relative max-w-xl mx-auto"
-            onMouseEnter={() => setPassoPausado(true)}
-            onMouseLeave={() => setPassoPausado(false)}
-            onTouchStart={() => setPassoPausado(true)}
-            onTouchEnd={() => setPassoPausado(false)}
+            onMouseEnter={() => setAcessoPausado(true)}
+            onMouseLeave={() => setAcessoPausado(false)}
+            onTouchStart={() => setAcessoPausado(true)}
+            onTouchEnd={() => setAcessoPausado(false)}
           >
             {/* Seta Anterior */}
             <button
               type="button"
-              onClick={passoAnterior}
-              aria-label="Passo anterior"
+              onClick={acessoAnterior}
+              aria-label="Passo anterior do acesso"
               className="absolute -left-3 sm:-left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -946,91 +928,98 @@ function PaginaColorindoAsSilabas() {
             {/* Seta Próximo */}
             <button
               type="button"
-              onClick={proximoPasso}
-              aria-label="Próximo passo"
+              onClick={proximoAcesso}
+              aria-label="Próximo passo do acesso"
               className="absolute -right-3 sm:-right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
 
             {/* Carrossel Track */}
-            <div className="overflow-hidden rounded-3xl shadow-xl border border-orange-100/60 bg-white">
+            <div className="overflow-hidden rounded-3xl shadow-xl border border-gray-200/80 bg-white">
               <div
                 className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${passoAtivo * 100}%)` }}
+                style={{ transform: `translateX(-${acessoAtivo * 100}%)` }}
               >
                 {/* Slide 1 */}
                 <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <div className="w-32 h-32 sm:w-36 sm:h-36 mb-6 flex items-center justify-center">
-                    <img
-                      src="/colorindo-silabas/3-3-1.png"
-                      alt="Acesso imediato"
-                      className="w-full h-full object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#222222] mb-3">
-                    1. Liberação Imediata
+                  <img
+                    src="/colorindo-silabas/order-2.png"
+                    alt="Conclua sua compra"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
+                    loading="lazy"
+                  />
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
+                    1. Conclua sua compra
                   </h3>
                   <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Conteúdo 100% digital em <b>formato PDF</b>. Assim que confirmar o
-                    pagamento, seu acesso é liberado na tela e enviado ao seu{" "}
-                    <b>e-mail</b>.
+                    Após o pagamento via PIX ou Cartão, seu acesso é liberado
+                    automaticamente na mesma hora.
                   </p>
                 </div>
 
                 {/* Slide 2 */}
                 <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <div className="w-32 h-32 sm:w-36 sm:h-36 mb-6 flex items-center justify-center">
-                    <img
-                      src="/colorindo-silabas/4-2-1.png"
-                      alt="Baixe as atividades"
-                      className="w-full h-full object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#222222] mb-3">
-                    2. Baixe e Imprima em A4
+                  <img
+                    src="/colorindo-silabas/member-card-2.png"
+                    alt="Acesse a Área de Membros"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
+                    loading="lazy"
+                  />
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
+                    2. Acesse a Área de Membros
                   </h3>
                   <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Os arquivos são separados por <b>cadernos</b> para facilitar a
-                    impressão. Baixe no seu <b>celular ou computador</b> e imprima
-                    quantas vezes desejar.
+                    Você é direcionado para a <b>Central de Downloads</b> e também
+                    recebe o link direto no seu e-mail.
                   </p>
                 </div>
 
                 {/* Slide 3 */}
                 <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <div className="w-32 h-32 sm:w-36 sm:h-36 mb-6 flex items-center justify-center">
-                    <img
-                      src="/colorindo-silabas/5-1-1-1.png"
-                      alt="Realizar as atividades"
-                      className="w-full h-full object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#222222] mb-3">
-                    3. Diversão e Leitura
+                  <img
+                    src="/colorindo-silabas/download-2.png"
+                    alt="Baixe os arquivos"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
+                    loading="lazy"
+                  />
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
+                    3. Baixe os PDFs em A4
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Com lápis de cor na mão, a criança aprende as{" "}
-                    <b>famílias silábicas</b> pintando por código em apenas 15
-                    minutinhos por dia!
-                  </p>
+                  <ul className="text-left space-y-2 text-xs sm:text-sm text-gray-700 font-medium mb-2 max-w-xs">
+                    <li className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>Atividades prontas em PDF</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>Produto 100% digital</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>Imprima quantas vezes quiser</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
 
-            {/* Dots Indicadores Inferiores */}
+            {/* Dots Indicadores */}
             <div className="flex items-center justify-center gap-2 mt-6">
               {[0, 1, 2].map((idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setPassoAtivo(idx)}
-                  aria-label={`Ir para passo ${idx + 1}`}
+                  onClick={() => setAcessoAtivo(idx)}
+                  aria-label={`Ir para passo de acesso ${idx + 1}`}
                   className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                    passoAtivo === idx
+                    acessoAtivo === idx
                       ? "w-8 bg-[#0D9488]"
                       : "w-2.5 bg-gray-300 hover:bg-gray-400"
                   }`}
@@ -1038,9 +1027,19 @@ function PaginaColorindoAsSilabas() {
               ))}
             </div>
           </div>
+
+          <div className="mt-8 flex flex-col items-center justify-center">
+            <a
+              href="#kit-premium"
+              onClick={rolarParaKitPremium}
+              className="cta-pulse cta-shimmer group w-full max-w-[475px] sm:max-w-[500px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[19px] sm:text-2xl py-[15px] sm:py-5 px-7 sm:px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+            >
+              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO MEU ACESSO AGORA</span>
+              <ArrowRight className="w-[22px] h-[22px] sm:w-6 sm:h-6 stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+            </a>
+          </div>
         </div>
       </section>
-
       {/* SEÇÃO DE PLANOS - COMPARATIVO 2 PLANOS (KIT BÁSICO VS KIT PREMIUM) */}
       <section id="oferta" className="py-16 px-4 bg-[#FFF8F3] scroll-mt-6">
         <div className="max-w-4xl mx-auto text-center">
@@ -1357,181 +1356,22 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Como é o Acesso (Carrossel Interativo Automático) */}
-      <section className="py-16 px-4 bg-gray-50 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
-            Como é o Acesso
-            <span className="block text-lg sm:text-xl font-normal text-gray-600 mt-1">
-              (Simples, Rápido e Automático)
-            </span>
-          </h2>
-
-          {/* Abas Superiores de Navegação */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mt-8 mb-8 flex-wrap">
-            {[
-              { num: "1", label: "Conclua sua compra" },
-              { num: "2", label: "Área de Membros" },
-              { num: "3", label: "Baixe os PDFs" },
-            ].map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setAcessoAtivo(idx)}
-                className={`px-3.5 sm:px-5 py-2 rounded-full font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
-                  acessoAtivo === idx
-                    ? "bg-[#0D9488] text-white shadow-md shadow-teal-500/25 scale-105"
-                    : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200 shadow-sm"
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black ${
-                    acessoAtivo === idx
-                      ? "bg-white text-[#0D9488]"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {item.num}
-                </span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Slider Container com Setas */}
-          <div
-            className="relative max-w-xl mx-auto"
-            onMouseEnter={() => setAcessoPausado(true)}
-            onMouseLeave={() => setAcessoPausado(false)}
-            onTouchStart={() => setAcessoPausado(true)}
-            onTouchEnd={() => setAcessoPausado(false)}
+      {/* Chamada Final pós-Garantia */}
+      <section className="py-12 px-4 bg-gray-50 text-center">
+        <div className="max-w-4xl mx-auto flex flex-col items-center justify-center">
+          <a
+            href="#kit-premium"
+            onClick={rolarParaKitPremium}
+            className="cta-pulse cta-shimmer group w-full max-w-[475px] sm:max-w-[500px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[19px] sm:text-2xl py-[15px] sm:py-5 px-7 sm:px-8 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
           >
-            {/* Seta Anterior */}
-            <button
-              type="button"
-              onClick={acessoAnterior}
-              aria-label="Passo anterior do acesso"
-              className="absolute -left-3 sm:-left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-
-            {/* Seta Próximo */}
-            <button
-              type="button"
-              onClick={proximoAcesso}
-              aria-label="Próximo passo do acesso"
-              className="absolute -right-3 sm:-right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-
-            {/* Carrossel Track */}
-            <div className="overflow-hidden rounded-3xl shadow-xl border border-gray-200/80 bg-white">
-              <div
-                className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${acessoAtivo * 100}%)` }}
-              >
-                {/* Slide 1 */}
-                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <img
-                    src="/colorindo-silabas/order-2.png"
-                    alt="Conclua sua compra"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
-                    loading="lazy"
-                  />
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
-                    1. Conclua sua compra
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Após o pagamento via PIX ou Cartão, seu acesso é liberado
-                    automaticamente na mesma hora.
-                  </p>
-                </div>
-
-                {/* Slide 2 */}
-                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <img
-                    src="/colorindo-silabas/member-card-2.png"
-                    alt="Acesse a Central de Downloads"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
-                    loading="lazy"
-                  />
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
-                    2. Acesse a Área de Membros
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Você é direcionado para a <b>Central de Downloads</b> e também
-                    recebe o link direto no seu e-mail.
-                  </p>
-                </div>
-
-                {/* Slide 3 */}
-                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <img
-                    src="/colorindo-silabas/download-2.png"
-                    alt="Baixe os arquivos"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
-                    loading="lazy"
-                  />
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
-                    3. Baixe os PDFs em A4
-                  </h3>
-                  <ul className="text-left space-y-2 text-xs sm:text-sm text-gray-700 font-medium mb-2 max-w-xs">
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>Atividades prontas em PDF</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>Produto 100% digital</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>Imprima quantas vezes quiser</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Dots Indicadores */}
-            <div className="flex items-center justify-center gap-2 mt-6">
-              {[0, 1, 2].map((idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setAcessoAtivo(idx)}
-                  aria-label={`Ir para passo de acesso ${idx + 1}`}
-                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                    acessoAtivo === idx
-                      ? "w-8 bg-[#0D9488]"
-                      : "w-2.5 bg-gray-300 hover:bg-gray-400"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <a
-              href={checkoutUrlFinal}
-              onClick={dispararInitiateCheckout}
-              className="cta-pulse cta-shimmer group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-lg sm:text-xl py-4.5 px-10 rounded-2xl shadow-[0_7px_0_0_#0F6D14,0_18px_36px_rgba(31,184,38,0.55)] transition-all cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
-            >
-              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO MEU ACESSO AGORA POR R$ 14,90</span>
-              <ArrowRight className="w-6 h-6 stroke-[3] group-hover:translate-x-1.5 transition-transform" />
-            </a>
-          </div>
+            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">GARANTIR MEU ACESSO SEM RISCO</span>
+            <ArrowRight className="w-[22px] h-[22px] sm:w-6 sm:h-6 stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+          </a>
+          <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
+            Acesso Imediato via PIX ou Cartão • Satisfação Garantida por 7 Dias
+          </p>
         </div>
       </section>
-
       {/* Perguntas Frequentes (FAQ) */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-3xl mx-auto">
