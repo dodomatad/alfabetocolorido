@@ -352,7 +352,44 @@ function PaginaColorindoAsSilabas() {
             />
           </div>
 
-          {/* Botão de Ação Principal -> Rola para a Oferta ou vai pro Checkout */}
+                    {/* Card Temporizador Cabeçalho */}
+          <div className="bg-white rounded-3xl border-2 border-[#FF3B69] p-4 sm:p-5 text-center max-w-[360px] sm:max-w-[400px] w-full mx-auto shadow-md my-6">
+            <div className="flex items-center justify-center gap-1.5 text-[#FF3B69] font-black text-xs sm:text-sm uppercase tracking-wider mb-3">
+              <Clock className="w-4 h-4 stroke-[2.5]" />
+              <span>A PROMOÇÃO EXPIRA EM</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 my-2">
+              {/* Bloco Minutos */}
+              <div className="bg-[#FF3B69] text-white rounded-2xl p-2.5 sm:p-3 min-w-[76px] sm:min-w-[84px] shadow-sm flex flex-col items-center justify-center">
+                <span className="text-3xl sm:text-4xl font-black font-mono leading-none">
+                  {String(minutos).padStart(2, "0")}
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider mt-1.5 opacity-90">
+                  MIN
+                </span>
+              </div>
+
+              {/* Bloco Segundos */}
+              <div className="bg-[#FF3B69] text-white rounded-2xl p-2.5 sm:p-3 min-w-[76px] sm:min-w-[84px] shadow-sm flex flex-col items-center justify-center">
+                <span className="text-3xl sm:text-4xl font-black font-mono leading-none">
+                  {String(segundos).padStart(2, "0")}
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider mt-1.5 opacity-90">
+                  SEG
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm font-bold text-gray-800 mt-3">
+              3.000+ atividades + bônus · Acesso imediato
+            </p>
+            <p className="text-[11px] sm:text-xs font-bold text-[#0D9488] mt-1">
+              Material enviado no WhatsApp e no e-mail
+            </p>
+          </div>
+
+{/* Botão de Ação Principal -> Rola para a Oferta ou vai pro Checkout */}
           <a
             href="#oferta"
             onClick={rolarParaOferta}
