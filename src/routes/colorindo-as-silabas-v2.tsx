@@ -1060,91 +1060,7 @@ function PaginaColorindoAsSilabas() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto text-left">
-            {/* PLANO 1: KIT BÁSICO */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 flex flex-col justify-between shadow-sm relative pt-10 hover:shadow-md transition-shadow">
-              {/* Badge Topo */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#D1FAE5] text-[#059669] text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider border border-[#A7F3D0] whitespace-nowrap">
-                KIT BÁSICO
-              </div>
-
-              <div>
-                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest block">
-                  PARA COMEÇAR
-                </span>
-                <h3 className="text-2xl sm:text-3xl font-black text-[#1E293B] mt-1">
-                  Kit Básico com + de 2.000 atividades
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                  Atividades essenciais para imprimir e usar na sua rotina.
-                </p>
-
-                {/* Bloco de Preço */}
-                <div className="mt-6 text-center">
-                  <span className="line-through text-gray-400 text-xs sm:text-sm font-semibold block">
-                    De R$ 27,90
-                  </span>
-                  <div className="flex items-baseline justify-center gap-1 my-1">
-                    <span className="text-3xl sm:text-4xl font-black text-[#0D9488]">
-                      R$ 14,90
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-400 font-semibold block">
-                    pagamento único
-                  </span>
-                  <div className="mt-2">
-                    <span className="inline-block bg-[#E6FFFA] text-[#0D9488] text-xs font-extrabold px-3 py-1 rounded-full">
-                      Economize R$ 13,00
-                    </span>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 my-6"></div>
-
-                {/* Lista de Recursos Destacada */}
-                <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm">
-                  <ul className="space-y-3.5">
-                    {[
-                      "Mais de 2.000 atividades",
-                      "6 bônus exclusivos",
-                      "Da educação infantil ao 5º ano",
-                      "PDF pronto para imprimir",
-                      "Acesso vitalício",
-                      "Garantia de 7 dias",
-                    ].map((feat, idx) => (
-                      <li key={idx} className="flex items-center gap-2.5">
-                        <span className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <Check className="w-3.5 h-3.5 stroke-[3.5]" />
-                        </span>
-                        <span className="font-bold text-[#1E293B] text-sm sm:text-[15px] leading-snug">
-                          {feat}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <button
-                  type="button"
-                  onClick={() => setModalUpsellAberto(true)}
-                  className="group w-full bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] hover:brightness-105 active:translate-y-1 text-white font-black py-[13px] px-[19.4px] rounded-2xl shadow-[0_4px_0_0_#065F56,0_11px_22px_rgba(13,148,136,0.35)] transition-all text-center text-[13px] sm:text-[14.6px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/30"
-                >
-                  <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Quero o Kit Básico</span>
-                  <ArrowRight className="w-[16px] h-[16px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
-                </button>
-
-                <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-gray-400" /> Compra segura
-                  </span>
-                  <span>•</span>
-                  <span>Garantia de 7 dias</span>
-                </div>
-              </div>
-            </div>
-
-            {/* PLANO 2: KIT PREMIUM (DESTAQUE / MAIS VENDIDO) */}
+            {/* PLANO 1: KIT PREMIUM (DESTAQUE / MAIS VENDIDO) */}
             <div
               id="kit-premium"
               className="bg-white rounded-3xl border-2 border-[#FF4D80] p-6 sm:p-8 flex flex-col justify-between shadow-xl relative pt-10 ring-4 ring-[#FF4D80]/10 hover:shadow-2xl transition-shadow scroll-mt-20 sm:scroll-mt-24"
@@ -1261,6 +1177,90 @@ function PaginaColorindoAsSilabas() {
                   </span>
                   <span>•</span>
                   <span>Garantia de 30 dias</span>
+                </div>
+              </div>
+            </div>
+
+            {/* PLANO 2: KIT BÁSICO */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 flex flex-col justify-between shadow-sm relative pt-10 hover:shadow-md transition-shadow">
+              {/* Badge Topo */}
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#D1FAE5] text-[#059669] text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider border border-[#A7F3D0] whitespace-nowrap">
+                KIT BÁSICO
+              </div>
+
+              <div>
+                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest block">
+                  PARA COMEÇAR
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-[#1E293B] mt-1">
+                  Kit Básico com + de 2.000 atividades
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  Atividades essenciais para imprimir e usar na sua rotina.
+                </p>
+
+                {/* Bloco de Preço */}
+                <div className="mt-6 text-center">
+                  <span className="line-through text-gray-400 text-xs sm:text-sm font-semibold block">
+                    De R$ 27,90
+                  </span>
+                  <div className="flex items-baseline justify-center gap-1 my-1">
+                    <span className="text-3xl sm:text-4xl font-black text-[#0D9488]">
+                      R$ 14,90
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-400 font-semibold block">
+                    pagamento único
+                  </span>
+                  <div className="mt-2">
+                    <span className="inline-block bg-[#E6FFFA] text-[#0D9488] text-xs font-extrabold px-3 py-1 rounded-full">
+                      Economize R$ 13,00
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 my-6"></div>
+
+                {/* Lista de Recursos Destacada */}
+                <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm">
+                  <ul className="space-y-3.5">
+                    {[
+                      "Mais de 2.000 atividades",
+                      "6 bônus exclusivos",
+                      "Da educação infantil ao 5º ano",
+                      "PDF pronto para imprimir",
+                      "Acesso vitalício",
+                      "Garantia de 7 dias",
+                    ].map((feat, idx) => (
+                      <li key={idx} className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Check className="w-3.5 h-3.5 stroke-[3.5]" />
+                        </span>
+                        <span className="font-bold text-[#1E293B] text-sm sm:text-[15px] leading-snug">
+                          {feat}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  type="button"
+                  onClick={() => setModalUpsellAberto(true)}
+                  className="group w-full bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] hover:brightness-105 active:translate-y-1 text-white font-black py-[13px] px-[19.4px] rounded-2xl shadow-[0_4px_0_0_#065F56,0_11px_22px_rgba(13,148,136,0.35)] transition-all text-center text-[13px] sm:text-[14.6px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/30"
+                >
+                  <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Quero o Kit Básico</span>
+                  <ArrowRight className="w-[16px] h-[16px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+                </button>
+
+                <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-gray-400" /> Compra segura
+                  </span>
+                  <span>•</span>
+                  <span>Garantia de 7 dias</span>
                 </div>
               </div>
             </div>
