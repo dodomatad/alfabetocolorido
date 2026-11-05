@@ -4,17 +4,9 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   Sparkles,
   ShieldCheck,
-  Lock,
-  Play,
-  ArrowRight,
-  Gift,
-  Flame,
-  X,
 } from "lucide-react";
 
 import { useFavicon } from "@/hooks/use-favicon";
@@ -26,7 +18,7 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
       {
         name: "description",
         content:
-          "O método Colorindo as Sílabas que ajuda crianças de 4 a 10 anos a aprender a ler até 5x mais rápido, com apenas 10 minutinhos por dia. Sem brigas. Sem pressão, alinhada à BNCC.",
+          "Transforme o aprendizado das SÍLABAS em uma brincadeira divertida que ajuda a criança a avançar na leitura e na escrita.",
       },
       {
         property: "og:title",
@@ -82,12 +74,6 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&family=Poppins:wght@400;600;700&display=swap",
       },
     ],
-    scripts: [
-      {
-        children:
-          "if('scrollRestoration' in history){history.scrollRestoration='manual';}window.scrollTo(0,0);",
-      },
-    ],
   }),
   component: PaginaColorindoAsSilabas,
 });
@@ -100,10 +86,6 @@ export const Route = createFileRoute("/colorindo-as-silabas-v2")({
 const CHECKOUT_BASE_URL =
   (import.meta as any).env?.VITE_CHECKOUT_URL ||
   "https://pay.cakto.com.br/mswtxij_1243353";
-
-const CHECKOUT_UPSELL_URL =
-  (import.meta as any).env?.VITE_CHECKOUT_UPSELL_URL ||
-  "https://pay.cakto.com.br/pkgw8o8";
 
 const META_PIXEL_ID =
   (import.meta as any).env?.VITE_META_PIXEL_ID || "1440658961371185";
@@ -154,9 +136,6 @@ const DEPOIMENTOS = [
   "/colorindo-silabas/Imagem-sem-titulo-1.png",
 ];
 
-const DEPOIMENTOS_LINHA_1 = DEPOIMENTOS.slice(0, 9);
-const DEPOIMENTOS_LINHA_2 = DEPOIMENTOS.slice(9, 18);
-
 const FAQS = [
   {
     pergunta: "Quais as Formas de Pagamento?",
@@ -176,7 +155,7 @@ const FAQS = [
   {
     pergunta: "Para qual idade é indicado?",
     resposta:
-      "É ideal para crianças de 4 a 10 anos (Educação Infantil e Ensino Fundamental) que estão aprendendo a juntar as famílias silábicas simples e desenvolvendo a leitura e escrita.",
+      "É ideal para crianças de 5 a 8 anos (Educação Infantil e 1°/2° Ano do Ensino Fundamental) que estão aprendendo a juntar as famílias silábicas simples e desenvolvendo a leitura e escrita.",
   },
 ];
 
@@ -241,69 +220,12 @@ function PaginaColorindoAsSilabas() {
   const [segundosRestantes, setSegundosRestantes] = useState(15 * 60);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
-  const [checkoutUpsellFinal, setCheckoutUpsellFinal] = useState(CHECKOUT_UPSELL_URL);
-  const [modalUpsellAberto, setModalUpsellAberto] = useState(false);
-  const [acessoAtivo, setAcessoAtivo] = useState(0);
-  const [acessoPausado, setAcessoPausado] = useState(false);
-
-  // Auto-play do carrossel Como é o Acesso (troca a cada 4 segundos)
-  useEffect(() => {
-    if (acessoPausado) return;
-    const timer = setInterval(() => {
-      setAcessoAtivo((prev) => (prev + 1) % 3);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [acessoPausado]);
-
-  const proximoAcesso = () => {
-    setAcessoAtivo((prev) => (prev + 1) % 3);
-  };
-  const acessoAnterior = () => {
-    setAcessoAtivo((prev) => (prev - 1 + 3) % 3);
-  };
-
-  // Sempre força o início no topo da página ao entrar/carregar
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if ("scrollRestoration" in window.history) {
-      window.history.scrollRestoration = "manual";
-    }
-
-    if (window.location.hash) {
-      window.history.replaceState(
-        null,
-        "",
-        window.location.pathname + window.location.search,
-      );
-    }
-
-    const resetarRolagem = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-      if (document.documentElement) document.documentElement.scrollTop = 0;
-      if (document.body) document.body.scrollTop = 0;
-    };
-
-    resetarRolagem();
-    const t1 = setTimeout(resetarRolagem, 10);
-    const t2 = setTimeout(resetarRolagem, 50);
-    const t3 = setTimeout(resetarRolagem, 150);
-    const t4 = setTimeout(resetarRolagem, 300);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     // 1. Atualiza o link do checkout com todas as UTMs + fbclid da campanha
     setCheckoutUrlFinal(construirUrlCheckoutComUtms(CHECKOUT_BASE_URL));
-    setCheckoutUpsellFinal(construirUrlCheckoutComUtms(CHECKOUT_UPSELL_URL));
 
     // 2. Inicializa nosso Meta Pixel próprio (quando configurado) — Emissor Único SOP-03
     if (META_PIXEL_ID) {
@@ -365,7 +287,7 @@ function PaginaColorindoAsSilabas() {
   const minutos = Math.floor(segundosRestantes / 60);
   const segundos = segundosRestantes % 60;
 
-  const rolarParaOferta = (e: React.MouseEvent<HTMLElement>) => {
+  const rolarParaOferta = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const el = document.getElementById("oferta");
     if (el) {
       e.preventDefault();
@@ -373,25 +295,14 @@ function PaginaColorindoAsSilabas() {
     }
   };
 
-  const rolarParaKitPremium = (e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
-    const el = document.getElementById("kit-premium");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      const fallback = document.getElementById("oferta");
-      if (fallback) fallback.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  const dispararInitiateCheckout = (valor: number = 27.9, nome: string = "Colorindo as Silabas Simples 1 Ano - Kit Premium") => {
+  const dispararInitiateCheckout = () => {
     if (typeof window !== "undefined" && (window as any).fbq && META_PIXEL_ID) {
       (window as any).fbq("track", "InitiateCheckout", {
-        content_name: nome,
+        content_name: "Colorindo as Silabas Simples 1 Ano - Kit Completo",
         content_ids: ["colorindo-silabas-v2"],
         content_type: "product",
         num_items: 1,
-        value: valor,
+        value: 14.9,
         currency: "BRL",
       });
     }
@@ -403,53 +314,26 @@ function PaginaColorindoAsSilabas() {
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-['Inter',sans-serif] selection:bg-[#FF6799]/20 selection:text-[#FF6799]">
-      {/* Top Announcement Bar - Sticky com Cronômetro Integrado Sutil */}
-      <div
-        onClick={rolarParaKitPremium}
-        className="sticky top-0 z-50 bg-[#DC2626] text-white py-2 px-3 sm:px-4 shadow-md backdrop-blur-md cursor-pointer hover:bg-[#B91C1C] transition-colors"
-        title="Clique para ir até a oferta"
-      >
-        <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 sm:gap-3.5 text-xs sm:text-sm font-bold flex-wrap">
-          <div className="flex items-center gap-1.5 tracking-wide">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-            <span>Promoção válida por tempo limitado!</span>
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white text-[#1E293B] px-3 sm:px-3.5 py-1 rounded-full shadow-md border border-white/90">
-            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5] text-[#DC2626] animate-pulse" />
-            <span className="font-extrabold text-[11px] sm:text-xs uppercase tracking-wider text-[#1E293B]">
-              Expira em:
-            </span>
-            <div className="flex items-center gap-1 font-mono font-black">
-              <span className="bg-[#DC2626] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
-                {String(minutos).padStart(2, "0")}
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-black text-[#1E293B] uppercase">min</span>
-              <span className="text-[#DC2626] font-black text-xs sm:text-sm leading-none">:</span>
-              <span className="bg-[#DC2626] text-white px-1.5 sm:px-2 py-0.5 rounded text-xs sm:text-sm font-black shadow-sm leading-none">
-                {String(segundos).padStart(2, "0")}
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-black text-[#1E293B] uppercase">seg</span>
-            </div>
-          </div>
+      {/* Top Badge */}
+      <header className="bg-white py-3 px-4 flex flex-col items-center gap-3 border-b border-gray-100">
+        <div className="bg-[#93D36F] text-black font-semibold text-xs sm:text-sm md:text-base px-6 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-2">
+          <span>🔒</span>
+          <span>Compra 100% segura • Acesso Imediato em PDF</span>
         </div>
-      </div>
+      </header>
 
       {/* Hero Section */}
-      <section className="bg-white pt-8 sm:pt-10 pb-12 px-4 text-center">
+      <section className="bg-gradient-to-b from-[#FFFFFF] to-[#FFF0E5] pt-6 pb-12 px-4 text-center">
         <div className="max-w-[760px] mx-auto flex flex-col items-center">
-          <h1 className="text-[29.1px] min-[400px]:text-[33px] sm:text-[46.5px] md:text-[52.4px] lg:text-[56.3px] font-black text-[#111827] tracking-tight leading-[1.15] max-w-3xl mx-auto">
-            Seu filho lendo com{" "}
-            <span className="text-[#FF2D6C] underline decoration-[#FFB3C6] decoration-[3px] sm:decoration-[5px] underline-offset-[6px] sm:underline-offset-[10px]">
-              fluência em poucas semanas
-            </span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] tracking-tight leading-tight">
+            Colorindo as Sílabas Simples 1° Ano
           </h1>
 
-          <p className="mt-4 sm:mt-5 text-[15.2px] sm:text-xl md:text-2xl text-gray-700 font-medium leading-relaxed max-w-2xl mx-auto">
-            O método <span className="text-[#2563EB] font-black">Colorindo as Sílabas</span> que ajuda crianças de 4 a 10 anos a aprender a ler <strong className="text-gray-900 font-bold">até 5x mais rápido</strong>, com <strong className="text-gray-900 font-bold">apenas 10 minutinhos por dia</strong>. Sem brigas. Sem pressão, alinhada à BNCC.
+          <p className="mt-4 text-lg sm:text-xl md:text-2xl text-[#222222] font-semibold leading-relaxed max-w-2xl">
+            Transforme o aprendizado das{" "}
+            <span className="text-[#FF6799] font-extrabold">SÍLABAS</span> em uma
+            brincadeira divertida de pintura por código que ajuda a criança a
+            avançar na leitura e na escrita
           </p>
 
           {/* Capa / Logo Principal */}
@@ -462,14 +346,13 @@ function PaginaColorindoAsSilabas() {
             />
           </div>
 
-          {/* Botão de Ação Principal -> Rola direto para o Kit Premium */}
+          {/* Botão de Ação Principal -> Rola para a Oferta ou vai pro Checkout */}
           <a
-            href="#kit-premium"
-            onClick={rolarParaKitPremium}
-            className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 border-t-2 border-white/40 ring-4 ring-green-400/30"
+            href="#oferta"
+            onClick={rolarParaOferta}
+            className="w-full max-w-[480px] bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 sm:py-5 px-8 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase tracking-wide flex items-center justify-center gap-3"
           >
-            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO O KIT COMPLETO AGORA</span>
-            <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3.5] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+            QUERO O KIT COMPLETO AGORA
           </a>
 
           {/* Aviso de Entrega por E-mail */}
@@ -480,7 +363,7 @@ function PaginaColorindoAsSilabas() {
               className="w-12 h-12 flex-shrink-0 object-contain"
             />
             <p className="text-xs sm:text-sm font-medium text-[#444444] leading-snug">
-              Após a compra, você recebe acesso imediato aos materiais em formato
+              Após a compra, você recebe acesso imediato aos arquivos em formato
               PDF para baixar e imprimir quantas vezes quiser.
             </p>
           </div>
@@ -497,9 +380,9 @@ function PaginaColorindoAsSilabas() {
       </section>
 
       {/* Faixa Rosa: 1° Ano */}
-      <section className="bg-[#FF6799] py-[11.5px] sm:py-[12.2px] px-3 text-center">
-        <h2 className="text-white text-[17.4px] sm:text-[27.5px] font-extrabold tracking-wide">
-          INDICADO PARA CRIANÇAS DE 4 A 10 ANOS
+      <section className="bg-[#FF6799] py-4 text-center">
+        <h2 className="text-white text-2xl sm:text-4xl font-extrabold tracking-wide">
+          INDICADO PARA CRIANÇAS DE 5 A 8 ANOS (1° ANO)
         </h2>
       </section>
 
@@ -510,9 +393,9 @@ function PaginaColorindoAsSilabas() {
             Exemplos Reais das Atividades
           </h2>
 
-          <p className="mt-4 text-[14.4px] sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
-            Com o método <b>Colorindo as Sílabas</b>, a criança aprende a
-            reconhecer e juntar as sílabas simples enquanto colore,
+          <p className="mt-4 text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
+            Com o método de <b>Pintura por Código de Sílabas</b>, a criança
+            aprende a reconhecer e juntar as sílabas simples enquanto colore,
             desenvolvendo leitura, atenção, concentração e coordenação motora sem
             choro na hora da tarefa.
           </p>
@@ -566,302 +449,87 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* O que você vai receber ao adquirir - Vitrine Área de Membros */}
-      <section className="py-12 px-4 bg-gray-50">
-        <div className="max-w-[920px] mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-[23.5px] sm:text-[29.4px] md:text-[35.3px] font-extrabold text-[#222222] uppercase tracking-tight">
-              Veja tudo o que você recebe hoje
-            </h2>
-            <div className="mt-3 inline-flex items-center justify-center gap-1 sm:gap-1.5 bg-blue-100 text-blue-800 font-bold text-[11px] sm:text-xs md:text-sm px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-wide sm:tracking-wider border border-blue-200 shadow-sm max-w-[95%] sm:max-w-none mx-auto">
-              <span>⚡ ACESSO IMEDIATO • PACOTE COMPLETO 4 EM 1</span>
-            </div>
+      {/* O que você vai receber ao adquirir */}
+      <section className="py-14 px-4 bg-gray-50">
+        <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-10 md:p-12 shadow-md border border-gray-100 text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase tracking-tight">
+            Veja tudo o que você recebe hoje
+          </h2>
+
+          <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
+            <span>⚡ ACESSO IMEDIATO • PACOTE COMPLETO 4 EM 1</span>
           </div>
 
-          {/* Grid de 5 Cards - 2 por vez, Cursivas por último */}
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-5 mb-10 max-w-[680px] sm:max-w-[720px] mx-auto">
-            {/* Card 1: Colorindo as Sílabas Simples */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  3 MATERIAIS
-                </span>
-                <img
-                  src="/colorindo-silabas/card_thumb_borboleta_v2.jpg"
-                  alt="Colorindo as Sílabas Simples"
-                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/colorindo-silabas/covers/capa-silabas-simples.jpg";
-                  }}
-                />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
-                    Colorindo as Sílabas Simples
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
-                    Kit Principal Oficial • 3 Materiais em PDF
-                  </p>
-                </div>
-
-                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
-                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
-                    De <span className="line-through text-black font-bold">R$ 39,90</span> por
-                  </span>
-                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
-                    GRÁTIS
-                  </span>
-                </div>
-
-                <a
-                  href="#oferta"
-                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Acessar</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Card 2: Português 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  3 MATERIAIS
-                </span>
-                <img
-                  src="/colorindo-silabas/covers/capa-portugues-1ano.jpg"
-                  alt="Português 1º Ano"
-                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
-                    Português 1º Ano
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
-                    Apostila Master + 2 Bônus • 136 Páginas em PDF
-                  </p>
-                </div>
-
-                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
-                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
-                    De <span className="line-through text-black font-bold">R$ 47,00</span> por
-                  </span>
-                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
-                    GRÁTIS
-                  </span>
-                </div>
-
-                <a
-                  href="#oferta"
-                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Acessar</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Card 3: Matemática 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  7 MATERIAIS
-                </span>
-                <img
-                  src="/colorindo-silabas/covers/capa-matematica-1ano.jpg"
-                  alt="Matemática 1º Ano"
-                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
-                    Matemática 1º Ano
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
-                    Kit Completo de Matemática • 276 Páginas em PDF
-                  </p>
-                </div>
-
-                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
-                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
-                    De <span className="line-through text-black font-bold">R$ 44,90</span> por
-                  </span>
-                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
-                    GRÁTIS
-                  </span>
-                </div>
-
-                <a
-                  href="#oferta"
-                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Acessar</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Card 4: Folclore 1º Ano */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group">
-              <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-gray-100 flex items-center justify-center">
-                <span className="absolute top-2 left-2 z-10 bg-[#0D7377] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  1 MATERIAL
-                </span>
-                <img
-                  src="/colorindo-silabas/covers/capa-folclore-1ano.jpg"
-                  alt="Folclore 1º Ano"
-                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
-                    Folclore 1º Ano
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
-                    Caderno Temático Folclore Brasileiro • 41 Páginas
-                  </p>
-                </div>
-
-                <div className="border-t border-gray-100 mt-2 sm:mt-3 pt-2 text-left">
-                  <span className="text-[11px] sm:text-[13px] text-black font-bold block">
-                    De <span className="line-through text-black font-bold">R$ 39,90</span> por
-                  </span>
-                  <span className="text-lg sm:text-2xl font-black text-[#0D9488] tracking-tight block leading-tight">
-                    GRÁTIS
-                  </span>
-                </div>
-
-                <a
-                  href="#oferta"
-                  className="mt-2.5 sm:mt-3 w-full bg-[#1FB826] hover:bg-[#1caa23] text-white font-bold py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Acessar</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Card 5: Colorindo com as Sílabas Cursivas (BLOQUEADO / ORDER BUMP - POR ÚLTIMO NA SEQUÊNCIA) */}
-            <div className="col-span-2 flex justify-center">
-              <div className="w-full max-w-[calc(50%-5px)] sm:max-w-[348px] bg-white rounded-2xl border-2 border-[#FFC107] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between p-2.5 sm:p-3.5 relative group ring-2 ring-[#FFC107]/20">
-                <div className="relative w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2.5 sm:mb-3 border border-amber-100 flex items-center justify-center">
-                  <span className="absolute top-2 left-2 z-10 bg-[#FF9800] text-white text-[9px] sm:text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
-                    <Lock className="w-3 h-3" />
-                    <span>BLOQUEADO</span>
-                  </span>
-                  <img
-                    src="/colorindo-silabas/covers/capa-silabas-cursivas.jpg"
-                    alt="Colorindo com as Sílabas Cursivas"
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-[#1E293B] text-xs sm:text-base leading-snug">
-                      Colorindo com as Sílabas Cursivas
-                    </h3>
-                    <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">
-                      Material Exclusivo • 44 Páginas (Não Incluso)
-                    </p>
-                  </div>
-
-                  <div className="border-t border-amber-100 mt-2 sm:mt-3 pt-2 text-left">
-                    <span className="text-[11px] sm:text-[13px] text-black font-bold block">
-                      De <span className="line-through text-black font-bold">R$ 29,90</span> por
-                    </span>
-                    <span className="text-lg sm:text-2xl font-black text-[#FF9800] tracking-tight block leading-tight">
-                      R$ 10,00
-                    </span>
-                  </div>
-
-                  <a
-                    href="#oferta"
-                    className="mt-2.5 sm:mt-3 w-full bg-[#1E293B] hover:bg-[#0F172A] text-[#FFC107] font-bold py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-sm cursor-pointer"
-                  >
-                    <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>Desbloquear Cursivas (R$ 10,00)</span>
-                  </a>
-                </div>
-              </div>
-            </div>
+          <div className="my-8 max-w-[500px] mx-auto">
+            <img
+              src="/colorindo-silabas/logo-colorindo-v2.jpg"
+              alt="Apostila Colorindo as Sílabas V2"
+              className="w-full h-auto drop-shadow-md rounded-2xl"
+              loading="lazy"
+            />
           </div>
 
-          <div className="mt-8 flex flex-col items-center justify-center">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#333333] mb-6">
+            Tudo organizado passo a passo para ser simples e fácil de aplicar:
+          </h3>
+
+          <ul className="text-left space-y-4 max-w-2xl mx-auto text-gray-700 text-sm sm:text-base font-medium">
+            {[
+              "Famílias Silábicas Simples – Reconhecimento e aprendizagem das famílias silábicas de A a Z",
+              "Pintura por Código de Sílabas – A criança lê a sílaba para descobrir qual cor usar em cada parte do desenho",
+              "Formação de Sílabas – Junção prática das consoantes com as vogais A, E, I, O e U",
+              "Pontilhado e Caligrafia – Prática da escrita de sílabas e palavras para desenvolver o traçado firme",
+              "Associação entre Imagens e Palavras – Identificação de palavras a partir de figuras ilustradas",
+              "Caderno Colorindo as Sílabas Simples – Pintura por código de cores de B a Z + Gabarito colorido",
+              "Caderno Completo de Português 1° Ano – 136 páginas com alfabetização, recorte e cole e silabário",
+              "Caderno Completo de Matemática 1° Ano – 276 páginas de numerais, operações e tabuada ilustrada",
+              "Caderno Temático Folclore Brasileiro 1° Ano – 41 páginas ilustradas com lendas, quebra-cabeças e leitura",
+            ].map((item, idx) => (
+              <li key={idx} className="flex items-start gap-3">
+                <span className="flex-shrink-0 mt-0.5 bg-emerald-100 text-emerald-600 rounded-full p-1">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8 flex justify-center">
             <a
-              href="#kit-premium"
-              onClick={rolarParaKitPremium}
-              className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+              href={checkoutUrlFinal}
+              onClick={dispararInitiateCheckout}
+              className="w-full max-w-[460px] text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer inline-block uppercase"
             >
-              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">SIM, QUERO GARANTIR O KIT COMPLETO!</span>
-              <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
+              Sim, quero garantir o kit completo!
             </a>
-            <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
-              Liberado na hora via PIX ou Cartão • Materiais em PDF prontos para imprimir
-            </p>
           </div>
+
+          <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500">
+            Liberado na hora via PIX ou Cartão • Arquivos em PDF prontos para imprimir
+          </p>
         </div>
       </section>
 
-      {/* Depoimentos - Carrossel Automático Contínuo */}
-      <section className="py-14 sm:py-16 bg-white text-center overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 mb-8">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 border-2 border-blue-300 px-4 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-extrabold uppercase tracking-wider mb-3 shadow-sm">
-            <Sparkles className="w-4 h-4 text-blue-600 fill-blue-500 flex-shrink-0" />
-            <span>Mais de 3.200 Famílias e Educadoras Satisfeitas</span>
-          </div>
+      {/* Depoimentos */}
+      <section className="py-14 px-4 bg-white text-center">
+        <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] mb-3">
             Quem já aplicou com seus pequenos recomenda
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-gray-600 mb-10">
             Veja o retorno real de mães e educadoras que utilizam nossas atividades no dia a dia:
           </p>
-        </div>
 
-        {/* Carrossel Infinito Duplo com Rolagem Automática */}
-        <div className="relative w-full overflow-hidden space-y-4">
-          {/* Sombras suaves nas laterais */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-12 sm:w-28 bg-gradient-to-r from-white to-transparent z-10" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-12 sm:w-28 bg-gradient-to-l from-white to-transparent z-10" />
-
-          {/* Linha 1: Rolagem para a Esquerda */}
-          <div className="flex gap-4 w-max animate-scroll-left hover:[animation-play-state:paused] py-1">
-            {[...DEPOIMENTOS_LINHA_1, ...DEPOIMENTOS_LINHA_1].map((src, idx) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {DEPOIMENTOS.map((src, idx) => (
               <div
-                key={`dep-l1-${idx}`}
-                className="w-72 sm:w-80 h-28 sm:h-32 flex-shrink-0 bg-[#FBFBFA] rounded-2xl p-3 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center"
+                key={idx}
+                className="bg-gray-50 rounded-xl p-3 border border-gray-100 shadow-sm flex items-center justify-center hover:shadow-md transition-shadow"
               >
                 <img
                   src={src}
                   alt={`Depoimento ${idx + 1}`}
-                  className="max-h-20 sm:max-h-24 w-auto max-w-full object-contain"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Linha 2: Rolagem para a Direita */}
-          <div className="flex gap-4 w-max animate-scroll-right hover:[animation-play-state:paused] py-1">
-            {[...DEPOIMENTOS_LINHA_2, ...DEPOIMENTOS_LINHA_2].map((src, idx) => (
-              <div
-                key={`dep-l2-${idx}`}
-                className="w-72 sm:w-80 h-28 sm:h-32 flex-shrink-0 bg-[#FBFBFA] rounded-2xl p-3 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center"
-              >
-                <img
-                  src={src}
-                  alt={`Depoimento ${idx + 10}`}
-                  className="max-h-20 sm:max-h-24 w-auto max-w-full object-contain"
+                  className="max-h-28 w-auto object-contain rounded"
                   loading="lazy"
                 />
               </div>
@@ -870,402 +538,205 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Como é o Acesso (Carrossel Interativo Automático) */}
-      <section className="py-14 sm:py-16 px-4 bg-[#FFF8F4] text-center">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
-            Como é o Acesso
-            <span className="block text-lg sm:text-xl font-normal text-gray-600 mt-1">
-              (Simples, Rápido e Automático)
-            </span>
+      {/* Como Funciona? */}
+      <section className="py-14 px-4 bg-[#FFF8F4]">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase mb-12">
+            COMO FUNCIONA?
           </h2>
 
-          {/* Abas Superiores de Navegação */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mt-8 mb-8 flex-wrap">
-            {[
-              { num: "1", label: "Conclua sua compra" },
-              { num: "2", label: "Área de Membros" },
-              { num: "3", label: "Baixe os PDFs" },
-            ].map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setAcessoAtivo(idx)}
-                className={`px-3.5 sm:px-5 py-2 rounded-full font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
-                  acessoAtivo === idx
-                    ? "bg-[#0D9488] text-white shadow-md shadow-teal-500/25 scale-105"
-                    : "bg-white text-gray-600 hover:text-gray-900 border border-gray-200 shadow-sm"
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black ${
-                    acessoAtivo === idx
-                      ? "bg-white text-[#0D9488]"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {item.num}
-                </span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Slider Container com Setas */}
-          <div
-            className="relative max-w-xl mx-auto"
-            onMouseEnter={() => setAcessoPausado(true)}
-            onMouseLeave={() => setAcessoPausado(false)}
-            onTouchStart={() => setAcessoPausado(true)}
-            onTouchEnd={() => setAcessoPausado(false)}
-          >
-            {/* Seta Anterior */}
-            <button
-              type="button"
-              onClick={acessoAnterior}
-              aria-label="Passo anterior do acesso"
-              className="absolute -left-3 sm:-left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-
-            {/* Seta Próximo */}
-            <button
-              type="button"
-              onClick={proximoAcesso}
-              aria-label="Próximo passo do acesso"
-              className="absolute -right-3 sm:-right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white text-gray-700 hover:text-[#0D9488] shadow-lg border border-gray-100 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-
-            {/* Carrossel Track */}
-            <div className="overflow-hidden rounded-3xl shadow-xl border border-gray-200/80 bg-white">
-              <div
-                className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${acessoAtivo * 100}%)` }}
-              >
-                {/* Slide 1 */}
-                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <img
-                    src="/colorindo-silabas/order-2.png"
-                    alt="Conclua sua compra"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
-                    loading="lazy"
-                  />
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
-                    1. Conclua sua compra
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Após o pagamento via PIX ou Cartão, seu acesso é liberado
-                    automaticamente na mesma hora.
-                  </p>
-                </div>
-
-                {/* Slide 2 */}
-                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <img
-                    src="/colorindo-silabas/member-card-2.png"
-                    alt="Acesse a Área de Membros"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
-                    loading="lazy"
-                  />
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
-                    2. Acesse a Área de Membros
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md">
-                    Você é direcionado para a <b>Central de Downloads</b> e também
-                    recebe o link direto no seu e-mail.
-                  </p>
-                </div>
-
-                {/* Slide 3 */}
-                <div className="w-full flex-shrink-0 p-8 sm:p-12 flex flex-col items-center">
-                  <img
-                    src="/colorindo-silabas/download-2.png"
-                    alt="Baixe os arquivos"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-5"
-                    loading="lazy"
-                  />
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-3">
-                    3. Baixe os PDFs em A4
-                  </h3>
-                  <ul className="text-left space-y-2 text-xs sm:text-sm text-gray-700 font-medium mb-2 max-w-xs">
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>Atividades prontas em PDF</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>Produto 100% digital</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>Imprima quantas vezes quiser</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Dots Indicadores */}
-            <div className="flex items-center justify-center gap-2 mt-6">
-              {[0, 1, 2].map((idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setAcessoAtivo(idx)}
-                  aria-label={`Ir para passo de acesso ${idx + 1}`}
-                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                    acessoAtivo === idx
-                      ? "w-8 bg-[#0D9488]"
-                      : "w-2.5 bg-gray-300 hover:bg-gray-400"
-                  }`}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Passo 1 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
+              <div className="w-28 h-28 mb-4">
+                <img
+                  src="/colorindo-silabas/3-3-1.png"
+                  alt="Acesso imediato"
+                  className="w-full h-full object-contain"
+                  loading="lazy"
                 />
-              ))}
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">
+                1. Liberação Imediata
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Conteúdo 100% digital em <b>formato PDF</b>. Assim que confirmar
+                o pagamento, seu acesso é liberado na tela e enviado ao seu{" "}
+                <b>e-mail</b>.
+              </p>
             </div>
-          </div>
 
-          <div className="mt-8 flex flex-col items-center justify-center">
-            <a
-              href="#kit-premium"
-              onClick={rolarParaKitPremium}
-              className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
-            >
-              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">QUERO MEU ACESSO AGORA</span>
-              <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
-            </a>
+            {/* Passo 2 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
+              <div className="w-28 h-28 mb-4">
+                <img
+                  src="/colorindo-silabas/4-2-1.png"
+                  alt="Baixe as atividades"
+                  className="w-full h-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">
+                2. Baixe e Imprima em A4
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Os arquivos são separados por <b>cadernos</b> para facilitar a
+                impressão. Baixe no seu <b>celular ou computador</b> e imprima
+                quantas vezes desejar.
+              </p>
+            </div>
+
+            {/* Passo 3 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
+              <div className="w-28 h-28 mb-4">
+                <img
+                  src="/colorindo-silabas/5-1-1-1.png"
+                  alt="Realizar as atividades"
+                  className="w-full h-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">
+                3. Diversão e Leitura
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Com lápis de cor na mão, a criança aprende as{" "}
+                <b>famílias silábicas</b> pintando por código em apenas 15
+                minutinhos por dia!
+              </p>
+            </div>
           </div>
         </div>
       </section>
-      {/* SEÇÃO DE PLANOS - COMPARATIVO 2 PLANOS (KIT BÁSICO VS KIT PREMIUM) */}
-      <section id="oferta" className="py-16 px-4 bg-[#FFF8F3] scroll-mt-6">
+
+      {/* OFERTA ÚNICA DE ALTA CONVERSÃO (DE R$ 97,00 POR R$ 14,90 — 1 ÚNICA LINHA DE CHECKOUT) */}
+      <section id="oferta" className="py-16 px-4 bg-white scroll-mt-6">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#E11D48] via-[#FF2D6C] to-[#E11D48] text-white font-black text-xs sm:text-[14px] uppercase tracking-wider px-5 sm:px-6 py-2 rounded-full mb-4 shadow-[0_4px_14px_rgba(225,29,72,0.35)] border border-white/30 ring-2 ring-rose-300/40">
-            <Clock className="w-4 h-4 stroke-[2.5] text-white flex-shrink-0 animate-pulse" />
-            <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">🔥 CONDIÇÃO ESPECIAL DE LANÇAMENTO</span>
+          <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 font-extrabold text-xs sm:text-sm uppercase tracking-widest px-4 py-1.5 rounded-full mb-3 border border-rose-200">
+            <Clock className="w-4 h-4" />
+            <span>🔥 CONDIÇÃO ESPECIAL COM 85% DE DESCONTO HOJE</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#222222] leading-tight">
             Leve o Pacote Completo{" "}
             <span className="text-[#FF6799]">(Os 4 Cadernos de 1° Ano)</span>
           </h2>
-          <p className="mt-2 text-base sm:text-lg text-gray-600 max-w-xl mx-auto mb-12">
-            Escolha a melhor opção para a aprendizagem do seu filho(a):
+          <p className="mt-2 text-base sm:text-lg text-gray-600 max-w-xl mx-auto">
+            Acesso imediato e vitalício aos 4 cadernos completos em PDF (mais de 490 páginas)
+            pelo valor simbólico de um único lanche:
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto text-left">
-            {/* PLANO 1: KIT PREMIUM (DESTAQUE / MAIS VENDIDO) */}
-            <div
-              id="kit-premium"
-              className="bg-white rounded-3xl border-2 border-[#FF4D80] p-6 sm:p-8 flex flex-col justify-between shadow-xl relative pt-10 ring-4 ring-[#FF4D80]/10 hover:shadow-2xl transition-shadow scroll-mt-20 sm:scroll-mt-24"
-            >
-              {/* Badge Topo */}
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4D80] text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>MAIS VENDIDO</span>
-              </div>
-
-              <div>
-                <span className="text-[11px] font-black text-[#FF4D80] uppercase tracking-widest block">
-                  PLANO PREMIUM
-                </span>
-                <h3 className="text-2xl sm:text-3xl font-black text-[#1E293B] mt-1">
-                  Kit Premium com + de 4.000 atividades
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                  Tudo do Básico, com mais atividades e materiais aprofundados.
-                </p>
-
-                {/* Bloco de Preço */}
-                <div className="mt-6 text-center">
-                  <span className="line-through text-black text-[12.6px] sm:text-[14.7px] font-semibold block">
-                    De R$ 80,00
-                  </span>
-                  <div className="flex items-baseline justify-center gap-1 my-1">
-                    <span className="text-4xl sm:text-5xl font-black text-[#FF4D80] tracking-tight">
-                      R$ 27,90
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-400 font-semibold block">
-                    pagamento único
-                  </span>
-                  <div className="mt-2">
-                    <span className="inline-block bg-[#FFF0F5] text-[#FF4D80] text-xs font-extrabold px-3 py-1 rounded-full">
-                      Economize R$ 52,10
-                    </span>
-                  </div>
-                </div>
-
-                {/* Faixa Destaque no Produto Premium - Estilo Borda a Borda */}
-                <div className="-mx-6 sm:-mx-8 my-6 bg-[#FF4D80] py-2.5 px-4 flex items-center justify-center gap-3 text-white shadow-sm">
-                  <Flame className="w-5 h-5 text-white flex-shrink-0" />
-                  <div className="text-center font-black uppercase text-xs sm:text-sm leading-tight tracking-wider">
-                    <div>+ATIVIDADES</div>
-                    <div>ATUALIZADAS TODA SEMANA</div>
-                  </div>
-                  <Flame className="w-5 h-5 text-white flex-shrink-0" />
-                </div>
-
-                {/* Lista de Recursos Principais Destacados */}
-                <ul className="space-y-3.5">
-                  {[
-                    "Tudo o que está no Kit Básico",
-                    "Mais de 4.000 atividades",
-                    "Livro de leitura e simulado escolar",
-                    "Sondagem diagnóstica aprofundada",
-                    "Material organizado em módulos",
-                    "Acesso vitalício",
-                    "Garantia de 30 dias",
-                  ].map((feat, idx) => (
-                    <li key={idx} className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <Check className="w-3.5 h-3.5 stroke-[3.5]" />
-                      </span>
-                      <span className="font-bold text-[#1E293B] text-sm sm:text-[15px] leading-snug">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Seção de Bônus Inclusos */}
-                <div className="border-t border-gray-100 my-6"></div>
-
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-black text-[#FF4D80] uppercase tracking-wider mb-3">
-                    <Gift className="w-4 h-4" />
-                    <span>BÔNUS INCLUSOS:</span>
-                  </div>
-
-                  <ul className="space-y-2 text-xs sm:text-sm text-gray-700 font-medium">
-                    {[
-                      "Produção de Texto",
-                      "Caderno Matemática 1º ao 5º ano",
-                      "Adição e Multiplicação com Grupos",
-                      "Desafios Criativos",
-                      "Português 4º ano",
-                      "Ciências anos iniciais",
-                      "Separação Silábica",
-                    ].map((bonus, idx) => (
-                      <li key={idx} className="flex items-center gap-2">
-                        <span className="bg-[#FF4D80] text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
-                          BÔNUS
-                        </span>
-                        <span>{bonus}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <a
-                  href={checkoutUrlFinal || "https://pay.cakto.com.br/mswtxij_1243353"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => dispararInitiateCheckout(27.9, "Colorindo as Silabas - Kit Premium")}
-                  className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[13.8px] px-[18.6px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all text-center text-[13.8px] sm:text-[15.4px] flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
-                >
-                  <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Quero o Kit Premium</span>
-                  <ArrowRight className="w-[18.5px] h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
-                </a>
-
-                <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-gray-400" /> Compra segura
-                  </span>
-                  <span>•</span>
-                  <span>Garantia de 30 dias</span>
-                </div>
-              </div>
+          {/* Card Único Centralizado — De R$ 97,00 por R$ 14,90 */}
+          <div className="mt-10 max-w-xl mx-auto relative bg-gradient-to-b from-[#FFFDF7] to-[#FFF8E7] border-4 border-[#FFB800] rounded-3xl p-6 sm:p-10 flex flex-col justify-between shadow-2xl ring-4 ring-[#FFB800]/20">
+            {/* Badge Topo */}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4200] text-white text-xs sm:text-sm font-black px-5 py-1.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
+              <Sparkles className="w-4 h-4" />
+              <span>🔥 COMBO COMPLETO 4 EM 1 • MAIS DE 490 PÁGINAS</span>
             </div>
 
-            {/* PLANO 2: KIT BÁSICO */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 flex flex-col justify-between shadow-sm relative pt-10 hover:shadow-md transition-shadow">
-              {/* Badge Topo */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#D1FAE5] text-[#059669] text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider border border-[#A7F3D0] whitespace-nowrap">
-                KIT BÁSICO
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mt-3 mb-2 uppercase">
+                Colorindo as Sílabas Simples 1° Ano
+              </h3>
+
+              <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3.5 py-1 rounded-full uppercase tracking-wide mb-5">
+                ✓ ACESSO IMEDIATO + DIREITO DE IMPRESSÃO ILIMITADO
               </div>
 
-              <div>
-                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest block">
-                  PARA COMEÇAR
-                </span>
-                <h3 className="text-2xl sm:text-3xl font-black text-[#1E293B] mt-1">
-                  Kit Básico com + de 2.000 atividades
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                  Atividades essenciais para imprimir e usar na sua rotina.
+              {/* Bloco de Ancoragem de Preço: De R$ 97,00 por R$ 14,90 */}
+              <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-inner my-2">
+                <div className="text-sm sm:text-base text-gray-500 font-semibold">
+                  Valor total dos materiais vendidos separadamente:{" "}
+                  <span className="line-through text-rose-600 font-extrabold">
+                    R$ 97,00
+                  </span>
+                </div>
+
+                <div className="text-xs uppercase text-emerald-700 font-extrabold mt-2 tracking-wider">
+                  HOJE • PAGAMENTO ÚNICO DE:
+                </div>
+
+                <div className="my-1 flex items-baseline justify-center gap-1">
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-700">
+                    R$
+                  </span>
+                  <span className="text-5xl sm:text-6xl font-black text-emerald-600 tracking-tight">
+                    14,90
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-sm font-bold text-gray-600">
+                  à vista no PIX ou Cartão (ou em até 3x de R$ 5,52)
                 </p>
-
-                {/* Bloco de Preço */}
-                <div className="mt-6 text-center">
-                  <span className="line-through text-black text-[12.6px] sm:text-[14.7px] font-semibold block">
-                    De R$ 27,90
-                  </span>
-                  <div className="flex items-baseline justify-center gap-1 my-1">
-                    <span className="text-3xl sm:text-4xl font-black text-[#0D9488]">
-                      R$ 14,90
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-400 font-semibold block">
-                    pagamento único
-                  </span>
-                  <div className="mt-2">
-                    <span className="inline-block bg-[#E6FFFA] text-[#0D9488] text-xs font-extrabold px-3 py-1 rounded-full">
-                      Economize R$ 13,00
-                    </span>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 my-6"></div>
-
-                {/* Lista de Recursos Destacada */}
-                <div className="bg-[#F8FAFC] border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm">
-                  <ul className="space-y-3.5">
-                    {[
-                      "Mais de 2.000 atividades",
-                      "6 bônus exclusivos",
-                      "Da educação infantil ao 5º ano",
-                      "PDF pronto para imprimir",
-                      "Acesso vitalício",
-                      "Garantia de 7 dias",
-                    ].map((feat, idx) => (
-                      <li key={idx} className="flex items-center gap-2.5">
-                        <span className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <Check className="w-3.5 h-3.5 stroke-[3.5]" />
-                        </span>
-                        <span className="font-bold text-[#1E293B] text-sm sm:text-[15px] leading-snug">
-                          {feat}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
 
-              <div className="mt-8">
-                <button
-                  type="button"
-                  onClick={() => setModalUpsellAberto(true)}
-                  className="group w-full bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] hover:brightness-105 active:translate-y-1 text-white font-black py-[13px] px-[19.4px] rounded-2xl shadow-[0_4px_0_0_#065F56,0_11px_22px_rgba(13,148,136,0.35)] transition-all text-center text-[13px] sm:text-[14.6px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/30"
-                >
-                  <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Quero o Kit Básico</span>
-                  <ArrowRight className="w-[16px] h-[16px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
-                </button>
+              {/* Stack Completo de Entregáveis com Preços Ancorados */}
+              <ul className="text-left space-y-3 my-6 text-gray-800 text-sm sm:text-base font-medium">
+                {[
+                  {
+                    nome: "Caderno Oficial: Colorindo as Sílabas Simples 1° Ano (Pintura por Código + Gabarito)",
+                    ancora: "R$ 37,00",
+                  },
+                  {
+                    nome: "Caderno Completo: Português 1° Ano (136 Páginas · Alfabetização, Recorte e Cole e Silabário)",
+                    ancora: "R$ 29,90",
+                  },
+                  {
+                    nome: "Caderno Completo: Matemática 1° Ano (276 Páginas · Números, Operações e Tabuada)",
+                    ancora: "R$ 29,90",
+                  },
+                  {
+                    nome: "Caderno Temático: Folclore Brasileiro 1° Ano (41 Páginas · Lendas, Parlendas e Quebra-Cabeças)",
+                    ancora: "R$ 19,90",
+                  },
+                  {
+                    nome: "Envio imediato dos Arquivos em PDF de Alta Resolução (Padrão A4)",
+                    ancora: "Incluso",
+                  },
+                  {
+                    nome: "Acesso Vitalício no Celular e Computador + Garantia de 7 Dias",
+                    ancora: "Incluso",
+                  },
+                ].map((feat, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start justify-between gap-2 border-b border-amber-100/80 pb-2 last:border-none"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold text-gray-800">
+                        {feat.nome}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded whitespace-nowrap">
+                      {feat.ancora === "Incluso" ? "✓ Incluso" : `(${feat.ancora})`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-                <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 font-semibold mt-3">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-gray-400" /> Compra segura
-                  </span>
-                  <span>•</span>
-                  <span>Garantia de 7 dias</span>
-                </div>
+            <div>
+              <a
+                href={checkoutUrlFinal}
+                onClick={dispararInitiateCheckout}
+                className="w-full inline-block text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-0.5 text-white font-['Montserrat',sans-serif] font-extrabold text-lg sm:text-2xl py-4 sm:py-5 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all uppercase cursor-pointer"
+              >
+                QUERO TUDO POR R$ 14,90 AGORA!
+              </a>
+
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-gray-600">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Ambiente Criptografado • Liberação Automática na Hora</span>
+              </div>
+
+              <div className="mt-5">
+                <img
+                  src="/colorindo-silabas/Satisfacao-Garantida-1-1.png"
+                  alt="Satisfação Garantida 100%"
+                  className="w-full max-w-[340px] h-auto object-contain mx-auto"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -1311,55 +782,54 @@ function PaginaColorindoAsSilabas() {
           <a
             href={checkoutUrlFinal}
             onClick={dispararInitiateCheckout}
-            className="cta-pulse cta-shimmer group mt-2 inline-flex items-center justify-center gap-2.5 sm:gap-3 bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-['Montserrat',sans-serif] font-black text-[13.8px] sm:text-[15.4px] py-[12.2px] sm:py-[13.8px] px-[24.3px] sm:px-[30.8px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
+            className="mt-2 inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer uppercase"
           >
-            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Quero acessar agora e imprimir hoje</span>
-            <ArrowRight className="w-[15.3px] h-[15.3px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
+            Quero acessar agora e imprimir hoje
           </a>
         </div>
       </section>
 
       {/* Garantia Incondicional 7 Dias */}
-      <section className="py-10 sm:py-16 px-3 sm:px-4 bg-white">
-        <div className="max-w-4xl mx-auto flex flex-row items-center gap-3 sm:gap-6 md:gap-12">
-          <div className="w-24 min-[380px]:w-28 sm:w-44 md:w-56 lg:w-64 flex-shrink-0">
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          <div className="w-56 sm:w-64 flex-shrink-0">
             <img
               src="/colorindo-silabas/Kids41-Compressao-1-1.png"
               alt="Selo 7 Dias de Garantia"
-              className="w-full h-auto object-contain mx-auto drop-shadow-md"
+              className="w-full h-auto object-contain mx-auto"
               loading="lazy"
             />
           </div>
 
-          <div className="flex-1 text-left space-y-2.5 sm:space-y-4 text-gray-700 text-xs sm:text-sm md:text-base">
-            <h2 className="text-base sm:text-2xl md:text-3xl font-extrabold text-[#222222] leading-tight">
+          <div className="flex-1 text-left space-y-4 text-gray-700 text-sm sm:text-base">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#222222] leading-tight">
               Satisfação garantida ou seu dinheiro de volta!
             </h2>
 
-            <p className="leading-snug sm:leading-relaxed">
+            <p>
               Você tem <b>7 dias completos</b> para baixar, olhar todas as
               páginas e testar com sua criança. Se por qualquer motivo achar que:
             </p>
 
-            <ul className="space-y-1 sm:space-y-2 pl-1 sm:pl-2">
-              <li className="flex items-start gap-1.5 sm:gap-2">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-800 mt-1.5 flex-shrink-0" />
-                <span className="leading-tight sm:leading-normal">o material não faz sentido para sua criança/aluno</span>
+            <ul className="space-y-2 pl-2">
+              <li className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gray-800" />
+                <span>o material não faz sentido para sua criança/aluno</span>
               </li>
-              <li className="flex items-start gap-1.5 sm:gap-2">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-800 mt-1.5 flex-shrink-0" />
-                <span className="leading-tight sm:leading-normal">os materiais não atendem sua necessidade</span>
+              <li className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gray-800" />
+                <span>os materiais não atendem sua necessidade</span>
               </li>
             </ul>
 
-            <div className="bg-emerald-50 border-l-4 border-emerald-500 p-2.5 sm:p-4 rounded-r-xl">
-              <p className="font-bold text-emerald-900 text-xs sm:text-sm leading-tight sm:leading-normal">
+            <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl">
+              <p className="font-bold text-emerald-900">
                 👉 você pode solicitar 100% do reembolso na plataforma.
               </p>
-              <p className="font-extrabold text-emerald-950 mt-1 text-xs sm:text-sm md:text-base leading-tight">
+              <p className="font-extrabold text-emerald-950 mt-1">
                 7 dias de garantia incondicional
               </p>
-              <p className="text-[11px] sm:text-xs md:text-sm text-emerald-800 leading-tight mt-0.5">
+              <p className="text-xs sm:text-sm text-emerald-800">
                 Sem burocracia. Risco zero para você.
               </p>
             </div>
@@ -1367,22 +837,91 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* Chamada Final pós-Garantia */}
-      <section className="py-12 px-4 bg-gray-50 text-center">
-        <div className="max-w-4xl mx-auto flex flex-col items-center justify-center">
-          <a
-            href="#kit-premium"
-            onClick={rolarParaKitPremium}
-            className="cta-pulse cta-shimmer group w-full max-w-[365px] sm:max-w-[385px] text-center bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1.5 text-white font-['Montserrat',sans-serif] font-black text-[14.6px] sm:text-[18.5px] py-[11.3px] sm:py-[15.3px] px-[20.7px] sm:px-[24.3px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2.5 sm:gap-3 uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
-          >
-            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">GARANTIR MEU ACESSO SEM RISCO</span>
-            <ArrowRight className="w-[17px] h-[17px] sm:w-[18.5px] sm:h-[18.5px] stroke-[3] group-hover:translate-x-1.5 transition-transform flex-shrink-0" />
-          </a>
-          <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500 text-center">
-            Acesso Imediato via PIX ou Cartão • Satisfação Garantida por 7 Dias
-          </p>
+      {/* Como é o Acesso (Passo a Passo) */}
+      <section className="py-16 px-4 bg-gray-50 text-center">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
+            Como é o Acesso
+            <span className="block text-lg sm:text-xl font-normal text-gray-600 mt-1">
+              (Simples, Rápido e Automático)
+            </span>
+          </h2>
+
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Passo 1 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
+              <img
+                src="/colorindo-silabas/order-2.png"
+                alt="Conclua sua compra"
+                className="w-20 h-20 object-contain mb-4"
+                loading="lazy"
+              />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                1. Conclua sua compra
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Após o pagamento via PIX ou Cartão, seu acesso é liberado
+                automaticamente na mesma hora.
+              </p>
+            </div>
+
+            {/* Passo 2 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
+              <img
+                src="/colorindo-silabas/member-card-2.png"
+                alt="Acesse a Central de Downloads"
+                className="w-20 h-20 object-contain mb-4"
+                loading="lazy"
+              />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                2. Acesse a Área de Membros
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Você é direcionado para a <b>Central de Downloads</b> e também
+                recebe o link direto no seu e-mail.
+              </p>
+            </div>
+
+            {/* Passo 3 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center hover:-translate-y-2 transition-transform">
+              <img
+                src="/colorindo-silabas/download-2.png"
+                alt="Baixe os arquivos"
+                className="w-20 h-20 object-contain mb-4"
+                loading="lazy"
+              />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                3. Baixe os PDFs em A4
+              </h3>
+              <ul className="text-left space-y-1.5 text-xs sm:text-sm text-gray-700 font-medium mb-3">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Atividades prontas em PDF</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Produto 100% digital</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Imprima quantas vezes quiser</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <a
+              href={checkoutUrlFinal}
+              onClick={dispararInitiateCheckout}
+              className="inline-block bg-[#1FB826] hover:bg-[#1caa23] text-white font-['Montserrat',sans-serif] font-bold text-lg sm:text-xl py-4 px-10 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer uppercase"
+            >
+              QUERO MEU ACESSO AGORA POR R$ 14,90
+            </a>
+          </div>
         </div>
       </section>
+
       {/* Perguntas Frequentes (FAQ) */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-3xl mx-auto">
@@ -1424,6 +963,15 @@ function PaginaColorindoAsSilabas() {
       {/* Rodapé Próprio Blindado (Sem links para concorrentes) */}
       <footer className="bg-gray-900 text-gray-300 py-14 px-4 border-t border-gray-800 text-sm">
         <div className="max-w-5xl mx-auto">
+          <div className="flex justify-center mb-10">
+            <img
+              src="/colorindo-silabas/logo-colorindo-v2.jpg"
+              alt="Logo Colorindo as Sílabas V2"
+              className="h-24 w-auto object-contain rounded-xl shadow-md"
+              loading="lazy"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-center md:text-left mb-10 max-w-3xl mx-auto">
             {/* Formas de Pagamento & Garantia */}
             <div className="flex flex-col items-center md:items-start space-y-4">
@@ -1469,130 +1017,6 @@ function PaginaColorindoAsSilabas() {
           </div>
         </div>
       </footer>
-      {/* MODAL UPSELL - NOTIFICAÇÃO AO CLICAR NO KIT BÁSICO */}
-      {modalUpsellAberto && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalUpsellAberto(false);
-          }}
-        >
-          <div className="bg-white rounded-3xl max-w-sm sm:max-w-md w-full p-6 sm:p-7 relative shadow-2xl border border-gray-100 text-center animate-in zoom-in-95 duration-200">
-            {/* Botão Fechar (X) */}
-            <button
-              type="button"
-              onClick={() => setModalUpsellAberto(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors cursor-pointer"
-              aria-label="Fechar"
-            >
-              <X className="w-4 h-4 stroke-[2.5]" />
-            </button>
-
-            {/* Ícone Presente Topo */}
-            <div className="w-14 h-14 rounded-full bg-[#FF4D80] flex items-center justify-center text-white mx-auto shadow-md shadow-rose-200">
-              <Gift className="w-7 h-7" />
-            </div>
-
-            {/* Cabeçalho */}
-            <span className="text-[#FF4D80] text-[10px] sm:text-[11px] font-black uppercase tracking-widest block mt-3 mb-1">
-              OFERTA ESPECIAL ANTES DE FINALIZAR
-            </span>
-            <h3 className="text-[#1E1B4B] text-xl sm:text-2xl font-black leading-snug">
-              Seu kit pode ficar ainda mais completo
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">
-              Troque o Básico pelo Premium com um preço exclusivo nesta etapa.
-            </p>
-
-            {/* Caixa Destacada Kit Premium Especial */}
-            <div className="bg-[#FFF5ED] rounded-2xl p-4 sm:p-5 mt-5 mb-4 border border-[#FFE5D3] text-center">
-              <span className="text-[10px] sm:text-[11px] font-extrabold text-[#78716C] uppercase tracking-wider block">
-                KIT PREMIUM ESPECIAL
-              </span>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="text-xs text-gray-400 font-semibold line-through">
-                  R$ 39,90
-                </span>
-                <span className="text-xs font-black text-[#0D9488]">
-                  Economize R$ 18,00
-                </span>
-              </div>
-              <div className="text-4xl sm:text-5xl font-black text-[#FF4D80] my-1 tracking-tight">
-                R$ 21,90
-              </div>
-              <span className="text-[11px] text-gray-400 font-medium block">
-                pagamento único
-              </span>
-              <div className="-mx-4 sm:-mx-5 mt-4 bg-[#FF4D80] py-2 px-3 flex items-center justify-center gap-2 text-white">
-                <Flame className="w-4 h-4 text-white flex-shrink-0" />
-                <div className="text-center font-black uppercase text-[10px] sm:text-[11px] leading-tight tracking-wider">
-                  <div>+ATIVIDADES</div>
-                  <div>ATUALIZADAS TODA SEMANA</div>
-                </div>
-                <Flame className="w-4 h-4 text-white flex-shrink-0" />
-              </div>
-            </div>
-
-            {/* Checklist Benefícios */}
-            <ul className="space-y-2.5 text-left text-xs sm:text-sm text-gray-700 font-medium my-4 px-2">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
-                <span>Mais de 4.000 atividades (o dobro do Básico)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
-                <span>Livro de leitura e simulado escolar</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
-                <span>Acesso vitalício e garantia de 30 dias</span>
-              </li>
-            </ul>
-
-            {/* Tag Bônus */}
-            <div className="bg-[#FFF0F5] text-[#FF4D80] border border-[#FFE4EC] text-xs font-bold py-2 px-3 rounded-full flex items-center justify-center gap-1.5 my-3">
-              <Gift className="w-3.5 h-3.5" />
-              <span>Os 7 bônus do Premium inclusos</span>
-            </div>
-
-            {/* Botão Principal: Sim, quero o Premium por R$ 21,90 */}
-            <a
-              href={checkoutUpsellFinal || "https://pay.cakto.com.br/pkgw8o8"}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                setModalUpsellAberto(false);
-                dispararInitiateCheckout(21.90, "Colorindo as Silabas - Kit Premium Especial");
-              }}
-              className="cta-pulse cta-shimmer group w-full bg-gradient-to-r from-[#1EB525] via-[#2CE834] to-[#15A245] hover:brightness-105 active:translate-y-1 text-white font-black py-[12.2px] px-[18.6px] rounded-2xl shadow-[0_5px_0_0_#0F6D14,0_14px_28px_rgba(31,184,38,0.48)] transition-all text-center text-[12.2px] sm:text-[13.8px] flex items-center justify-center gap-2.5 cursor-pointer uppercase border-t-2 border-white/40 ring-4 ring-green-400/30"
-            >
-              <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">Sim, quero o Premium por R$ 21,90</span>
-              <ArrowRight className="w-[15.3px] h-[15.3px] stroke-[3] group-hover:translate-x-1.5 transition-transform" />
-            </a>
-
-            {/* Link Secundário: Não, continuar com o Básico */}
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  dispararInitiateCheckout();
-                  window.location.href = checkoutUrlFinal;
-                }}
-                className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-semibold cursor-pointer underline-offset-2 hover:underline"
-              >
-                Não, continuar com o Básico
-              </button>
-            </div>
-
-            {/* Rodapé Micro-copy */}
-            <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 font-medium mt-4">
-              <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-              <span>Você escolhe. Nenhum adicional é incluído automaticamente.</span>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
