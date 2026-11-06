@@ -8,7 +8,6 @@ import {
   Sparkles,
   ShieldCheck,
   Star,
-  ThumbsUp,
 } from "lucide-react";
 
 import { useFavicon } from "@/hooks/use-favicon";
@@ -202,7 +201,7 @@ const DEPOIMENTOS_CARROSSEL_2: DepoimentoItem[] = [
   },
 ];
 
-const FAQS = [const FAQS = [const FAQS = [
+const FAQS = [
   {
     pergunta: "Quais as Formas de Pagamento?",
     resposta:
@@ -434,7 +433,88 @@ function PaginaColorindoAsSilabas() {
             </p>
           </div>
 
-          {/* Seção Mestre de Depoimentos em Carrossel Fluido (CRO Kevano) */}
+          {/* Selo Satisfação Garantida / Acesso Imediato */}
+          <div className="mt-6 max-w-[540px] w-full">
+            <img
+              src="/colorindo-silabas/Satisfacao-Garantida-Acesso-Imediato-1.png"
+              alt="Satisfação Garantida e Acesso Imediato"
+              className="w-full h-auto mx-auto object-contain"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Faixa Rosa: 1° Ano */}
+      <section className="bg-[#FF6799] py-4 text-center">
+        <h2 className="text-white text-2xl sm:text-4xl font-extrabold tracking-wide">
+          INDICADO PARA CRIANÇAS DE 5 A 8 ANOS (1° ANO)
+        </h2>
+      </section>
+
+      {/* Exemplos de Atividades */}
+      <section className="py-14 px-4 bg-white text-center overflow-hidden">
+        <div className="max-w-4xl mx-auto mb-10">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
+            Exemplos Reais das Atividades
+          </h2>
+
+          <p className="mt-4 text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
+            Com o método de <b>Pintura por Código de Sílabas</b>, a criança
+            aprende a reconhecer e juntar as sílabas simples enquanto colore,
+            desenvolvendo leitura, atenção, concentração e coordenação motora sem
+            choro na hora da tarefa.
+          </p>
+
+          <div className="mt-5 inline-block">
+            <h3 className="text-xl sm:text-2xl font-bold text-[#333333]">
+              <span className="bg-[#FFE6A3] font-black px-2 py-0.5 rounded">
+                4 Cadernos Completos (Mais de 490 Páginas)
+              </span>{" "}
+              prontos para imprimir em folha A4
+            </h3>
+          </div>
+        </div>
+
+        {/* Carrossel 1 (Direção Esquerda) */}
+        <div className="relative w-full overflow-hidden mb-6 py-2">
+          <div className="flex gap-4 w-max animate-scroll-left hover:[animation-play-state:paused]">
+            {[...CARROSSEL_1, ...CARROSSEL_1].map((src, index) => (
+              <div
+                key={`c1-${index}`}
+                className="w-44 sm:w-56 md:w-64 flex-shrink-0 bg-white rounded-xl shadow-md border border-gray-100 p-2 overflow-hidden transition-transform hover:scale-105"
+              >
+                <img
+                  src={src}
+                  alt={`Atividade Exemplo ${index + 1}`}
+                  className="w-full h-auto object-cover rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Carrossel 2 (Direção Direita) */}
+        <div className="relative w-full overflow-hidden mb-12 py-2">
+          <div className="flex gap-4 w-max animate-scroll-right hover:[animation-play-state:paused]">
+            {[...CARROSSEL_2, ...CARROSSEL_2].map((src, index) => (
+              <div
+                key={`c2-${index}`}
+                className="w-44 sm:w-56 md:w-64 flex-shrink-0 bg-white rounded-xl shadow-md border border-gray-100 p-2 overflow-hidden transition-transform hover:scale-105"
+              >
+                <img
+                  src={src}
+                  alt={`Silabário Exemplo ${index + 1}`}
+                  className="w-full h-auto object-cover rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Seção Mestre de Depoimentos em Carrossel Fluido (CRO Kevano - Substitui o bloco avacalhado e elimina o card intermediário) */}
       <section className="py-14 px-4 bg-gradient-to-b from-[#FFFDF9] via-white to-[#FFFDF9] text-center overflow-hidden border-y border-amber-100/70">
         <div className="max-w-4xl mx-auto mb-8">
           <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-extrabold px-4 py-1.5 rounded-full mb-3 border border-emerald-200 shadow-sm">
