@@ -558,67 +558,6 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
-      {/* O que você vai receber ao adquirir */}
-      <section className="py-14 px-4 bg-gray-50">
-        <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-10 md:p-12 shadow-md border border-gray-100 text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] uppercase tracking-tight">
-            Veja tudo o que você recebe hoje
-          </h2>
-
-          <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
-            <span>⚡ ACESSO IMEDIATO • PACOTE COMPLETO 4 EM 1</span>
-          </div>
-
-          <div className="my-8 max-w-[500px] mx-auto">
-            <img
-              src="/colorindo-silabas/logo-colorindo-v2.jpg"
-              alt="Apostila Colorindo as Sílabas V2"
-              className="w-full h-auto drop-shadow-md rounded-2xl"
-              loading="lazy"
-            />
-          </div>
-
-          <h3 className="text-xl sm:text-2xl font-bold text-[#333333] mb-6">
-            Tudo organizado passo a passo para ser simples e fácil de aplicar:
-          </h3>
-
-          <ul className="text-left space-y-4 max-w-2xl mx-auto text-gray-700 text-sm sm:text-base font-medium">
-            {[
-              "Famílias Silábicas Simples – Reconhecimento e aprendizagem das famílias silábicas de A a Z",
-              "Pintura por Código de Sílabas – A criança lê a sílaba para descobrir qual cor usar em cada parte do desenho",
-              "Formação de Sílabas – Junção prática das consoantes com as vogais A, E, I, O e U",
-              "Pontilhado e Caligrafia – Prática da escrita de sílabas e palavras para desenvolver o traçado firme",
-              "Associação entre Imagens e Palavras – Identificação de palavras a partir de figuras ilustradas",
-              "Caderno Colorindo as Sílabas Simples – Pintura por código de cores de B a Z + Gabarito colorido",
-              "Caderno Completo de Português 1° Ano – 136 páginas com alfabetização, recorte e cole e silabário",
-              "Caderno Completo de Matemática 1° Ano – 276 páginas de numerais, operações e tabuada ilustrada",
-              "Caderno Temático Folclore Brasileiro 1° Ano – 41 páginas ilustradas com lendas, quebra-cabeças e leitura",
-            ].map((item, idx) => (
-              <li key={idx} className="flex items-start gap-3">
-                <span className="flex-shrink-0 mt-0.5 bg-emerald-100 text-emerald-600 rounded-full p-1">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-8 flex justify-center">
-            <a
-              href={checkoutUrlFinal}
-              onClick={dispararInitiateCheckout}
-              className="w-full max-w-[460px] text-center bg-[#1FB826] hover:bg-[#1caa23] active:translate-y-1 text-white font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl py-4 px-6 rounded-xl shadow-[0_5px_0_0_#168D1F] transition-all cursor-pointer inline-block uppercase"
-            >
-              Sim, quero garantir o kit completo!
-            </a>
-          </div>
-
-          <p className="mt-4 text-xs sm:text-sm font-semibold text-gray-500">
-            Liberado na hora via PIX ou Cartão • Arquivos em PDF prontos para imprimir
-          </p>
-        </div>
-      </section>
-
       {/* Seção Mestre de Depoimentos e Prova Social (CRO Kevano - Prova Social de Alta Conversão) */}
       <section className="py-16 px-4 bg-gradient-to-b from-white via-[#FFFBF5] to-white text-center border-y border-amber-100/60">
         <div className="max-w-6xl mx-auto">
