@@ -514,6 +514,125 @@ function PaginaColorindoAsSilabas() {
         </div>
       </section>
 
+      {/* SEÇÃO CRO KEVANO: PROVA SOCIAL EM VÍDEO REAL (MÃE + MATERIAL IMPRESSO + CRIANÇA EM PRÁTICA) */}
+      <section className="py-14 px-4 bg-[#FFFBF5] text-center border-t border-amber-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-extrabold px-4 py-1.5 rounded-full mb-3 shadow-sm border border-emerald-200">
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <span>RESULTADOS REAIS NA PRÁTICA</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] tracking-tight">
+            Veja Mães Reais e Pequenos Colocando a Mão na Massa
+          </h2>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
+            Nada convence mais do que ver o material impresso na mesa e a evolução real das crianças no dia a dia:
+          </p>
+
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-left">
+            {/* Card 1: Depoimento Real de Mãe */}
+            <div className="bg-white rounded-3xl p-4 shadow-md border border-amber-100 flex flex-col justify-between transition-transform hover:-translate-y-1">
+              <div>
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16] mb-3.5 shadow-inner">
+                  <video
+                    src="/colorindo-silabas/videos/depoimento-mae-leticia.mp4"
+                    poster="/colorindo-silabas/videos/poster-depoimento-mae.jpg"
+                    playsInline
+                    autoPlay
+                    muted
+                    loop
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2.5 left-2.5 bg-emerald-600/90 backdrop-blur-sm text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                    <span>✓</span> Depoimento Real de Mãe
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-amber-400 text-xs font-black mb-1">
+                  ★★★★★
+                </div>
+                <h3 className="text-base font-extrabold text-gray-900 leading-snug">
+                  "Foi a melhor coisa que fiz... minha filha aprendeu a ler e escrever!"
+                </h3>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                <span className="font-bold text-gray-700">Letícia C.</span>
+                <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">Mãe da Antonella</span>
+              </div>
+            </div>
+
+            {/* Card 2: Material Impresso na Mesa */}
+            <div className="bg-white rounded-3xl p-4 shadow-md border border-amber-100 flex flex-col justify-between transition-transform hover:-translate-y-1">
+              <div>
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16] mb-3.5 shadow-inner">
+                  <video
+                    src="/colorindo-silabas/videos/apostila-impressa-mesa.mp4"
+                    poster="/colorindo-silabas/videos/poster-apostila-mesa.jpg"
+                    playsInline
+                    autoPlay
+                    muted
+                    loop
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2.5 left-2.5 bg-blue-600/90 backdrop-blur-sm text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                    <span>📄</span> Impresso em Folha A4 Comum
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-amber-400 text-xs font-black mb-1">
+                  ★★★★★
+                </div>
+                <h3 className="text-base font-extrabold text-gray-900 leading-snug">
+                  "Chega na hora no e-mail, é só mandar imprimir em qualquer impressora."
+                </h3>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                <span className="font-bold text-gray-700">Demonstração Prática</span>
+                <span className="text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded">PDF em Alta Resolução</span>
+              </div>
+            </div>
+
+            {/* Card 3: Criança em Prática com o Lápis */}
+            <div className="bg-white rounded-3xl p-4 shadow-md border border-amber-100 flex flex-col justify-between transition-transform hover:-translate-y-1 sm:col-span-2 md:col-span-1">
+              <div>
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16] mb-3.5 shadow-inner">
+                  <video
+                    src="/colorindo-silabas/videos/crianca-praticando-silabas.mp4"
+                    poster="/colorindo-silabas/videos/poster-crianca-silabas.jpg"
+                    playsInline
+                    autoPlay
+                    muted
+                    loop
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2.5 left-2.5 bg-purple-600/90 backdrop-blur-sm text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                    <span>✏️</span> Criança Conectada e Focada
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-amber-400 text-xs font-black mb-1">
+                  ★★★★★
+                </div>
+                <h3 className="text-base font-extrabold text-gray-900 leading-snug">
+                  "Coordenação motora, traçado firme e reconhecimento de letras sem choro."
+                </h3>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                <span className="font-bold text-gray-700">Aplicação Diária</span>
+                <span className="text-purple-700 font-semibold bg-purple-50 px-2 py-0.5 rounded">15 Minutinhos/Dia</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       {/* Seção Mestre de Depoimentos em Carrossel Fluido (CRO Kevano - Substitui o bloco avacalhado e elimina o card intermediário) */}
       <section className="py-14 px-4 bg-gradient-to-b from-[#FFFDF9] via-white to-[#FFFDF9] text-center overflow-hidden border-y border-amber-100/70">
         <div className="max-w-4xl mx-auto mb-8">
