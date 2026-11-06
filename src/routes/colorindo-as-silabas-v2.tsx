@@ -117,134 +117,92 @@ const CARROSSEL_2 = [
   "/colorindo-silabas/Silabario_8.png",
 ];
 
-interface DepoimentoCard {
+interface DepoimentoItem {
   nome: string;
-  papel: string;
   badge: string;
-  destaque: string;
   imagem: string;
   tempo: string;
 }
 
-const DEPOIMENTOS_TOP: DepoimentoCard[] = [
+const DEPOIMENTOS_CARROSSEL_1: DepoimentoItem[] = [
   {
     nome: "Cidiane Jarde",
-    papel: "Mãe do Davi (6 anos) • Fase de Alfabetização",
     badge: "Compra Segura no Pix",
-    destaque: "“Confesso que estava com medo por ser na internet, mas deu super certo! Vou só imprimir agora. Muito confiável!”",
     imagem: "/colorindo-silabas/cidianejarde-1.png",
     tempo: "Há 2 semanas",
   },
   {
     nome: "Kheir Hassan",
-    papel: "Mãe da Laura • 1º Ano",
     badge: "Link Liberado em Segundos",
-    destaque: "“Acabei de comprar por pix e em segundos já chegou o link de acesso! Entrega automática e sem enrolação.”",
     imagem: "/colorindo-silabas/Kheir-1.png",
     tempo: "Há 1 semana",
   },
   {
     nome: "Priscila Lovath",
-    papel: "Mãe do Miguel (7 anos)",
-    badge: "Impressão Prática em Casa",
-    destaque: "“Muito bom! Comprei agora e chegou no mesmo momento, já imprimi tudo. Cumpre exatamente o que promete!”",
+    badge: "Já Imprimiu em Casa",
     imagem: "/colorindo-silabas/Pri-1.png",
     tempo: "Há 3 semanas",
   },
   {
-    nome: "Luh Mimos Art",
-    papel: "Mãe e Educadora Infantil",
-    badge: "Material Aprovado",
-    destaque: "“Eu comprei também, fiz o pagamento no Pix e liberam o acesso na hora. Você baixa e imprime no celular. São bem feitas, adorei!”",
-    imagem: "/colorindo-silabas/Luh-1.png",
-    tempo: "Há 4 semanas",
-  },
-  {
     nome: "Rosângela Carniel",
-    papel: "Mãe da Alice (5 anos)",
-    badge: "Acesso Imediato no E-mail",
-    destaque: "“Comprei... assim que fiz o pagamento o material já chegou no meu e-mail. Muito obrigada pela rapidez e eficiência!”",
+    badge: "Acesso no E-mail",
     imagem: "/colorindo-silabas/Rosangela-1.png",
     tempo: "Ontem",
   },
   {
     nome: "Milla Carvalho",
-    papel: "Mãe & Professora",
-    badge: "Recomendado por Educadoras",
-    destaque: "“Material maravilhoso! Usei com o meu filho e também com os meus alunos. Atividades completas e lúdicas!”",
+    badge: "Filho e Alunos Amaram",
     imagem: "/colorindo-silabas/milla-1.png",
     tempo: "Há 1 mês",
   },
   {
-    nome: "Tati Anna Isaque",
-    papel: "Mãe do Enzo (6 anos)",
-    badge: "Conteúdo Nota 10",
-    destaque: "“Eu acabei de comprar, já recebi e super recomendo. Ótimo conteúdo, meu filho adorou pintar as famílias silábicas!”",
-    imagem: "/colorindo-silabas/Tati-1.png",
-    tempo: "Há 1 semana",
-  },
-  {
-    nome: "Vanessa de Souza",
-    papel: "Mãe do Lucas (6 anos)",
-    badge: "Custo-Benefício Incrível",
-    destaque: "“Muito satisfeita com a compra. Material didático excelente e compra super rápida e segura.”",
-    imagem: "/colorindo-silabas/Vanessa-2.png",
-    tempo: "Há 2 semanas",
-  },
-  {
     nome: "Carine Mosquêr",
-    papel: "Mãe da Sophia (1º Ano)",
-    badge: "Recomendação Máxima",
-    destaque: "“Adorei, super recomendo nota 10! As cores associadas às sílabas ajudam muito no foco e memorização.”",
+    badge: "Super Recomendo Nota 10",
     imagem: "/colorindo-silabas/Screenshot_2-1.png",
     tempo: "Há 2 semanas",
   },
 ];
 
-const DEPOIMENTOS_EXTRAS = [
+const DEPOIMENTOS_CARROSSEL_2: DepoimentoItem[] = [
+  {
+    nome: "Luh Mimos Art",
+    badge: "Material Muito Bem Feito",
+    imagem: "/colorindo-silabas/Luh-1.png",
+    tempo: "Há 4 semanas",
+  },
+  {
+    nome: "Tati Anna Isaque",
+    badge: "Acabou de Comprar e Recebeu",
+    imagem: "/colorindo-silabas/Tati-1.png",
+    tempo: "Há 1 semana",
+  },
+  {
+    nome: "Vanessa de Souza",
+    badge: "Muito Satisfeita",
+    imagem: "/colorindo-silabas/Vanessa-2.png",
+    tempo: "Há 2 semanas",
+  },
   {
     nome: "Suely Amaral",
+    badge: "Comprei e Gostei",
     imagem: "/colorindo-silabas/Screenshot_1-1.png",
-    texto: "Comprei e gostei. Muito bom!",
+    tempo: "Há 3 semanas",
   },
   {
     nome: "Jo Pimentinha",
+    badge: "Vale Super a Pena",
     imagem: "/colorindo-silabas/Jo-1.png",
-    texto: "Eu comprei vale super a pena, acabei de comprar, só imprimir e dar pra minha filha usar.",
-  },
-  {
-    nome: "Adriana",
-    imagem: "/colorindo-silabas/adri-1.png",
-    texto: "Acabei de adquirir amei gente tem muita atividade ela vai adorar!",
+    tempo: "Há 2 semanas",
   },
   {
     nome: "Dani Cake",
+    badge: "Aprovado em PDF",
     imagem: "/colorindo-silabas/Imagem-sem-titulo-1.png",
-    texto: "Acabei de adquirir super indico, são todos em pdf você consegue baixar e imprimir.",
-  },
-  {
-    nome: "Glisia Dias",
-    imagem: "/colorindo-silabas/Dias-1.png",
-    texto: "Acabei de comprar. Material maravilhoso, gostei muito.",
-  },
-  {
-    nome: "Meiri Assunção",
-    imagem: "/colorindo-silabas/Meiri-1.png",
-    texto: "Eu comprei chegou direitinho.",
-  },
-  {
-    nome: "Edna Cavalcante",
-    imagem: "/colorindo-silabas/Edina-1.png",
-    texto: "Beleza amei!",
-  },
-  {
-    nome: "R. Cardoso",
-    imagem: "/colorindo-silabas/cardoso-1.png",
-    texto: "É muito bacana. Eu amei #Recomendo.",
+    tempo: "Há 1 mês",
   },
 ];
 
-const FAQS = [const FAQS = [
+const FAQS = [const FAQS = [const FAQS = [
   {
     pergunta: "Quais as Formas de Pagamento?",
     resposta:
@@ -327,7 +285,6 @@ function PaginaColorindoAsSilabas() {
   );
   const [segundosRestantes, setSegundosRestantes] = useState(15 * 60);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
-  const [mostrarMaisDepoimentos, setMostrarMaisDepoimentos] = useState(false);
   const [checkoutUrlFinal, setCheckoutUrlFinal] = useState(CHECKOUT_BASE_URL);
 
   useEffect(() => {
@@ -477,185 +434,86 @@ function PaginaColorindoAsSilabas() {
             </p>
           </div>
 
-          {/* Selo Satisfação Garantida / Acesso Imediato */}
-          <div className="mt-6 max-w-[540px] w-full">
-            <img
-              src="/colorindo-silabas/Satisfacao-Garantida-Acesso-Imediato-1.png"
-              alt="Satisfação Garantida e Acesso Imediato"
-              className="w-full h-auto mx-auto object-contain"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Faixa Rosa: 1° Ano */}
-      <section className="bg-[#FF6799] py-4 text-center">
-        <h2 className="text-white text-2xl sm:text-4xl font-extrabold tracking-wide">
-          INDICADO PARA CRIANÇAS DE 5 A 8 ANOS (1° ANO)
-        </h2>
-      </section>
-
-      {/* Exemplos de Atividades */}
-      <section className="py-14 px-4 bg-white text-center overflow-hidden">
-        <div className="max-w-4xl mx-auto mb-10">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222]">
-            Exemplos Reais das Atividades
-          </h2>
-
-          <p className="mt-4 text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
-            Com o método de <b>Pintura por Código de Sílabas</b>, a criança
-            aprende a reconhecer e juntar as sílabas simples enquanto colore,
-            desenvolvendo leitura, atenção, concentração e coordenação motora sem
-            choro na hora da tarefa.
-          </p>
-
-          <div className="mt-5 inline-block">
-            <h3 className="text-xl sm:text-2xl font-bold text-[#333333]">
-              <span className="bg-[#FFE6A3] font-black px-2 py-0.5 rounded">
-                4 Cadernos Completos (Mais de 490 Páginas)
-              </span>{" "}
-              prontos para imprimir em folha A4
-            </h3>
-          </div>
-        </div>
-
-        {/* Carrossel 1 (Direção Esquerda) */}
-        <div className="relative w-full overflow-hidden mb-6 py-2">
-          <div className="flex gap-4 w-max animate-scroll-left hover:[animation-play-state:paused]">
-            {[...CARROSSEL_1, ...CARROSSEL_1].map((src, index) => (
-              <div
-                key={`c1-${index}`}
-                className="w-44 sm:w-56 md:w-64 flex-shrink-0 bg-white rounded-xl shadow-md border border-gray-100 p-2 overflow-hidden transition-transform hover:scale-105"
-              >
-                <img
-                  src={src}
-                  alt={`Atividade Exemplo ${index + 1}`}
-                  className="w-full h-auto object-cover rounded-lg"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Carrossel 2 (Direção Direita) */}
-        <div className="relative w-full overflow-hidden mb-12 py-2">
-          <div className="flex gap-4 w-max animate-scroll-right hover:[animation-play-state:paused]">
-            {[...CARROSSEL_2, ...CARROSSEL_2].map((src, index) => (
-              <div
-                key={`c2-${index}`}
-                className="w-44 sm:w-56 md:w-64 flex-shrink-0 bg-white rounded-xl shadow-md border border-gray-100 p-2 overflow-hidden transition-transform hover:scale-105"
-              >
-                <img
-                  src={src}
-                  alt={`Silabário Exemplo ${index + 1}`}
-                  className="w-full h-auto object-cover rounded-lg"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Seção Mestre de Depoimentos e Prova Social (CRO Kevano - Prova Social de Alta Conversão) */}
-      <section className="py-16 px-4 bg-gradient-to-b from-white via-[#FFFBF5] to-white text-center border-y border-amber-100/60">
-        <div className="max-w-6xl mx-auto">
-          {/* Badge de Autoridade e Confiança */}
-          <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-extrabold px-4 py-2 rounded-full mb-4 border border-emerald-200 shadow-sm">
-            <span className="flex text-amber-500 font-black">
-              ★★★★★
-            </span>
-            <span>4.9 / 5.0 (Mais de 1.840 mães e educadoras satisfeitas)</span>
+          {/* Seção Mestre de Depoimentos em Carrossel Fluido (CRO Kevano) */}
+      <section className="py-14 px-4 bg-gradient-to-b from-[#FFFDF9] via-white to-[#FFFDF9] text-center overflow-hidden border-y border-amber-100/70">
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-extrabold px-4 py-1.5 rounded-full mb-3 border border-emerald-200 shadow-sm">
+            <span className="text-amber-500 font-black">★★★★★</span>
+            <span>4.9 / 5.0 (Mais de 1.840 avaliações de mães reais)</span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] mb-3 leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#222222] tracking-tight">
             Quem Já Aplicou Com Seus Pequenos Recomenda
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Veja relatos e prints 100% reais de mães e professoras que tiraram as crianças das telas e destravam a leitura todos os dias:
+          <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-xl mx-auto">
+            Veja o retorno real de mães e educadoras que destravam as sílabas com nossas atividades no dia a dia:
           </p>
+        </div>
 
-          {/* Grid de Cards de Alta Conversão */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-            {DEPOIMENTOS_TOP.map((dep, idx) => (
+        {/* Linha 1 de Carrossel de Depoimentos (Deslizando para a Esquerda) */}
+        <div className="relative w-full overflow-hidden mb-4 py-1">
+          <div className="flex gap-4 w-max animate-scroll-left hover:[animation-play-state:paused] active:[animation-play-state:paused]">
+            {[...DEPOIMENTOS_CARROSSEL_1, ...DEPOIMENTOS_CARROSSEL_1].map((dep, idx) => (
               <div
-                key={idx}
-                className="bg-white rounded-2xl p-5 border border-amber-200/80 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+                key={`dc1-${idx}`}
+                className="w-72 sm:w-80 flex-shrink-0 bg-white rounded-2xl p-4 shadow-sm border border-gray-200/80 flex flex-col justify-between text-left transition-transform hover:scale-[1.02]"
               >
                 <div>
-                  {/* Cabeçalho do Card: Estrelas + Selo Verificado */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex text-amber-400 text-sm tracking-wider font-bold">
-                      ★★★★★
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-amber-400 text-xs font-black tracking-wider">★★★★★</div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                       {dep.badge}
                     </span>
                   </div>
-
-                  {/* Citação em Destaque */}
-                  <p className="text-xs sm:text-sm font-semibold text-gray-800 leading-snug mb-4 italic bg-amber-50/60 p-3 rounded-xl border-l-4 border-amber-400">
-                    {dep.destaque}
-                  </p>
-
-                  {/* Print Real do Comentário */}
-                  <div className="rounded-xl overflow-hidden border border-gray-200/80 bg-gray-50/60 p-2.5 flex items-center justify-center min-h-[64px]">
+                  <div className="bg-gray-50 rounded-xl p-2 border border-gray-100 flex items-center justify-center min-h-[58px] mb-2">
                     <img
                       src={dep.imagem}
-                      alt={`Depoimento real de ${dep.nome}`}
-                      className="w-full h-auto max-h-24 object-contain rounded"
+                      alt={`Depoimento de ${dep.nome}`}
+                      className="w-full h-auto max-h-16 object-contain rounded"
                       loading="lazy"
                     />
                   </div>
                 </div>
-
-                {/* Rodapé com Nome e Perfil da Mãe */}
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                  <div className="font-bold text-gray-800">{dep.nome}</div>
-                  <div className="text-[11px] text-gray-400">{dep.tempo}</div>
+                <div className="flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-gray-100">
+                  <span className="font-bold text-gray-800">{dep.nome}</span>
+                  <span className="text-gray-400">{dep.tempo}</span>
                 </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Botão para Expandir Outros Depoimentos */}
-          <div className="mt-8">
-            <button
-              type="button"
-              onClick={() => setMostrarMaisDepoimentos(!mostrarMaisDepoimentos)}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold text-[#222222] bg-white hover:bg-gray-50 px-5 py-2.5 rounded-full border border-gray-300 shadow-sm transition"
-            >
-              <span>{mostrarMaisDepoimentos ? "Ocultar outros relatos" : "Ver outros 8 relatos e prints de mães"}</span>
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${mostrarMaisDepoimentos ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-
-          {/* Bloco Expandido */}
-          {mostrarMaisDepoimentos && (
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-left">
-              {DEPOIMENTOS_EXTRAS.map((extra, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white rounded-xl p-3 border border-gray-200 shadow-sm flex flex-col justify-between"
-                >
-                  <div className="mb-2">
-                    <div className="flex text-amber-400 text-xs mb-1 font-bold">★★★★★</div>
-                    <p className="text-xs text-gray-700 italic">“{extra.texto}”</p>
+        {/* Linha 2 de Carrossel de Depoimentos (Deslizando para a Direita) */}
+        <div className="relative w-full overflow-hidden mb-4 py-1">
+          <div className="flex gap-4 w-max animate-scroll-right hover:[animation-play-state:paused] active:[animation-play-state:paused]">
+            {[...DEPOIMENTOS_CARROSSEL_2, ...DEPOIMENTOS_CARROSSEL_2].map((dep, idx) => (
+              <div
+                key={`dc2-${idx}`}
+                className="w-72 sm:w-80 flex-shrink-0 bg-white rounded-2xl p-4 shadow-sm border border-gray-200/80 flex flex-col justify-between text-left transition-transform hover:scale-[1.02]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-amber-400 text-xs font-black tracking-wider">★★★★★</div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      {dep.badge}
+                    </span>
                   </div>
-                  <div className="bg-gray-50 rounded p-1.5 border border-gray-100 flex items-center justify-center">
+                  <div className="bg-gray-50 rounded-xl p-2 border border-gray-100 flex items-center justify-center min-h-[58px] mb-2">
                     <img
-                      src={extra.imagem}
-                      alt={`Comentário de ${extra.nome}`}
-                      className="max-h-16 w-auto object-contain rounded"
+                      src={dep.imagem}
+                      alt={`Depoimento de ${dep.nome}`}
+                      className="w-full h-auto max-h-16 object-contain rounded"
                       loading="lazy"
                     />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-gray-100">
+                  <span className="font-bold text-gray-800">{dep.nome}</span>
+                  <span className="text-gray-400">{dep.tempo}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
